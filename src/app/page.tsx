@@ -5,6 +5,7 @@ import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 
 interface SiteStats {
   totalPlayers: number;
@@ -23,10 +24,17 @@ export default function HomePage() {
       .catch(() => {});
 
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
-    fetch(`${socketUrl}/stats`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => d && setOnlinePlayers(d.onlinePlayers))
-      .catch(() => {});
+    const socket = io(socketUrl, {
+      transports: ["websocket", "polling"],
+    });
+
+    socket.on("online_players_count", (count: number) => {
+      setOnlinePlayers(count);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   return (

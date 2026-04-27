@@ -59,6 +59,7 @@ export interface ServerToClientEvents {
   move_made: (data: { move: CaroMove; gameState: CaroGameState }) => void;
   game_over: (data: { winner: string | null; gameState: CaroGameState }) => void;
   error: (data: { message: string }) => void;
+  online_players_count: (count: number) => void;
 }
 
 /** Internal server-to-server events (for scaling with Redis adapter later) */

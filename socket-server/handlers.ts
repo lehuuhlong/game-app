@@ -33,6 +33,7 @@ function createInitialGameState(): CaroGameState {
 export function registerSocketHandlers(io: GameIO): void {
   io.on("connection", (socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
+    io.emit("online_players_count", io.engine.clientsCount);
 
     // ── Join Room ────────────────────────────────────────────────
     socket.on("join_room", ({ roomId, gameType, username }) => {
@@ -145,6 +146,7 @@ export function registerSocketHandlers(io: GameIO): void {
 
     socket.on("disconnect", () => {
       console.log(`🔌 Client disconnected: ${socket.id}`);
+      io.emit("online_players_count", io.engine.clientsCount);
       const roomId = socket.data.currentRoom;
       if (roomId) handleLeaveRoom(socket, roomId, io);
     });
