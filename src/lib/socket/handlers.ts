@@ -136,9 +136,26 @@ export function registerSocketHandlers(io: GameIO): void {
         move,
         gameState: { ...gameState },
       });
+    });
 
-      // Note: Win detection is handled client-side for responsiveness.
-      // The server tracks state for reconnection & anti-cheat purposes.
+    // ── Turn Timeout ─────────────────────────────────────────────
+    socket.on("timeout_turn", ({ roomId, losingPlayer }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.status !== "playing") return;
+
+      const gameState = gameStates.get(roomId);
+      if (!gameState) return;
+
+      room.status = "finished";
+      const winner = losingPlayer === "X" ? "O" : "X";
+      gameState.winner = winner;
+
+      io.to(roomId).emit("game_over", {
+        winner,
+        gameState: { ...gameState },
+      });
+
+      console.log(`⏱ Timeout in room ${roomId}: ${losingPlayer} loses`);
     });
 
     // ── Restart Game ────────────────────────────────────────────

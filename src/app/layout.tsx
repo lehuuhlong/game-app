@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Navbar, Footer, ThemeProvider } from "@/components/shared";
+import { AuthProvider } from "@/components/auth";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -55,9 +56,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col antialiased">
         <ThemeProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <AuthProvider>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

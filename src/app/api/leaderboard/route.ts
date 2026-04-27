@@ -24,14 +24,14 @@ export async function GET(request: Request) {
 
     if (game === "2048") {
       sortField = "bestScores.2048";
-      selectFields = "username avatarUrl bestScores.2048 stats.gamesPlayed";
+      selectFields = "username nickname avatarUrl bestScores.2048 stats.gamesPlayed";
     } else if (game === "caro") {
       sortField = "bestScores.caro";
-      selectFields = "username avatarUrl bestScores.caro stats.gamesPlayed stats.gamesWon";
+      selectFields = "username nickname avatarUrl bestScores.caro stats.gamesPlayed stats.gamesWon";
     } else {
       // Overall leaderboard by total score
       sortField = "stats.totalScore";
-      selectFields = "username avatarUrl stats bestScores";
+      selectFields = "username nickname avatarUrl stats bestScores";
     }
 
     const leaderboard = await User.find()

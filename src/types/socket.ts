@@ -47,6 +47,7 @@ export interface ClientToServerEvents {
   leave_room: (data: { roomId: string }) => void;
   make_move: (data: CaroMove) => void;
   restart_game: (data: { roomId: string }) => void;
+  timeout_turn: (data: { roomId: string; losingPlayer: "X" | "O" }) => void;
 }
 
 /** Events the server can emit to clients */
