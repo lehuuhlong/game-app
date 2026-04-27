@@ -1,10 +1,11 @@
 /**
  * PATCH /api/users/[id]/score
  *
- * Updates a user's best score for a specific game and increments gamesPlayed.
- * Only updates bestScore if the new score is higher than the existing one.
+ * 2048: only updates bestScore2048 if new score is higher.
+ * Caro: increments caroTotal, and caroWins if won=true.
  *
- * Body: { game: "2048" | "caro", score: number }
+ * Body (2048): { game: "2048", score: number }
+ * Body (caro): { game: "caro", won: boolean }
  */
 
 import { NextResponse } from "next/server";
@@ -18,37 +19,39 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { game, score } = body;
+    const { game } = body;
 
     if (!game || !["2048", "caro"].includes(game)) {
       return NextResponse.json({ error: "Invalid game type" }, { status: 400 });
     }
-    if (typeof score !== "number" || score < 0) {
-      return NextResponse.json({ error: "Invalid score" }, { status: 400 });
-    }
 
     await dbConnect();
-
     const user = await User.findById(id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Increment gamesPlayed and totalScore
-    user.stats.gamesPlayed += 1;
-    user.stats.totalScore += score;
-
-    // Only update bestScore if this run is better
-    const currentBest = user.bestScores[game as "2048" | "caro"] || 0;
-    if (score > currentBest) {
-      user.bestScores[game as "2048" | "caro"] = score;
+    if (game === "2048") {
+      const { score } = body;
+      if (typeof score !== "number" || score < 0) {
+        return NextResponse.json({ error: "Invalid score" }, { status: 400 });
+      }
+      // Only keep best score
+      if (score > user.bestScore2048) {
+        user.bestScore2048 = score;
+      }
+    } else if (game === "caro") {
+      const { won } = body;
+      user.caroTotal += 1;
+      if (won === true) user.caroWins += 1;
     }
 
     await user.save();
 
     return NextResponse.json({
-      bestScores: user.bestScores,
-      stats: user.stats,
+      bestScore2048: user.bestScore2048,
+      caroWins: user.caroWins,
+      caroTotal: user.caroTotal,
     });
   } catch (error) {
     console.error("PATCH /api/users/[id]/score error:", error);

@@ -4,8 +4,31 @@ import { GAMES } from "@/config/games";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+
+interface SiteStats {
+  totalPlayers: number;
+  bestScore2048: number;
+  caroMatches: number;
+}
 
 export default function HomePage() {
+  const [stats, setStats] = useState<SiteStats | null>(null);
+  const [onlinePlayers, setOnlinePlayers] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => d && setStats(d))
+      .catch(() => {});
+
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
+    fetch(`${socketUrl}/stats`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => d && setOnlinePlayers(d.onlinePlayers))
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="relative overflow-hidden">
       {/* ── Background Orbs ──────────────────────────────────────── */}
@@ -104,29 +127,31 @@ export default function HomePage() {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             }
-            label="Online Players"
-            value="—"
+            label="Total Players"
+            value={stats ? stats.totalPlayers.toLocaleString() : "…"}
             delay={0.2}
           />
           <StatCard
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="3" />
               </svg>
             }
-            label="Matches Played"
-            value="—"
+            label="Online Players"
+            value={onlinePlayers !== null ? onlinePlayers.toLocaleString() : "…"}
             delay={0.3}
           />
           <StatCard
             icon={
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="6" y1="6" x2="10" y2="10" />
+                <line x1="10" y1="6" x2="6" y2="10" />
+                <circle cx="16" cy="16" r="3" />
               </svg>
             }
-            label="Coming Soon"
-            value="Socket.io"
+            label="Caro Matches"
+            value={stats ? stats.caroMatches.toLocaleString() : "…"}
             delay={0.4}
           />
         </div>

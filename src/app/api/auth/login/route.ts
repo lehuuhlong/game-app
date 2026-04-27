@@ -14,6 +14,17 @@ function validateUsername(username: string) {
   return null;
 }
 
+function toClientUser(user: InstanceType<typeof User>) {
+  return {
+    id: user._id.toString(),
+    username: user.username,
+    avatarUrl: user.avatarUrl ?? null,
+    bestScore2048: user.bestScore2048 ?? 0,
+    caroWins: user.caroWins ?? 0,
+    caroTotal: user.caroTotal ?? 0,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const { username } = await request.json();
@@ -29,14 +40,7 @@ export async function POST(request: Request) {
       user = await User.create({ username: cleanUsername });
     }
 
-    return NextResponse.json({
-      user: {
-        id: user._id.toString(),
-        username: user.username,
-        stats: user.stats,
-        bestScores: user.bestScores,
-      },
-    });
+    return NextResponse.json({ user: toClientUser(user) });
   } catch (error) {
     console.error("POST /api/auth/login error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -68,14 +72,7 @@ export async function PATCH(request: Request) {
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    return NextResponse.json({
-      user: {
-        id: user._id.toString(),
-        username: user.username,
-        stats: user.stats,
-        bestScores: user.bestScores,
-      },
-    });
+    return NextResponse.json({ user: toClientUser(user) });
   } catch (error) {
     console.error("PATCH /api/auth/login error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

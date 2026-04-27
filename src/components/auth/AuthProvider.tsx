@@ -12,8 +12,10 @@ import {
 export interface AuthUser {
   id: string;
   username: string;
-  stats: { gamesPlayed: number; gamesWon: number; totalScore: number };
-  bestScores: { "2048": number; caro: number };
+  avatarUrl: string | null;
+  bestScore2048: number;
+  caroWins: number;
+  caroTotal: number;
 }
 
 interface AuthContextValue {
@@ -22,6 +24,8 @@ interface AuthContextValue {
   login: (username: string) => Promise<{ error?: string }>;
   logout: () => void;
   changeUsername: (newUsername: string) => Promise<{ error?: string }>;
+  updateAvatar: (avatarUrl: string) => Promise<{ error?: string }>;
+  refreshUser: (updates: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     finally { setIsLoading(false); }
   }, []);
 
+  const persistUser = useCallback((u: AuthUser) => {
+    setUser(u);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+  }, []);
+
   const login = useCallback(async (username: string): Promise<{ error?: string }> => {
     try {
       const res = await fetch("/api/auth/login", {
@@ -48,14 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error || "Login failed" };
-
-      setUser(data.user);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+      persistUser(data.user);
       return {};
     } catch {
       return { error: "Network error. Please try again." };
     }
-  }, []);
+  }, [persistUser]);
 
   const changeUsername = useCallback(async (newUsername: string): Promise<{ error?: string }> => {
     if (!user) return { error: "Not logged in" };
@@ -67,14 +74,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const data = await res.json();
       if (!res.ok) return { error: data.error || "Failed to change username" };
-
-      setUser(data.user);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+      persistUser(data.user);
       return {};
     } catch {
       return { error: "Network error. Please try again." };
     }
-  }, [user]);
+  }, [user, persistUser]);
+
+  const updateAvatar = useCallback(async (avatarUrl: string): Promise<{ error?: string }> => {
+    if (!user) return { error: "Not logged in" };
+    try {
+      const res = await fetch(`/api/users/${user.id}/avatar`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || "Failed to update avatar" };
+      persistUser({ ...user, avatarUrl: data.avatarUrl });
+      return {};
+    } catch {
+      return { error: "Network error. Please try again." };
+    }
+  }, [user, persistUser]);
+
+  const refreshUser = useCallback((updates: Partial<AuthUser>) => {
+    if (!user) return;
+    persistUser({ ...user, ...updates });
+  }, [user, persistUser]);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -82,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, changeUsername }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, changeUsername, updateAvatar, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

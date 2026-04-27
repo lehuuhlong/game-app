@@ -90,19 +90,44 @@ export function GameCaro() {
     return socketRef.current;
   }, []);
 
+  const saveCaro = useCallback((won: boolean) => {
+    try {
+      const stored = localStorage.getItem("game-portal-user");
+      if (!stored) return;
+      const u = JSON.parse(stored);
+      if (!u?.id) return;
+      fetch(`/api/users/${u.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: "caro", won }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.caroWins !== undefined) {
+            u.caroWins = d.caroWins;
+            u.caroTotal = d.caroTotal;
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          }
+        })
+        .catch(() => {});
+    } catch { /* ignore */ }
+  }, []);
+
   const handleGameOver = useCallback((winnerSymbol: string | null, isTimeout = false) => {
     stopTimer();
     setScreen("finished");
 
     if (!winnerSymbol || winnerSymbol === "draw") {
       setWinnerMsg("🤝 It's a draw!");
+      saveCaro(false);
       return;
     }
 
     const isMe = winnerSymbol === mySymbolRef.current;
     const suffix = isTimeout ? " (Time out)" : "";
-    setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose {suffix}`);
-  }, [stopTimer]);
+    setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
+    saveCaro(isMe);
+  }, [stopTimer, saveCaro]);
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")

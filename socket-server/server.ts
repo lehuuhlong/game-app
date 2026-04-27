@@ -30,6 +30,12 @@ const io = new SocketIOServer(httpServer, {
   transports: ["websocket", "polling"],
 });
 
+// Stats endpoint for the frontend
+app.get("/stats", (_req, res) => {
+  const onlinePlayers = io.engine.clientsCount;
+  res.json({ onlinePlayers });
+});
+
 registerSocketHandlers(io as any);
 
 // ── Start ────────────────────────────────────────────────────────────

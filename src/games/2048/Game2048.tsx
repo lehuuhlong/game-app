@@ -47,7 +47,24 @@ export function Game2048() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game: "2048", score }),
-    }).catch((err) => console.error("Failed to save score:", err));
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.bestScore2048 !== undefined) {
+          // Refresh cached user so Navbar shows updated best score
+          import("@/components/auth").then(({ useAuth: _unused }) => {});
+          // We write directly to localStorage to update without re-render loop
+          try {
+            const stored = localStorage.getItem("game-portal-user");
+            if (stored) {
+              const u = JSON.parse(stored);
+              u.bestScore2048 = d.bestScore2048;
+              localStorage.setItem("game-portal-user", JSON.stringify(u));
+            }
+          } catch { /* ignore */ }
+        }
+      })
+      .catch((err) => console.error("Failed to save score:", err));
   }, [gameStatus, score, user]);
 
   const handleRestart = useCallback(() => {
