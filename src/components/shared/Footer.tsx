@@ -35,7 +35,7 @@ export function Footer() {
               Leaderboard
             </Link>
             <a
-              href="https://github.com"
+              href="https://github.com/lehuuhlong"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
@@ -46,7 +46,7 @@ export function Footer() {
 
           {/* Right: copyright */}
           <p className="text-xs text-foreground-muted">
-            © {new Date().getFullYear()} GamePortal. Built with Next.js.
+            © {new Date().getFullYear()} GamePortal. Copy Right by LE HUU HOANG LONG.
           </p>
         </div>
       </div>

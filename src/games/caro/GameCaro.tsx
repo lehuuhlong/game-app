@@ -99,12 +99,10 @@ export function GameCaro() {
       return;
     }
 
-    const winnerIdx = winnerSymbol === "X" ? 0 : 1;
-    const winnerName = players[winnerIdx]?.username ?? winnerSymbol;
     const isMe = winnerSymbol === mySymbolRef.current;
-    const suffix = isTimeout ? " (timeout)" : "";
-    setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 ${winnerName} wins${suffix}`);
-  }, [players, stopTimer]);
+    const suffix = isTimeout ? " (Time out)" : "";
+    setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose {suffix}`);
+  }, [stopTimer]);
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")
