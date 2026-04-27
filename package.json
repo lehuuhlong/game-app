@@ -1,14 +1,14 @@
 {
-  "name": "game-app",
-  "version": "0.1.0",
+  "name": "game-portal",
+  "version": "1.0.0",
+  "description": "A modern gaming portal featuring classic games like 2048 and online multiplayer Caro (Gomoku).",
   "private": true,
+  "author": "Hoang Long",
   "scripts": {
     "dev": "next dev",
-    "dev:custom": "tsx watch server.mts",
     "build": "next build",
     "start": "next start",
-    "start:custom": "NODE_ENV=production tsx server.mts",
-    "lint": "eslint"
+    "lint": "next lint"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",
@@ -16,7 +16,6 @@
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "zustand": "^5.0.12"
   },
@@ -28,7 +27,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

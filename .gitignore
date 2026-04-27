@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# socket-server (Railway deployment)
+/socket-server/node_modules
+/socket-server/dist
+
+# keep .env.example but ignore all other .env files
+!.env.example

@@ -81,7 +81,9 @@ export function GameCaro() {
 
   const getSocket = useCallback((): Socket => {
     if (!socketRef.current || !socketRef.current.connected) {
-      socketRef.current = io(window.location.origin, {
+      const socketUrl =
+        process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
+      socketRef.current = io(socketUrl, {
         transports: ["websocket", "polling"],
       });
     }
