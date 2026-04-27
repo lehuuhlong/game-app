@@ -13,7 +13,7 @@
 import { createServer } from "http";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
-import { registerSocketHandlers } from "./src/lib/socket/handlers.js";
+import * as socketHandlers from "./src/lib/socket/handlers";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -38,7 +38,7 @@ app.prepare().then(() => {
   });
 
   // Register all game-specific socket event handlers
-  registerSocketHandlers(io);
+  (socketHandlers as any).default.registerSocketHandlers(io);
 
   // ── Start ─────────────────────────────────────────────────────
   httpServer.listen(port, () => {
