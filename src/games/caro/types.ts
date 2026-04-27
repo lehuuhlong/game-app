@@ -1,5 +1,5 @@
 /**
- * Caro (Gomoku) type definitions.
+ * Caro type definitions.
  */
 
 export type CellValue = "X" | "O" | null;

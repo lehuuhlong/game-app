@@ -47,10 +47,10 @@ export function LoginModal({
         className="relative w-full max-w-sm mx-4"
       >
         <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
-          <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+          <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500" />
           <div className="p-8">
             {/* Icon */}
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-lg">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -89,7 +89,7 @@ export function LoginModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 text-sm font-bold text-white shadow-lg hover:from-indigo-600 hover:to-purple-700 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:pointer-events-none"
+                className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:pointer-events-none"
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center gap-2">

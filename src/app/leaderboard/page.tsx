@@ -213,7 +213,7 @@ export default function LeaderboardPage() {
 
                   {/* Player */}
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-xs font-bold text-white">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-500 text-xs font-bold text-white">
                       {entry.username[0].toUpperCase()}
                     </div>
                     <span className="text-sm font-semibold text-foreground truncate">

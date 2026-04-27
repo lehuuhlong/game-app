@@ -289,9 +289,7 @@ export function GameCaro() {
       <div className="flex flex-col items-center gap-6 mx-auto max-w-5xl">
         {/* Header */}
         <div className="w-full text-center sm:text-left">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">
-            Caro <span className="text-gradient">(Gomoku)</span>
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">Caro</h1>
           <p className="text-sm text-foreground-secondary mt-0.5">
             5 in a row to win — online multiplayer • {TURN_SECONDS}s per turn
           </p>
@@ -307,7 +305,7 @@ export function GameCaro() {
             <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
               <h2 className="text-lg font-bold text-foreground">Create a Room</h2>
               <p className="text-sm text-foreground-secondary">Start a new game and share the room code with your friend.</p>
-              <button onClick={handleCreateRoom} className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 py-3 text-sm font-bold text-white hover:from-indigo-600 hover:to-purple-700 hover:-translate-y-0.5 transition-all shadow-lg">
+              <button onClick={handleCreateRoom} className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 transition-all shadow-lg">
                 Create Room
               </button>
             </div>
@@ -385,7 +383,7 @@ export function GameCaro() {
                     <div className="text-center space-y-4 p-8">
                       <p className="text-3xl font-extrabold text-foreground">{winnerMsg}</p>
                       <div className="flex gap-3 justify-center">
-                        <button onClick={handleRematch} className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-2.5 text-sm font-bold text-white hover:from-indigo-600 hover:to-purple-700 transition-all">
+                        <button onClick={handleRematch} className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 transition-all">
                           Rematch
                         </button>
                         <button onClick={handleLeaveRoom} className="rounded-xl border border-border px-6 py-2.5 text-sm font-semibold text-foreground-secondary hover:bg-surface-hover transition-all">

@@ -1,5 +1,5 @@
 /**
- * useCaroLogic — custom hook for Caro (Gomoku) game mechanics.
+ * useCaroLogic — custom hook for Caro game mechanics.
  *
  * Features:
  * - Configurable grid size (default 15×15)

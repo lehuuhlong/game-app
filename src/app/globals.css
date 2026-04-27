@@ -14,10 +14,10 @@
   --foreground-secondary: #475569;
   --foreground-muted: #94a3b8;
 
-  /* Accents */
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-light: #e0e7ff;
+  /* Accents (Blue/Sky) */
+  --accent: #3b82f6; /* blue-500 */
+  --accent-hover: #2563eb; /* blue-600 */
+  --accent-light: #e0f2fe; /* sky-100 */
 
   /* Borders */
   --border: #e2e8f0;
@@ -36,9 +36,9 @@
   --glass-blur: 16px;
 
   /* Gradients */
-  --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-hero: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%);
   --gradient-card-1: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-  --gradient-card-2: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  --gradient-card-2: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
 
   /* Misc */
   --radius: 16px;
@@ -59,9 +59,9 @@
   --foreground-secondary: #94a3b8;
   --foreground-muted: #64748b;
 
-  --accent: #818cf8;
-  --accent-hover: #6366f1;
-  --accent-light: #1e1b4b;
+  --accent: #60a5fa; /* blue-400 */
+  --accent-hover: #3b82f6; /* blue-500 */
+  --accent-light: #082f49; /* sky-900 */
 
   --border: #1e293b;
   --border-hover: #334155;
@@ -70,7 +70,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.5);
-  --shadow-glow: 0 0 60px rgb(129 140 248 / 0.2);
+  --shadow-glow: 0 0 60px rgb(56 189 248 / 0.2);
 
   --glass-bg: rgba(17, 24, 39, 0.7);
   --glass-border: rgba(30, 41, 59, 0.5);
@@ -138,7 +138,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+  background: linear-gradient(135deg, #38bdf8, #3b82f6, #60a5fa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -163,7 +163,7 @@ body {
 .bg-orb-1 {
   width: 500px;
   height: 500px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #38bdf8, #3b82f6);
   top: -10%;
   left: -5%;
   animation-delay: 0s;
@@ -181,7 +181,7 @@ body {
 .bg-orb-3 {
   width: 350px;
   height: 350px;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  background: linear-gradient(135deg, #22d3ee, #3b82f6);
   bottom: -10%;
   left: 30%;
   animation-delay: -5s;

@@ -2,9 +2,9 @@ import { GameCaro } from "@/games/caro";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Caro (Gomoku) — Game Portal",
+  title: "Caro — Game Portal",
   description:
-    "Play Caro / Gomoku — the classic 5-in-a-row strategy game. Challenge a friend locally on a 15×15 board!",
+    "Play Caro — 5-in-a-row strategy game. Challenge a friend online!",
 };
 
 export default function CaroPage() {

@@ -36,7 +36,7 @@ export const GAMES: GameInfo[] = [
   },
   {
     id: "caro",
-    title: "Caro (Gomoku)",
+    title: "Caro",
     description:
       "A classic 5-in-a-row strategy game. Play locally with a friend or compete online in real-time.",
     thumbnail: "/games/caro/thumbnail.png",
