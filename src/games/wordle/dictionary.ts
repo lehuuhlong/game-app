@@ -15,6 +15,7 @@ export const SOLUTION_WORDS: string[] = [
   "GAMER", "JOKER", "QUEEN", "BLAZE", "STORM",
   "NINJA", "CYBER", "DRONE", "LASER", "TURBO",
   "SONIC", "DELTA", "OMEGA", "ALPHA", "SIGMA",
+  "KYOTO", "OSAKA", "BEPPU", "NAGOYA",
 
   // ── Common 5-letter English words ────────────────────────────
   "CRANE", "SLATE", "TRACE", "CRATE", "STARE",
