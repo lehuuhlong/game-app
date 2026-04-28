@@ -255,18 +255,6 @@ export function useWordle() {
     }
 
     submitGuess();
-
-    // Check post-submit for win/loss toast (need a microtask delay to read new state)
-    setTimeout(() => {
-      setState((prev) => {
-        if (prev.gameStatus === "won") {
-          showToast("🎉 Brilliant!", 3000);
-        } else if (prev.gameStatus === "lost") {
-          showToast(`The word was ${prev.solution}`, 4000);
-        }
-        return prev;
-      });
-    }, 0);
   }, [state, submitGuess, showToast]);
 
   // ── Keyboard handler ────────────────────────────────────────────

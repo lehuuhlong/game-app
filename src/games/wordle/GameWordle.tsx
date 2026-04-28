@@ -79,48 +79,20 @@ export function GameWordle() {
       </div>
 
       {/* ── Toast Notification ────────────────────────────────── */}
-      <div className="flex items-center justify-center">
-        <AnimatePresence>
-          {toast && (
-            <motion.div
-              key={toast}
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="absolute px-4 py-1.5 rounded-lg bg-foreground text-background text-sm font-semibold shadow-lg"
-            >
-              {toast}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ── Letter Grid (6 rows × 5 columns) ─────────────────── */}
-      <div className="flex flex-col gap-1.5">
-        {guesses.map((row, rowIndex) => {
-          const isEvaluated = rowIndex < currentRow;
-          const isActive = rowIndex === currentRow;
-
-          return (
-            <motion.div
-              key={rowIndex}
-              className="flex gap-1.5"
-              animate={undefined}
-            >
-              {row.map((tile, colIndex) => (
-                <WordleTile
-                  key={`${rowIndex}-${colIndex}`}
-                  tile={tile}
-                  index={colIndex}
-                  isEvaluated={isEvaluated}
-                  isActive={isActive}
-                />
-              ))}
-            </motion.div>
-          );
-        })}
-      </div>
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute px-4 py-1.5 rounded-lg bg-foreground text-background text-sm font-semibold shadow-lg"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Game Over Message ─────────────────────────────────── */}
       <AnimatePresence>
@@ -176,6 +148,32 @@ export function GameWordle() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Letter Grid (6 rows × 5 columns) ─────────────────── */}
+      <div className="flex flex-col gap-1.5">
+        {guesses.map((row, rowIndex) => {
+          const isEvaluated = rowIndex < currentRow;
+          const isActive = rowIndex === currentRow;
+
+          return (
+            <motion.div
+              key={rowIndex}
+              className="flex gap-1.5"
+              animate={undefined}
+            >
+              {row.map((tile, colIndex) => (
+                <WordleTile
+                  key={`${rowIndex}-${colIndex}`}
+                  tile={tile}
+                  index={colIndex}
+                  isEvaluated={isEvaluated}
+                  isActive={isActive}
+                />
+              ))}
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* ── On-Screen Keyboard ────────────────────────────────── */}
       <div className="w-full">
