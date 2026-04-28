@@ -137,27 +137,32 @@ function countSafeCells(rows: number, cols: number, mines: number): number {
   return rows * cols - mines;
 }
 
+/** Create a fresh initial state for a given difficulty */
+function createInitialState(diff: Difficulty): MinesweeperState {
+  const config = DIFFICULTY_PRESETS[diff];
+  return {
+    board: createEmptyBoard(config.rows, config.cols),
+    gameStatus: "idle",
+    difficulty: diff,
+    mineCount: config.mines,
+    flagCount: 0,
+    revealedCount: 0,
+    elapsedTime: 0,
+  };
+}
+
 // ── Hook ──────────────────────────────────────────────────────────
 
 export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
-  const [state, setState] = useState<MinesweeperState>(() => {
-    const config = DIFFICULTY_PRESETS[initialDifficulty];
-    return {
-      board: createEmptyBoard(config.rows, config.cols),
-      gameStatus: "idle",
-      difficulty: initialDifficulty,
-      mineCount: config.mines,
-      flagCount: 0,
-      revealedCount: 0,
-      elapsedTime: 0,
-    };
-  });
+  const [state, setState] = useState<MinesweeperState>(() =>
+    createInitialState(initialDifficulty)
+  );
 
   // Timer
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startTimer = useCallback(() => {
-    if (timerRef.current) return; // already running
+    if (timerRef.current) return;
     timerRef.current = setInterval(() => {
       setState((prev) => ({ ...prev, elapsedTime: prev.elapsedTime + 1 }));
     }, 1000);
@@ -170,13 +175,18 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
     }
   }, []);
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => stopTimer();
   }, [stopTimer]);
 
-  // Track whether mines have been placed (delayed until first click)
-  const minesPlacedRef = useRef(false);
+  /**
+   * Whether mines have been placed is tracked in STATE (not a ref) so
+   * the setState updater is pure and safe under React Strict Mode.
+   *
+   * We store it as a derived boolean: if gameStatus is "idle", mines
+   * have not been placed yet. Once we transition to "playing", they have.
+   * This eliminates the ref entirely and avoids the Strict Mode double-invoke bug.
+   */
 
   // ── Reveal Cell ─────────────────────────────────────────────────
 
@@ -185,24 +195,26 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
       setState((prev) => {
         if (prev.gameStatus === "won" || prev.gameStatus === "lost") return prev;
 
+        // Bounds check — safety for difficulty switch edge case
+        if (row >= prev.board.length || col >= prev.board[0].length) return prev;
+
+        // IMPORTANT: Clone the board fresh inside the updater so that
+        // React Strict Mode double-invocations each get their own copy.
         const newBoard = cloneBoard(prev.board);
         const cell = newBoard[row][col];
 
-        // Ignore flagged or already-revealed cells
         if (cell.isFlagged || cell.isRevealed) return prev;
 
-        // First click — place mines, ensuring this cell is safe
+        // First click (idle → playing): place mines, ensuring this cell is safe
         let newStatus: GameStatus = prev.gameStatus;
-        if (!minesPlacedRef.current) {
+        if (prev.gameStatus === "idle") {
           placeMines(newBoard, prev.mineCount, row, col);
           computeAdjacency(newBoard);
-          minesPlacedRef.current = true;
           newStatus = "playing";
         }
 
         // Hit a mine → game over
         if (newBoard[row][col].isMine) {
-          // Reveal ALL mines
           for (const boardRow of newBoard) {
             for (const c of boardRow) {
               if (c.isMine) c.isRevealed = true;
@@ -223,7 +235,6 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
         const config = DIFFICULTY_PRESETS[prev.difficulty];
         const totalSafe = countSafeCells(config.rows, config.cols, config.mines);
         if (newRevealedCount >= totalSafe) {
-          // Auto-flag remaining mines
           for (const boardRow of newBoard) {
             for (const c of boardRow) {
               if (c.isMine && !c.isFlagged) c.isFlagged = true;
@@ -262,7 +273,6 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
       const newBoard = cloneBoard(prev.board);
       const cell = newBoard[row][col];
 
-      // Can't flag revealed cells
       if (cell.isRevealed) return prev;
 
       cell.isFlagged = !cell.isFlagged;
@@ -285,11 +295,9 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
       const cell = prev.board[row][col];
       if (!cell.isRevealed || cell.isMine || cell.adjacentMines === 0) return prev;
 
-      // Count flags around this cell
       const neighbours = getNeighbours(prev.board, row, col);
       const flaggedCount = neighbours.filter((n) => n.isFlagged).length;
 
-      // Chord only if flag count matches the number
       if (flaggedCount !== cell.adjacentMines) return prev;
 
       const newBoard = cloneBoard(prev.board);
@@ -300,7 +308,6 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
         if (n.isFlagged || n.isRevealed) continue;
         if (newBoard[n.row][n.col].isMine) {
           hitMine = true;
-          // Reveal ALL mines
           for (const boardRow of newBoard) {
             for (const c of boardRow) {
               if (c.isMine) c.isRevealed = true;
@@ -348,18 +355,8 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
   const restart = useCallback(
     (difficulty?: Difficulty) => {
       stopTimer();
-      minesPlacedRef.current = false;
       const diff = difficulty || state.difficulty;
-      const config = DIFFICULTY_PRESETS[diff];
-      setState({
-        board: createEmptyBoard(config.rows, config.cols),
-        gameStatus: "idle",
-        difficulty: diff,
-        mineCount: config.mines,
-        flagCount: 0,
-        revealedCount: 0,
-        elapsedTime: 0,
-      });
+      setState(createInitialState(diff));
     },
     [state.difficulty, stopTimer]
   );
@@ -373,6 +370,10 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
     [restart]
   );
 
+  // ── Is the game in-progress? (for confirmation dialog) ─────────
+
+  const isGameInProgress = state.gameStatus === "playing";
+
   return {
     ...state,
     revealCell,
@@ -381,5 +382,6 @@ export function useMinesweeper(initialDifficulty: Difficulty = "beginner") {
     restart,
     changeDifficulty,
     remainingMines: state.mineCount - state.flagCount,
+    isGameInProgress,
   };
 }

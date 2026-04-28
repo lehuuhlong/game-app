@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMinesweeper } from "./useMinesweeper";
 import { MinesweeperCell } from "./MinesweeperCell";
@@ -15,18 +15,22 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-// ── Difficulty selector tab data ──────────────────────────────────
+// ── Difficulty selector tab data (derived from DIFFICULTY_PRESETS) ─
 
-const DIFFICULTIES: { id: Difficulty; label: string; sub: string }[] = [
-  { id: "beginner", label: "Easy", sub: "9×9 · 10 mines" },
-  { id: "intermediate", label: "Medium", sub: "16×16 · 40 mines" },
-  { id: "expert", label: "Hard", sub: "16×30 · 99 mines" },
-];
+const DIFFICULTY_KEYS: Difficulty[] = ["beginner", "intermediate", "expert"];
+
+const DIFFICULTIES = DIFFICULTY_KEYS.map((id) => {
+  const cfg = DIFFICULTY_PRESETS[id];
+  return {
+    id,
+    label: cfg.label,
+    sub: `${cfg.rows}×${cfg.cols} · ${cfg.mines} mines`,
+  };
+});
 
 // ── Responsive cell sizing ────────────────────────────────────────
 
 function useCellSize(cols: number): number {
-  // Provide reasonable defaults; the grid uses CSS to stay responsive
   if (cols <= 9) return 36;
   if (cols <= 16) return 30;
   return 26;
@@ -46,11 +50,39 @@ export function GameMinesweeper() {
     chordReveal,
     restart,
     changeDifficulty,
+    isGameInProgress,
   } = useMinesweeper("beginner");
 
   const config = DIFFICULTY_PRESETS[difficulty];
   const cellSize = useCellSize(config.cols);
   const gameOver = gameStatus === "won" || gameStatus === "lost";
+
+  // ── Confirmation dialog state ───────────────────────────────────
+  const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);
+
+  const handleDifficultyClick = useCallback(
+    (d: Difficulty) => {
+      if (d === difficulty) return; // same difficulty
+      if (isGameInProgress) {
+        // Show confirmation
+        setPendingDifficulty(d);
+      } else {
+        changeDifficulty(d);
+      }
+    },
+    [difficulty, isGameInProgress, changeDifficulty]
+  );
+
+  const confirmSwitch = useCallback(() => {
+    if (pendingDifficulty) {
+      changeDifficulty(pendingDifficulty);
+      setPendingDifficulty(null);
+    }
+  }, [pendingDifficulty, changeDifficulty]);
+
+  const cancelSwitch = useCallback(() => {
+    setPendingDifficulty(null);
+  }, []);
 
   // ── Smiley face status indicator ────────────────────────────────
 
@@ -84,7 +116,7 @@ export function GameMinesweeper() {
         {DIFFICULTIES.map((d) => (
           <button
             key={d.id}
-            onClick={() => changeDifficulty(d.id)}
+            onClick={() => handleDifficultyClick(d.id)}
             className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               difficulty === d.id
                 ? "text-foreground"
@@ -147,7 +179,7 @@ export function GameMinesweeper() {
           {board.map((row) =>
             row.map((cell) => (
               <MinesweeperCell
-                key={`${cell.row}-${cell.col}`}
+                key={`${difficulty}-${cell.row}-${cell.col}`}
                 cell={cell}
                 gameOver={gameOver}
                 onReveal={revealCell}
@@ -201,6 +233,56 @@ export function GameMinesweeper() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ── Confirmation Dialog (switch difficulty mid-game) ──── */}
+      <AnimatePresence>
+        {pendingDifficulty && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={cancelSwitch}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 10 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-surface border border-border shadow-xl max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-4xl">⚠️</span>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-foreground">
+                  Game in progress
+                </h3>
+                <p className="text-sm text-foreground-secondary mt-1">
+                  Switching to{" "}
+                  <span className="font-semibold text-foreground">
+                    {DIFFICULTY_PRESETS[pendingDifficulty].label}
+                  </span>{" "}
+                  will end your current game. Continue?
+                </p>
+              </div>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={cancelSwitch}
+                  className="flex-1 h-10 rounded-xl border border-border text-sm font-semibold text-foreground transition-colors hover:bg-surface-hover"
+                >
+                  Keep Playing
+                </button>
+                <button
+                  onClick={confirmSwitch}
+                  className="flex-1 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl"
+                >
+                  Switch
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Mobile Hint ──────────────────────────────────────── */}
       <p className="text-xs text-foreground-muted text-center sm:hidden">
