@@ -74,6 +74,28 @@ const gameIcons: Record<string, React.ReactNode> = {
       <text x="39" y="39" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">E</text>
     </svg>
   ),
+  sudoku: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Grid lines */}
+      <line x1="8" y1="4" x2="8" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="16" y1="4" x2="16" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="24" y1="4" x2="24" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="32" y1="4" x2="32" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="40" y1="4" x2="40" y2="44" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="4" y1="8" x2="44" y2="8" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="4" y1="16" x2="44" y2="16" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="4" y1="24" x2="44" y2="24" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="4" y1="32" x2="44" y2="32" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      <line x1="4" y1="40" x2="44" y2="40" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+      {/* Sample numbers */}
+      <text x="12" y="14" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">5</text>
+      <text x="28" y="14" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">3</text>
+      <text x="44" y="14" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">7</text>
+      <text x="12" y="30" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">6</text>
+      <text x="28" y="30" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">1</text>
+      <text x="44" y="30" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">9</text>
+    </svg>
+  ),
 };
 
 export function GameCard({ game, index }: GameCardProps) {

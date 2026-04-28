@@ -70,4 +70,16 @@ export const GAMES: GameInfo[] = [
     tags: ["Word", "Single Player", "Puzzle"],
     color: "from-rose-500 to-pink-600",
   },
+  {
+    id: "sudoku",
+    title: "Sudoku",
+    description:
+      "Fill the 9x9 grid so that each column, row, and 3x3 section contain all of the digits between 1 and 9.",
+    thumbnail: "/games/sudoku/thumbnail.png",
+    route: "/games/sudoku",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Number", "Single Player", "Logic"],
+    color: "from-sky-500 to-blue-600",
+  },
 ];
