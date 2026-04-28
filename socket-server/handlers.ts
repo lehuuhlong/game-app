@@ -137,6 +137,11 @@ export function registerSocketHandlers(io: GameIO): void {
       const room = rooms.get(roomId);
       if (!room) return;
 
+      if (room.players.length < 2) {
+        socket.emit("error", { message: "Waiting for opponent to join..." });
+        return;
+      }
+
       room.status = "playing";
       const gameState = createInitialGameState();
       gameStates.set(roomId, gameState);

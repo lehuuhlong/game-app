@@ -20,7 +20,13 @@ function makeEmptyBoard(): CellValue[][] {
 export function GameCaro() {
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
-  const [screen, setScreen] = useState<Screen>("lobby");
+  const [screenState, setScreenState] = useState<Screen>("lobby");
+  const screenRef = useRef<Screen>("lobby");
+  const screen = screenState;
+  const setScreen = useCallback((s: Screen) => {
+    screenRef.current = s;
+    setScreenState(s);
+  }, []);
   const [joinInput, setJoinInput] = useState("");
   const [joinError, setJoinError] = useState("");
   const [statusMsg, setStatusMsg] = useState("Waiting for opponent...");
@@ -148,10 +154,22 @@ export function GameCaro() {
 
     socket.on("player_left", ({ room }: any) => {
       setPlayers(room.players);
-      if (screen === "playing") {
+      if (screenRef.current === "playing") {
         stopTimer();
-        setScreen("finished");
+        saveCaro(true);
         setWinnerMsg("🏃 Opponent left — you win!");
+        setScreen("finished");
+        
+        // Reset board
+        const fresh = makeEmptyBoard();
+        boardRef.current = fresh;
+        currentTurnRef.current = "X";
+        gameStartedRef.current = false;
+        setBoard(fresh);
+        setCurrentTurn("X");
+        setWinningCells([]);
+        setLastMove(null);
+        setMoveCount(0);
       } else {
         setStatusMsg("Opponent left.");
       }
@@ -215,7 +233,7 @@ export function GameCaro() {
     socket.on("error", ({ message }: any) => {
       setJoinError(message);
     });
-  }, [players, stopTimer, startTimer, handleGameOver]);
+  }, [players, stopTimer, startTimer, handleGameOver, saveCaro, setScreen]);
 
   useEffect(() => {
     return () => {
@@ -427,8 +445,16 @@ export function GameCaro() {
                     <div className="text-center space-y-4 p-8">
                       <p className="text-3xl font-extrabold text-foreground">{winnerMsg}</p>
                       <div className="flex gap-3 justify-center">
-                        <button onClick={handleRematch} className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 transition-all">
-                          Rematch
+                        <button 
+                          onClick={handleRematch} 
+                          disabled={players.length < 2}
+                          className={`rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
+                            players.length < 2 
+                              ? "bg-surface-hover text-foreground-muted cursor-not-allowed" 
+                              : "bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700"
+                          }`}
+                        >
+                          {players.length < 2 ? "Waiting for opponent..." : "Rematch"}
                         </button>
                         <button onClick={handleLeaveRoom} className="rounded-xl border border-border px-6 py-2.5 text-sm font-semibold text-foreground-secondary hover:bg-surface-hover transition-all">
                           Leave
