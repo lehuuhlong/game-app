@@ -23,7 +23,7 @@ export function Game2048() {
     continuePlaying,
   } = use2048Logic();
 
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const boardRef = useRef<HTMLDivElement>(null);
   const scoreSavedRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -39,6 +39,10 @@ export function Game2048() {
 
   // Save score to DB when game ends
   useEffect(() => {
+    if (gameStatus === "playing") {
+      scoreSavedRef.current = false;
+    }
+
     if (!user) return;
     if (gameStatus !== "lost" && gameStatus !== "won") return;
     if (scoreSavedRef.current) return;
@@ -52,21 +56,13 @@ export function Game2048() {
       .then((r) => r.json())
       .then((d) => {
         if (d.bestScore2048 !== undefined) {
-          // Refresh cached user so Navbar shows updated best score
-          import("@/components/auth").then(({ useAuth: _unused }) => {});
-          // We write directly to localStorage to update without re-render loop
-          try {
-            const stored = localStorage.getItem("game-portal-user");
-            if (stored) {
-              const u = JSON.parse(stored);
-              u.bestScore2048 = d.bestScore2048;
-              localStorage.setItem("game-portal-user", JSON.stringify(u));
-            }
-          } catch { /* ignore */ }
+          refreshUser({ bestScore2048: d.bestScore2048 });
         }
       })
       .catch((err) => console.error("Failed to save score:", err));
-  }, [gameStatus, score, user]);
+  }, [gameStatus, score, user, refreshUser]);
+
+  const displayBestScore = user ? Math.max(user.bestScore2048 || 0, score) : bestScore;
 
   const handleRestart = useCallback(() => {
     scoreSavedRef.current = false;
@@ -132,7 +128,7 @@ export function Game2048() {
               <span className="font-bold text-amber-600 dark:text-amber-400">2048!</span>
             </p>
           </div>
-          <ScoreBoard score={score} bestScore={bestScore} moveCount={moveCount} />
+          <ScoreBoard score={score} bestScore={displayBestScore} moveCount={moveCount} />
         </div>
 
         <div className="w-full flex items-center justify-between">
