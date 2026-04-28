@@ -46,4 +46,28 @@ export const GAMES: GameInfo[] = [
     tags: ["Strategy", "Multiplayer", "Board Game"],
     color: "from-violet-500 to-purple-600",
   },
+  {
+    id: "minesweeper",
+    title: "Minesweeper",
+    description:
+      "Navigate a minefield by revealing safe cells. Use logic to flag mines and clear the board without exploding!",
+    thumbnail: "/games/minesweeper/thumbnail.png",
+    route: "/games/minesweeper",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Puzzle", "Single Player", "Logic"],
+    color: "from-emerald-500 to-teal-600",
+  },
+  {
+    id: "wordle",
+    title: "Wordle",
+    description:
+      "Guess the 5-letter word in 6 tries. Each guess reveals clues — green, yellow, or gray — to crack the code.",
+    thumbnail: "/games/wordle/thumbnail.png",
+    route: "/games/wordle",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Word", "Single Player", "Puzzle"],
+    color: "from-rose-500 to-pink-600",
+  },
 ];

@@ -40,6 +40,40 @@ const gameIcons: Record<string, React.ReactNode> = {
       <line x1="42" y1="34" x2="34" y2="42" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   ),
+  minesweeper: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Mine body */}
+      <circle cx="24" cy="24" r="10" fill="rgba(255,255,255,0.4)" />
+      <circle cx="24" cy="24" r="6" fill="rgba(255,255,255,0.6)" />
+      <circle cx="22" cy="22" r="2" fill="white" />
+      {/* Spikes */}
+      <line x1="24" y1="8" x2="24" y2="14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="24" y1="34" x2="24" y2="40" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="8" y1="24" x2="14" y2="24" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="34" y1="24" x2="40" y2="24" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="12.7" y1="12.7" x2="16.9" y2="16.9" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="31.1" y1="31.1" x2="35.3" y2="35.3" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="35.3" y1="12.7" x2="31.1" y2="16.9" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="16.9" y1="31.1" x2="12.7" y2="35.3" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
+  wordle: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Letter tiles */}
+      <rect x="3" y="14" width="12" height="12" rx="2" fill="rgba(255,255,255,0.5)" />
+      <rect x="18" y="14" width="12" height="12" rx="2" fill="rgba(255,255,255,0.3)" />
+      <rect x="33" y="14" width="12" height="12" rx="2" fill="rgba(255,255,255,0.5)" />
+      <rect x="3" y="29" width="12" height="12" rx="2" fill="rgba(255,255,255,0.2)" />
+      <rect x="18" y="29" width="12" height="12" rx="2" fill="rgba(255,255,255,0.5)" />
+      <rect x="33" y="29" width="12" height="12" rx="2" fill="rgba(255,255,255,0.2)" />
+      <text x="9" y="24" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">W</text>
+      <text x="24" y="24" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">O</text>
+      <text x="39" y="24" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">R</text>
+      <text x="9" y="39" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">D</text>
+      <text x="24" y="39" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">L</text>
+      <text x="39" y="39" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">E</text>
+    </svg>
+  ),
 };
 
 export function GameCard({ game, index }: GameCardProps) {

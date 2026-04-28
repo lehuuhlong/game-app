@@ -59,7 +59,7 @@ export default function HomePage() {
                 <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              2 Games Available — More Coming Soon
+              {GAMES.length} Games Available — More Coming Soon!
             </div>
           </motion.div>
 
