@@ -6,12 +6,14 @@ import { useAuth } from "./AuthProvider";
 
 interface LoginModalProps {
   onSuccess?: () => void;
+  onClose?: () => void;
   title?: string;
   subtitle?: string;
 }
 
 export function LoginModal({
   onSuccess,
+  onClose,
   title = "Enter your name",
   subtitle = "Choose a username to save your scores and appear on the leaderboard",
 }: LoginModalProps) {
@@ -39,15 +41,28 @@ export function LoginModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 28 }}
         className="relative w-full max-w-sm mx-4"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
           <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500" />
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-surface-hover text-foreground-muted hover:text-foreground transition-colors"
+              aria-label="Close"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
           <div className="p-8">
             {/* Icon */}
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-lg">

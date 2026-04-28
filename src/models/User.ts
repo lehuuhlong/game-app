@@ -11,6 +11,10 @@ export interface IUser extends Document {
   bestScore2048: number;       // 2048: best score only
   caroWins: number;            // Caro: total wins
   caroTotal: number;           // Caro: total games played
+  msBestBeginner: number;      // Minesweeper Beginner: best time (seconds, 0 = never won)
+  msBestIntermediate: number;  // Minesweeper Intermediate: best time
+  msBestExpert: number;        // Minesweeper Expert: best time
+  wordleWins: number;          // Wordle: total successful guesses
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,9 +31,13 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: null,
     },
-    bestScore2048: { type: Number, default: 0 },
-    caroWins:      { type: Number, default: 0 },
-    caroTotal:     { type: Number, default: 0 },
+    bestScore2048:     { type: Number, default: 0 },
+    caroWins:          { type: Number, default: 0 },
+    caroTotal:         { type: Number, default: 0 },
+    msBestBeginner:    { type: Number, default: 0 },
+    msBestIntermediate:{ type: Number, default: 0 },
+    msBestExpert:      { type: Number, default: 0 },
+    wordleWins:        { type: Number, default: 0 },
   },
   { timestamps: true }
 );

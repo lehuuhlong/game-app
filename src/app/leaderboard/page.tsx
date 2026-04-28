@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type GameTab = "2048" | "caro";
+type GameTab = "2048" | "caro" | "minesweeper" | "wordle";
+type MsLevel = "beginner" | "intermediate" | "expert";
 
 interface Entry2048 {
   rank: number;
@@ -19,6 +20,20 @@ interface EntryCaro {
   wins: number;
   total: number;
   winRate: number;
+}
+
+interface EntryMinesweeper {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  time: number;
+}
+
+interface EntryWordle {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  wins: number;
 }
 
 const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
@@ -45,6 +60,33 @@ const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    id: "minesweeper",
+    label: "Minesweeper",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <circle cx="12" cy="12" r="9" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="12" x2="15" y2="15" />
+      </svg>
+    ),
+  },
+  {
+    id: "wordle",
+    label: "Wordle",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01" />
+      </svg>
+    ),
+  },
+];
+
+const MS_LEVELS: { id: MsLevel; label: string }[] = [
+  { id: "beginner", label: "Beginner" },
+  { id: "intermediate", label: "Intermediate" },
+  { id: "expert", label: "Expert" },
 ];
 
 const MEDAL_COLORS = [
@@ -52,6 +94,12 @@ const MEDAL_COLORS = [
   "from-slate-300 to-slate-400",
   "from-amber-600 to-orange-700",
 ];
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 function Avatar({ avatarUrl, username }: { avatarUrl: string | null; username: string }) {
   if (avatarUrl) {
@@ -72,33 +120,41 @@ function Avatar({ avatarUrl, username }: { avatarUrl: string | null; username: s
 
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<GameTab>("2048");
+  const [msLevel, setMsLevel] = useState<MsLevel>("beginner");
   const [data2048, setData2048] = useState<Entry2048[]>([]);
   const [dataCaro, setDataCaro] = useState<EntryCaro[]>([]);
+  const [dataMs, setDataMs] = useState<EntryMinesweeper[]>([]);
+  const [dataWordle, setDataWordle] = useState<EntryWordle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchLeaderboard() {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/leaderboard?game=${activeTab}`);
+        let url = `/api/leaderboard?game=${activeTab}`;
+        if (activeTab === "minesweeper") {
+          url += `&level=${msLevel}`;
+        }
+        const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch");
         const json = await res.json();
 
-        if (activeTab === "2048") {
-          setData2048(json.leaderboard);
-        } else {
-          setDataCaro(json.leaderboard);
-        }
+        if (activeTab === "2048") setData2048(json.leaderboard);
+        else if (activeTab === "caro") setDataCaro(json.leaderboard);
+        else if (activeTab === "minesweeper") setDataMs(json.leaderboard);
+        else if (activeTab === "wordle") setDataWordle(json.leaderboard);
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
         if (activeTab === "2048") setData2048([]);
-        else setDataCaro([]);
+        else if (activeTab === "caro") setDataCaro([]);
+        else if (activeTab === "minesweeper") setDataMs([]);
+        else if (activeTab === "wordle") setDataWordle([]);
       } finally {
         setIsLoading(false);
       }
     }
     fetchLeaderboard();
-  }, [activeTab]);
+  }, [activeTab, msLevel]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
@@ -112,121 +168,217 @@ export default function LeaderboardPage() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-surface border border-border mb-8 w-fit">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === tab.id
-                ? "text-foreground"
-                : "text-foreground-muted hover:text-foreground-secondary"
-            }`}
-          >
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="leaderboard-tab"
-                className="absolute inset-0 bg-accent-light rounded-lg"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-2">
-              {tab.icon}
-              {tab.label}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="rounded-xl border border-border bg-surface overflow-hidden min-h-[400px]">
-        {/* ── 2048 Table ── */}
-        {activeTab === "2048" && (
-          <>
-            <div className="grid grid-cols-[56px_1fr_120px] gap-2 px-4 py-3 bg-background-secondary border-b border-border text-xs font-bold text-foreground-muted uppercase tracking-wider">
-              <span>Rank</span>
-              <span>Player</span>
-              <span className="text-right">Best Score</span>
-            </div>
-
-            <AnimatePresence mode="wait">
-              {isLoading ? (
-                <Spinner />
-              ) : data2048.length === 0 ? (
-                <Empty text="No scores yet. Be the first to play 2048!" />
-              ) : (
-                <motion.div key="2048" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  {data2048.map((entry, i) => (
-                    <motion.div
-                      key={entry.username}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className={`grid grid-cols-[56px_1fr_120px] gap-2 px-4 py-3 items-center hover:bg-surface-hover transition-colors ${i < data2048.length - 1 ? "border-b border-border/50" : ""}`}
-                    >
-                      <RankBadge rank={entry.rank} />
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar avatarUrl={entry.avatarUrl} username={entry.username} />
-                        <span className="text-sm font-semibold text-foreground truncate">{entry.username}</span>
-                      </div>
-                      <span className="text-sm font-bold text-foreground text-right tabular-nums">
-                        {entry.score.toLocaleString()}
-                      </span>
-                    </motion.div>
-                  ))}
-                </motion.div>
+      {/* ── Single unified card ───────────────────────────────── */}
+      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
+        {/* ── Tab navigation (inside card header) ────────────── */}
+        <div className="flex flex-wrap items-center gap-0 border-b border-border bg-background-secondary/50">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex items-center gap-2 px-4 sm:px-5 py-3.5 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "text-accent"
+                  : "text-foreground-muted hover:text-foreground-secondary"
+              }`}
+            >
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="leaderboard-tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
               )}
-            </AnimatePresence>
-          </>
+              <span className="relative z-10 flex items-center gap-2">
+                {tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── Minesweeper sub-tabs (inside card, below main tabs) */}
+        {activeTab === "minesweeper" && (
+          <div className="flex items-center gap-0 px-4 py-2 border-b border-border/60 bg-background-secondary/30">
+            {MS_LEVELS.map((lv) => (
+              <button
+                key={lv.id}
+                onClick={() => setMsLevel(lv.id)}
+                className={`relative px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  msLevel === lv.id
+                    ? "text-foreground bg-accent-light"
+                    : "text-foreground-muted hover:text-foreground-secondary"
+                }`}
+              >
+                {lv.label}
+              </button>
+            ))}
+          </div>
         )}
 
-        {/* ── Caro Table ── */}
-        {activeTab === "caro" && (
-          <>
-            <div className="grid grid-cols-[56px_1fr_80px_80px_80px] gap-2 px-4 py-3 bg-background-secondary border-b border-border text-xs font-bold text-foreground-muted uppercase tracking-wider">
-              <span>Rank</span>
-              <span>Player</span>
-              <span className="text-right">Wins</span>
-              <span className="text-right">Games</span>
-              <span className="text-right">Win %</span>
-            </div>
-
-            <AnimatePresence mode="wait">
-              {isLoading ? (
-                <Spinner />
-              ) : dataCaro.length === 0 ? (
-                <Empty text="No players yet. Be the first to win a Caro match!" />
-              ) : (
-                <motion.div key="caro" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  {dataCaro.map((entry, i) => (
-                    <motion.div
-                      key={entry.username}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className={`grid grid-cols-[56px_1fr_80px_80px_80px] gap-2 px-4 py-3 items-center hover:bg-surface-hover transition-colors ${i < dataCaro.length - 1 ? "border-b border-border/50" : ""}`}
-                    >
-                      <RankBadge rank={entry.rank} />
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar avatarUrl={entry.avatarUrl} username={entry.username} />
-                        <span className="text-sm font-semibold text-foreground truncate">{entry.username}</span>
-                      </div>
-                      <span className="text-sm font-bold text-foreground text-right tabular-nums">{entry.wins}</span>
-                      <span className="text-sm text-foreground-secondary text-right tabular-nums">{entry.total}</span>
-                      <span className="text-sm text-right tabular-nums">
-                        <span className={`font-semibold ${entry.winRate >= 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
-                          {entry.winRate}%
+        {/* ── Table content ────────────────────────────────────── */}
+        <div className="min-h-[400px]">
+          {/* ── 2048 ── */}
+          {activeTab === "2048" && (
+            <>
+              <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                <span>Rank</span>
+                <span>Player</span>
+                <span className="text-right">Best Score</span>
+              </TableHeader>
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <Spinner />
+                ) : data2048.length === 0 ? (
+                  <Empty text="No scores yet. Be the first to play 2048!" />
+                ) : (
+                  <motion.div key="2048" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    {data2048.map((entry, i) => (
+                      <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_120px]" isLast={i === data2048.length - 1}>
+                        <RankBadge rank={entry.rank} />
+                        <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                        <span className="text-sm font-bold text-foreground text-right tabular-nums">
+                          {entry.score.toLocaleString()}
                         </span>
-                      </span>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+                      </TableRow>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+
+          {/* ── Caro ── */}
+          {activeTab === "caro" && (
+            <>
+              <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px]">
+                <span>Rank</span>
+                <span>Player</span>
+                <span className="text-right">Wins</span>
+                <span className="text-right">Games</span>
+                <span className="text-right">Win %</span>
+              </TableHeader>
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <Spinner />
+                ) : dataCaro.length === 0 ? (
+                  <Empty text="No players yet. Be the first to win a Caro match!" />
+                ) : (
+                  <motion.div key="caro" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    {dataCaro.map((entry, i) => (
+                      <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_80px_80px_80px]" isLast={i === dataCaro.length - 1}>
+                        <RankBadge rank={entry.rank} />
+                        <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                        <span className="text-sm font-bold text-foreground text-right tabular-nums">{entry.wins}</span>
+                        <span className="text-sm text-foreground-secondary text-right tabular-nums">{entry.total}</span>
+                        <span className="text-sm text-right tabular-nums">
+                          <span className={`font-semibold ${entry.winRate >= 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
+                            {entry.winRate}%
+                          </span>
+                        </span>
+                      </TableRow>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+
+          {/* ── Minesweeper ── */}
+          {activeTab === "minesweeper" && (
+            <>
+              <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                <span>Rank</span>
+                <span>Player</span>
+                <span className="text-right">Best Time</span>
+              </TableHeader>
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <Spinner />
+                ) : dataMs.length === 0 ? (
+                  <Empty text={`No records yet for ${msLevel}. Be the first to clear the board!`} />
+                ) : (
+                  <motion.div key={`ms-${msLevel}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    {dataMs.map((entry, i) => (
+                      <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_120px]" isLast={i === dataMs.length - 1}>
+                        <RankBadge rank={entry.rank} />
+                        <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                        <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
+                          <span className="text-foreground-muted">⏱</span>
+                          {formatTime(entry.time)}
+                        </span>
+                      </TableRow>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+
+          {/* ── Wordle ── */}
+          {activeTab === "wordle" && (
+            <>
+              <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                <span>Rank</span>
+                <span>Player</span>
+                <span className="text-right">Wins</span>
+              </TableHeader>
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <Spinner />
+                ) : dataWordle.length === 0 ? (
+                  <Empty text="No winners yet. Be the first to solve a Wordle!" />
+                ) : (
+                  <motion.div key="wordle" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    {dataWordle.map((entry, i) => (
+                      <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_120px]" isLast={i === dataWordle.length - 1}>
+                        <RankBadge rank={entry.rank} />
+                        <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                        <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
+                          <span className="text-emerald-500">🏆</span>
+                          {entry.wins}
+                        </span>
+                      </TableRow>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── Shared sub-components ──────────────────────────────────────────
+
+function TableHeader({ cols, children }: { cols: string; children: React.ReactNode }) {
+  return (
+    <div className={`grid ${cols} gap-2 px-4 py-3 border-b border-border/60 text-xs font-bold text-foreground-muted uppercase tracking-wider`}>
+      {children}
+    </div>
+  );
+}
+
+function TableRow({ cols, index, isLast, children }: { cols: string; index: number; isLast: boolean; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className={`grid ${cols} gap-2 px-4 py-3 items-center hover:bg-surface-hover transition-colors ${!isLast ? "border-b border-border/30" : ""}`}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function PlayerCell({ avatarUrl, username }: { avatarUrl: string | null; username: string }) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <Avatar avatarUrl={avatarUrl} username={username} />
+      <span className="text-sm font-semibold text-foreground truncate">{username}</span>
     </div>
   );
 }

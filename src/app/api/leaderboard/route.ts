@@ -1,20 +1,30 @@
 /**
  * Leaderboard API route.
  *
- * GET /api/leaderboard?game=2048   → Top 10 by bestScore2048 (score > 0)
- * GET /api/leaderboard?game=caro   → Top 10 by caroWins (wins > 0), then caroTotal desc
+ * GET /api/leaderboard?game=2048                       → Top 10 by bestScore2048 (score > 0)
+ * GET /api/leaderboard?game=caro                       → Top 10 by caroWins (wins > 0)
+ * GET /api/leaderboard?game=minesweeper&level=beginner → Top 10 fastest times
+ * GET /api/leaderboard?game=minesweeper&level=intermediate
+ * GET /api/leaderboard?game=minesweeper&level=expert
+ * GET /api/leaderboard?game=wordle                     → Top 10 by wordleWins (wins > 0)
  */
 
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
+const MS_FIELD_MAP: Record<string, string> = {
+  beginner:     "msBestBeginner",
+  intermediate: "msBestIntermediate",
+  expert:       "msBestExpert",
+};
+
 export async function GET(request: Request) {
   try {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const game = searchParams.get("game"); // "2048" | "caro"
+    const game = searchParams.get("game");
 
     if (game === "2048") {
       const leaderboard = await User.find({ bestScore2048: { $gt: 0 } })
@@ -50,6 +60,49 @@ export async function GET(request: Request) {
           wins: u.caroWins,
           total: u.caroTotal,
           winRate: u.caroTotal > 0 ? Math.round((u.caroWins / u.caroTotal) * 100) : 0,
+        })),
+      });
+    }
+
+    if (game === "minesweeper") {
+      const level = searchParams.get("level") || "beginner";
+      const field = MS_FIELD_MAP[level];
+      if (!field) {
+        return NextResponse.json({ error: "Invalid level" }, { status: 400 });
+      }
+
+      const leaderboard = await User.find({ [field]: { $gt: 0 } })
+        .select(`username avatarUrl ${field}`)
+        .sort({ [field]: 1 }) // ascending = fastest time first
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "minesweeper",
+        level,
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          time: (u as unknown as Record<string, number>)[field] ?? 0,
+        })),
+      });
+    }
+
+    if (game === "wordle") {
+      const leaderboard = await User.find({ wordleWins: { $gt: 0 } })
+        .select("username avatarUrl wordleWins")
+        .sort({ wordleWins: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "wordle",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          wins: u.wordleWins,
         })),
       });
     }

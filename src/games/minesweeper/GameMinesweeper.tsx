@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMinesweeper } from "./useMinesweeper";
 import { MinesweeperCell } from "./MinesweeperCell";
 import { DIFFICULTY_PRESETS, type Difficulty } from "./types";
+import { LoginModal } from "@/components/auth/LoginModal";
+import { useAuth } from "@/components/auth";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -53,18 +55,61 @@ export function GameMinesweeper() {
     isGameInProgress,
   } = useMinesweeper("beginner");
 
+  const { user } = useAuth();
+  const scoreSavedRef = useRef(false);
+  const [showLogin, setShowLogin] = useState(false);
+
   const config = DIFFICULTY_PRESETS[difficulty];
   const cellSize = useCellSize(config.cols);
   const gameOver = gameStatus === "won" || gameStatus === "lost";
+
+  // ── Login prompt on game end (if not logged in) ─────────────────
+  useEffect(() => {
+    if (gameOver && !user) {
+      const t = setTimeout(() => setShowLogin(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [gameOver, user]);
+
+  // ── Save score on WIN ───────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    if (gameStatus !== "won") return;
+    if (scoreSavedRef.current) return;
+    scoreSavedRef.current = true;
+
+    fetch(`/api/users/${user.id}/score`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        game: "minesweeper",
+        difficulty,
+        time: elapsedTime,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        try {
+          const stored = localStorage.getItem("game-portal-user");
+          if (stored) {
+            const u = JSON.parse(stored);
+            if (d.msBestBeginner !== undefined) u.msBestBeginner = d.msBestBeginner;
+            if (d.msBestIntermediate !== undefined) u.msBestIntermediate = d.msBestIntermediate;
+            if (d.msBestExpert !== undefined) u.msBestExpert = d.msBestExpert;
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          }
+        } catch { /* ignore */ }
+      })
+      .catch((err) => console.error("Failed to save minesweeper score:", err));
+  }, [gameStatus, user, difficulty, elapsedTime]);
 
   // ── Confirmation dialog state ───────────────────────────────────
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);
 
   const handleDifficultyClick = useCallback(
     (d: Difficulty) => {
-      if (d === difficulty) return; // same difficulty
+      if (d === difficulty) return;
       if (isGameInProgress) {
-        // Show confirmation
         setPendingDifficulty(d);
       } else {
         changeDifficulty(d);
@@ -97,7 +142,11 @@ export function GameMinesweeper() {
     }
   }, [gameStatus]);
 
-  const handleRestart = useCallback(() => restart(), [restart]);
+  const handleRestart = useCallback(() => {
+    scoreSavedRef.current = false;
+    setShowLogin(false);
+    restart();
+  }, [restart]);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -111,85 +160,87 @@ export function GameMinesweeper() {
         </p>
       </div>
 
-      {/* ── Difficulty Tabs ───────────────────────────────────── */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-surface border border-border">
-        {DIFFICULTIES.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => handleDifficultyClick(d.id)}
-            className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              difficulty === d.id
-                ? "text-foreground"
-                : "text-foreground-muted hover:text-foreground-secondary"
-            }`}
-          >
-            {difficulty === d.id && (
-              <motion.div
-                layoutId="ms-tab"
-                className="absolute inset-0 bg-accent-light rounded-lg"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
-            )}
-            <span className="relative z-10 flex flex-col items-center gap-0.5">
-              <span>{d.label}</span>
-              <span className="text-[10px] opacity-60 hidden sm:block">{d.sub}</span>
+      {/* ── Unified game card ──────────────────────────────────── */}
+      <div className="flex flex-col items-center rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
+        {/* Difficulty tabs (card header) */}
+        <div className="flex items-center self-stretch border-b border-border bg-background-secondary/40">
+          {DIFFICULTIES.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => handleDifficultyClick(d.id)}
+              className={`relative flex-1 px-3 sm:px-5 py-3 text-sm font-medium transition-colors ${
+                difficulty === d.id
+                  ? "text-accent"
+                  : "text-foreground-muted hover:text-foreground-secondary"
+              }`}
+            >
+              {difficulty === d.id && (
+                <motion.div
+                  layoutId="ms-tab"
+                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex flex-col items-center gap-0.5">
+                <span>{d.label}</span>
+                <span className="text-[10px] opacity-60 hidden sm:block">{d.sub}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Status bar */}
+        <div className="flex items-center justify-center gap-6 sm:gap-8 self-stretch px-4 py-3 border-b border-border/50">
+          {/* Mine counter */}
+          <div className="flex items-center gap-2">
+            <span className="text-lg">💣</span>
+            <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[2ch] text-right">
+              {remainingMines}
             </span>
+          </div>
+
+          {/* Smiley restart button */}
+          <button
+            onClick={handleRestart}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40 border border-emerald-300 dark:border-emerald-700/60 text-xl transition-transform hover:scale-110 active:scale-95 shadow-sm"
+            aria-label="Restart game"
+          >
+            {statusEmoji}
           </button>
-        ))}
-      </div>
 
-      {/* ── Status Bar ────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 sm:gap-6 rounded-xl bg-surface border border-border px-4 sm:px-6 py-3 shadow-sm">
-        {/* Mine counter */}
-        <div className="flex items-center gap-2">
-          <span className="text-lg">💣</span>
-          <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[2ch] text-right">
-            {remainingMines}
-          </span>
+          {/* Timer */}
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⏱</span>
+            <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[5ch]">
+              {formatTime(elapsedTime)}
+            </span>
+          </div>
         </div>
 
-        {/* Smiley restart button */}
-        <button
-          onClick={handleRestart}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40 border border-emerald-300 dark:border-emerald-700/60 text-xl transition-transform hover:scale-110 active:scale-95 shadow-sm"
-          aria-label="Restart game"
-        >
-          {statusEmoji}
-        </button>
-
-        {/* Timer */}
-        <div className="flex items-center gap-2">
-          <span className="text-lg">⏱</span>
-          <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[5ch]">
-            {formatTime(elapsedTime)}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Game Board ────────────────────────────────────────── */}
-      <div className="relative">
-        <div
-          className="inline-grid gap-[2px] p-2 rounded-xl bg-surface border border-border shadow-md"
-          style={{
-            gridTemplateColumns: `repeat(${config.cols}, ${cellSize}px)`,
-            gridTemplateRows: `repeat(${config.rows}, ${cellSize}px)`,
-          }}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          {board.map((row) =>
-            row.map((cell) => (
-              <MinesweeperCell
-                key={`${difficulty}-${cell.row}-${cell.col}`}
-                cell={cell}
-                gameOver={gameOver}
-                onReveal={revealCell}
-                onFlag={toggleFlag}
-                onChord={chordReveal}
-                cellSize={cellSize}
-              />
-            ))
-          )}
-        </div>
+        {/* Game Board */}
+        <div className="relative p-3 sm:p-4">
+          <div
+            className="inline-grid gap-[2px] rounded-lg bg-border/40 p-[2px]"
+            style={{
+              gridTemplateColumns: `repeat(${config.cols}, ${cellSize}px)`,
+              gridTemplateRows: `repeat(${config.rows}, ${cellSize}px)`,
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            {board.map((row) =>
+              row.map((cell) => (
+                <MinesweeperCell
+                  key={`${difficulty}-${cell.row}-${cell.col}`}
+                  cell={cell}
+                  gameOver={gameOver}
+                  onReveal={revealCell}
+                  onFlag={toggleFlag}
+                  onChord={chordReveal}
+                  cellSize={cellSize}
+                />
+              ))
+            )}
+          </div>
 
         {/* ── Win / Lose Overlay ───────────────────────────────── */}
         <AnimatePresence>
@@ -217,6 +268,9 @@ export function GameMinesweeper() {
                       ? `Cleared in ${formatTime(elapsedTime)}`
                       : "You hit a mine!"}
                   </p>
+                  {gameStatus === "won" && user && (
+                    <p className="text-xs text-emerald-500 mt-1">✓ Score saved</p>
+                  )}
                 </div>
                 <button
                   onClick={handleRestart}
@@ -232,6 +286,7 @@ export function GameMinesweeper() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
 
       {/* ── Confirmation Dialog (switch difficulty mid-game) ──── */}
@@ -283,6 +338,15 @@ export function GameMinesweeper() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Login Modal ────────────────────────────────────────── */}
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSuccess={() => setShowLogin(false)}
+          subtitle="Log in to save your Minesweeper time to the leaderboard!"
+        />
+      )}
 
       {/* ── Mobile Hint ──────────────────────────────────────── */}
       <p className="text-xs text-foreground-muted text-center sm:hidden">

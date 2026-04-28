@@ -118,6 +118,7 @@ export function Game2048() {
           title="Save your score!"
           subtitle={`You scored ${score.toLocaleString()}! Enter a username to save it to the leaderboard.`}
           onSuccess={() => setShowLogin(false)}
+          onClose={() => setShowLogin(false)}
         />
       )}
 

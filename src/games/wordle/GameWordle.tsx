@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWordle } from "./useWordle";
 import { WordleTile } from "./WordleTile";
 import { WordleKeyboard } from "./WordleKeyboard";
+import { LoginModal } from "@/components/auth/LoginModal";
+import { useAuth } from "@/components/auth";
 
 export function GameWordle() {
   const {
@@ -18,7 +20,51 @@ export function GameWordle() {
     restart,
   } = useWordle();
 
-  const handleRestart = useCallback(() => restart(), [restart]);
+  const { user } = useAuth();
+  const scoreSavedRef = useRef(false);
+  const [showLogin, setShowLogin] = useState(false);
+
+  const gameOver = gameStatus === "won" || gameStatus === "lost";
+
+  // ── Login prompt on game end (if not logged in) ─────────────────
+  useEffect(() => {
+    if (gameOver && !user) {
+      const t = setTimeout(() => setShowLogin(true), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [gameOver, user]);
+
+  // ── Save score on WIN ───────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    if (gameStatus !== "won") return;
+    if (scoreSavedRef.current) return;
+    scoreSavedRef.current = true;
+
+    fetch(`/api/users/${user.id}/score`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ game: "wordle", won: true }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        try {
+          const stored = localStorage.getItem("game-portal-user");
+          if (stored) {
+            const u = JSON.parse(stored);
+            if (d.wordleWins !== undefined) u.wordleWins = d.wordleWins;
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          }
+        } catch { /* ignore */ }
+      })
+      .catch((err) => console.error("Failed to save wordle score:", err));
+  }, [gameStatus, user]);
+
+  const handleRestart = useCallback(() => {
+    scoreSavedRef.current = false;
+    setShowLogin(false);
+    restart();
+  }, [restart]);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -60,7 +106,6 @@ export function GameWordle() {
             <motion.div
               key={rowIndex}
               className="flex gap-1.5"
-              // Shake animation when invalid submission
               animate={undefined}
             >
               {row.map((tile, colIndex) => (
@@ -79,7 +124,7 @@ export function GameWordle() {
 
       {/* ── Game Over Message ─────────────────────────────────── */}
       <AnimatePresence>
-        {gameStatus !== "playing" && (
+        {gameOver && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -105,6 +150,9 @@ export function GameWordle() {
                       </>
                     )}
                 </p>
+                {gameStatus === "won" && user && (
+                  <p className="text-xs text-emerald-500 mt-1">✓ Win saved to leaderboard</p>
+                )}
               </div>
             </div>
             <button
@@ -136,6 +184,14 @@ export function GameWordle() {
           onKeyPress={handleKeyPress}
         />
       </div>
+
+      {/* ── Login Modal ────────────────────────────────────────── */}
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          subtitle="Log in to save your Wordle wins to the leaderboard!"
+        />
+      )}
 
       {/* ── Help Text ─────────────────────────────────────────── */}
       <div className="flex items-center justify-center gap-4 text-xs text-foreground-muted">

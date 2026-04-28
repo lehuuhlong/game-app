@@ -308,6 +308,7 @@ export function GameCaro() {
           title="Enter your username"
           subtitle="You need a username to play online Caro"
           onSuccess={() => setShowLogin(false)}
+          onClose={() => setShowLogin(false)}
         />
       )}
 
