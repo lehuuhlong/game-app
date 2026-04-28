@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface GameOverlayProps {
   status: "playing" | "won" | "lost";
   score: number;
+  winTile?: number;
   onRestart: () => void;
   onContinue: () => void;
 }
@@ -12,6 +13,7 @@ interface GameOverlayProps {
 export function GameOverlay({
   status,
   score,
+  winTile = 2048,
   onRestart,
   onContinue,
 }: GameOverlayProps) {
@@ -47,10 +49,11 @@ export function GameOverlay({
             <>
               <div className="text-4xl">🎉</div>
               <h2 className="text-2xl font-extrabold text-foreground">
-                You Win!
+                You reached{" "}
+                <span className="text-amber-500">{winTile.toLocaleString()}</span>!
               </h2>
               <p className="text-sm text-foreground-secondary text-center">
-                You reached 2048 with a score of{" "}
+                Score:{" "}
                 <span className="font-bold text-amber-600 dark:text-amber-400">
                   {score.toLocaleString()}
                 </span>
@@ -60,7 +63,7 @@ export function GameOverlay({
                   onClick={onContinue}
                   className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold text-sm shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all hover:-translate-y-0.5"
                 >
-                  Keep Going
+                  Keep Going →
                 </button>
                 <button
                   onClick={onRestart}

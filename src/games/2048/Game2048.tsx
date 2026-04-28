@@ -17,6 +17,7 @@ export function Game2048() {
     gameStatus,
     moveCount,
     gridSize,
+    winTile,
     move,
     restart,
     continuePlaying,
@@ -163,6 +164,7 @@ export function Game2048() {
           <GameOverlay
             status={gameStatus}
             score={score}
+            winTile={winTile}
             onRestart={handleRestart}
             onContinue={continuePlaying}
           />

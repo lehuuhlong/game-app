@@ -189,10 +189,7 @@ function rotateClockwise(grid: Grid): Grid {
 // ── Game-over check ───────────────────────────────────────────────
 
 function canMove(grid: Grid): boolean {
-  // Any empty cell?
   if (getEmptyCells(grid).length > 0) return true;
-
-  // Any adjacent equal tiles?
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       const val = grid[r][c]?.value;
@@ -210,6 +207,16 @@ function hasWon(grid: Grid): boolean {
     }
   }
   return false;
+}
+
+function getMaxTile(grid: Grid): number {
+  let max = 0;
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (grid[r][c] && grid[r][c]!.value > max) max = grid[r][c]!.value;
+    }
+  }
+  return max;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────
@@ -240,6 +247,8 @@ function createEmptyState(): GameState {
     gameStatus: "playing",
     keepPlaying: false,
     moveCount: 0,
+    winTile: 0,
+    nextMilestone: WIN_VALUE,
   };
 }
 
@@ -255,6 +264,8 @@ function initGame(): GameState {
     gameStatus: "playing",
     keepPlaying: false,
     moveCount: 0,
+    winTile: 0,
+    nextMilestone: WIN_VALUE,
   };
 }
 
@@ -262,6 +273,7 @@ export function use2048Logic() {
   // Start with empty state to avoid hydration mismatch (no randomness on server)
   const [state, setState] = useState<GameState>(createEmptyState);
   const isAnimating = useRef(false);
+  const pendingMove = useRef<Direction | null>(null);
   const initialized = useRef(false);
 
   // Initialize the game on the client only
@@ -272,9 +284,8 @@ export function use2048Logic() {
     }
   }, []);
 
-  const move = useCallback((direction: Direction) => {
-    if (isAnimating.current) return;
-
+  // Process a single direction against state — pure, no side effects
+  const applyMove = useCallback((direction: Direction) => {
     setState((prev) => {
       if (prev.gameStatus === "lost") return prev;
       if (prev.gameStatus === "won" && !prev.keepPlaying) return prev;
@@ -282,23 +293,23 @@ export function use2048Logic() {
       const { newGrid, scoreGained, moved } = slideGrid(prev.grid, direction);
       if (!moved) return prev;
 
-      // Spawn a new tile
       spawnTile(newGrid);
 
       const newScore = prev.score + scoreGained;
       const newBest = Math.max(newScore, prev.bestScore);
+      if (newBest > prev.bestScore) saveBestScore(newBest);
 
-      // Save best score
-      if (newBest > prev.bestScore) {
-        saveBestScore(newBest);
-      }
-
-      // Determine game status
+      const maxTile = getMaxTile(newGrid);
       let gameStatus: GameState["gameStatus"] = prev.gameStatus;
-      if (!prev.keepPlaying && hasWon(newGrid)) {
-        gameStatus = "won";
-      } else if (!canMove(newGrid)) {
+      let nextMilestone = prev.nextMilestone;
+
+      if (!canMove(newGrid)) {
+        // No moves left — game over regardless of score
         gameStatus = "lost";
+      } else if (maxTile >= nextMilestone) {
+        // Reached a new milestone → celebrate! (first time: 2048, then 4096, 8192…)
+        gameStatus = "won";
+        nextMilestone = nextMilestone * 2; // next milestone to watch for
       }
 
       return {
@@ -309,15 +320,37 @@ export function use2048Logic() {
         gameStatus,
         keepPlaying: prev.keepPlaying,
         moveCount: prev.moveCount + 1,
+        winTile: maxTile,
+        nextMilestone,
       };
     });
-
-    // Brief animation lock to prevent rapid input
-    isAnimating.current = true;
-    setTimeout(() => {
-      isAnimating.current = false;
-    }, 150);
   }, []);
+
+  const move = useCallback((direction: Direction) => {
+    if (isAnimating.current) {
+      // Buffer the latest move — will be flushed when animation completes
+      pendingMove.current = direction;
+      return;
+    }
+
+    // Lock immediately (before setState to prevent any race in same tick)
+    isAnimating.current = true;
+    pendingMove.current = null;
+
+    applyMove(direction);
+
+    // Unlock after tile slide animation (matches 0.12s CSS transition in Tile.tsx)
+    setTimeout(() => {
+      const queued = pendingMove.current;
+      pendingMove.current = null;
+      isAnimating.current = false;
+
+      // Flush buffered move immediately
+      if (queued) {
+        move(queued);
+      }
+    }, 120);
+  }, [applyMove]);
 
   const restart = useCallback(() => {
     tileIdCounter = 0;
@@ -329,6 +362,7 @@ export function use2048Logic() {
       ...prev,
       gameStatus: "playing",
       keepPlaying: true,
+      // nextMilestone already advanced in applyMove
     }));
   }, []);
 

@@ -26,4 +26,8 @@ export interface GameState {
   /** Whether the player chose to continue after hitting 2048 */
   keepPlaying: boolean;
   moveCount: number;
+  /** The highest tile value on the board right now */
+  winTile: number;
+  /** The next power-of-2 milestone to trigger a win overlay when keepPlaying */
+  nextMilestone: number;
 }

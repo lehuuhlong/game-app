@@ -11,6 +11,7 @@ const TILE_STYLES: Record<
   number,
   { bg: string; text: string; shadow: string; fontSize?: string }
 > = {
+  // ── Classic 2–2048 (original warm palette) ─────────────────────
   2: {
     bg: "bg-[#eee4da]",
     text: "text-[#776e65]",
@@ -71,13 +72,55 @@ const TILE_STYLES: Record<
     shadow: "shadow-[#edc22e]/60",
     fontSize: "text-lg",
   },
+
+  // ── Beyond 2048: vivid purples ────────────────────────────────
+  4096: {
+    bg: "bg-[#9b59b6]",
+    text: "text-white",
+    shadow: "shadow-[#9b59b6]/60",
+    fontSize: "text-base",
+  },
+  8192: {
+    bg: "bg-[#8e44ad]",
+    text: "text-white",
+    shadow: "shadow-[#8e44ad]/60",
+    fontSize: "text-base",
+  },
+
+  // ── Electric blues ────────────────────────────────────────────
+  16384: {
+    bg: "bg-[#2980b9]",
+    text: "text-white",
+    shadow: "shadow-[#2980b9]/60",
+    fontSize: "text-sm",
+  },
+  32768: {
+    bg: "bg-[#1a6fa5]",
+    text: "text-white",
+    shadow: "shadow-[#1a6fa5]/60",
+    fontSize: "text-sm",
+  },
+
+  // ── Hot pinks / magentas ──────────────────────────────────────
+  65536: {
+    bg: "bg-[#e91e8c]",
+    text: "text-white",
+    shadow: "shadow-[#e91e8c]/60",
+    fontSize: "text-xs",
+  },
+  131072: {
+    bg: "bg-[#c2185b]",
+    text: "text-white",
+    shadow: "shadow-[#c2185b]/60",
+    fontSize: "text-xs",
+  },
 };
 
 const DEFAULT_STYLE = {
-  bg: "bg-[#3c3a32]",
+  bg: "bg-[#1a1a2e]",
   text: "text-white",
-  shadow: "shadow-[#3c3a32]/50",
-  fontSize: "text-base",
+  shadow: "shadow-[#1a1a2e]/50",
+  fontSize: "text-xs",
 };
 
 interface TileProps {
@@ -88,7 +131,19 @@ interface TileProps {
 
 export function TileComponent({ tile, cellSize, gap }: TileProps) {
   const style = TILE_STYLES[tile.value] || DEFAULT_STYLE;
-  const fontSize = style.fontSize || (tile.value < 100 ? "text-2xl" : "text-xl");
+
+  // Font size: prefer explicit style, else compute from digit count
+  const fontSize =
+    style.fontSize ||
+    (tile.value < 100
+      ? "text-2xl"
+      : tile.value < 1000
+      ? "text-xl"
+      : tile.value < 10000
+      ? "text-lg"
+      : tile.value < 100000
+      ? "text-sm"
+      : "text-xs");
 
   // Calculate pixel position from grid coordinates
   const x = tile.col * (cellSize + gap) + gap;
