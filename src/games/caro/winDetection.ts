@@ -22,6 +22,7 @@ export function checkWin(
 
   for (const [dr, dc] of directions) {
     const cells: { row: number; col: number }[] = [{ row, col }];
+    let blockedEnds = 0;
 
     for (const sign of [1, -1]) {
       let r = row + dr * sign;
@@ -35,9 +36,21 @@ export function checkWin(
         r += dr * sign;
         c += dc * sign;
       }
+
+      if (r < 0 || r >= size || c < 0 || c >= size) {
+        blockedEnds++;
+      } else if (board[r][c] !== null && board[r][c] !== player) {
+        blockedEnds++;
+      }
     }
 
-    if (cells.length >= WIN_LENGTH) return cells;
+    if (cells.length >= WIN_LENGTH) {
+      if (cells.length === WIN_LENGTH && blockedEnds === 2) {
+        // 5 in a row but blocked at both ends -> not a win
+        continue;
+      }
+      return cells;
+    }
   }
 
   return null;

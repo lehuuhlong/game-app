@@ -43,7 +43,7 @@ export interface CaroGameState {
 
 /** Events the client can emit to the server */
 export interface ClientToServerEvents {
-  join_room: (data: { roomId: string; gameType: GameType; username: string }) => void;
+  join_room: (data: { roomId: string; gameType: GameType; username: string; action?: "create" | "join" }) => void;
   leave_room: (data: { roomId: string }) => void;
   make_move: (data: CaroMove) => void;
   restart_game: (data: { roomId: string }) => void;

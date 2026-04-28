@@ -24,6 +24,7 @@ export function GameCaro() {
   const [joinInput, setJoinInput] = useState("");
   const [joinError, setJoinError] = useState("");
   const [statusMsg, setStatusMsg] = useState("Waiting for opponent...");
+  const [copied, setCopied] = useState(false);
 
   // Room info
   const roomIdRef = useRef("");
@@ -224,25 +225,25 @@ export function GameCaro() {
     };
   }, [stopTimer]);
 
-  const joinRoom = useCallback((id: string) => {
+  const joinRoom = useCallback((id: string, action: "create" | "join" = "join") => {
     if (!user) { setShowLogin(true); return; }
     const socket = getSocket();
     roomIdRef.current = id;
     setRoomId(id);
     setupSocket(socket);
-    socket.emit("join_room", { roomId: id, gameType: "caro", username: user.username });
+    socket.emit("join_room", { roomId: id, gameType: "caro", username: user.username, action });
   }, [user, getSocket, setupSocket]);
 
   const handleCreateRoom = () => {
     const newId = Math.random().toString(36).slice(2, 8).toUpperCase();
-    joinRoom(newId);
+    joinRoom(newId, "create");
   };
 
   const handleJoinRoom = () => {
     const id = joinInput.trim().toUpperCase();
     if (!id) { setJoinError("Please enter a room code."); return; }
     setJoinError("");
-    joinRoom(id);
+    joinRoom(id, "join");
   };
 
   const handleCellClick = (row: number, col: number) => {
@@ -364,10 +365,27 @@ export function GameCaro() {
               <div className="h-12 w-12 rounded-full border-4 border-accent border-t-transparent animate-spin mx-auto" />
               <h2 className="text-xl font-bold text-foreground">{statusMsg}</h2>
 
-              <div className="rounded-xl bg-background border border-border p-5">
+              <div className="rounded-xl bg-background border border-border p-5 relative">
                 <p className="text-xs text-foreground-muted mb-1">Room Code</p>
-                <p className="text-4xl font-extrabold text-accent font-mono tracking-widest">{roomId}</p>
-                <p className="text-xs text-foreground-muted mt-1">Share with your friend</p>
+                <div className="flex items-center justify-center gap-3">
+                  <p className="text-4xl font-extrabold text-accent font-mono tracking-widest">{roomId}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(roomId);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="p-2 rounded-lg bg-surface hover:bg-surface-hover text-foreground-secondary hover:text-foreground transition-colors border border-border"
+                    title="Copy Room Code"
+                  >
+                    {copied ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-foreground-muted mt-2">Share with your friend</p>
               </div>
 
               <div className="space-y-1 text-sm text-foreground-secondary">

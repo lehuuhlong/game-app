@@ -36,13 +36,18 @@ export function registerSocketHandlers(io: GameIO): void {
     io.emit("online_players_count", io.engine.clientsCount);
 
     // ── Join Room ────────────────────────────────────────────────
-    socket.on("join_room", ({ roomId, gameType, username }) => {
+    socket.on("join_room", ({ roomId, gameType, username, action }) => {
       socket.data.username = username;
       socket.data.currentRoom = roomId;
 
       let room = rooms.get(roomId);
 
       if (!room) {
+        if (action === "join") {
+          socket.emit("error", { message: "Room does not exist" });
+          return;
+        }
+
         room = {
           id: roomId,
           gameType,
