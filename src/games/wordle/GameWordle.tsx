@@ -189,6 +189,7 @@ export function GameWordle() {
       {showLogin && (
         <LoginModal
           onClose={() => setShowLogin(false)}
+          onSuccess={() => setShowLogin(false)}
           subtitle="Log in to save your Wordle wins to the leaderboard!"
         />
       )}
