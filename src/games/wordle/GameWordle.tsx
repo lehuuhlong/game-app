@@ -71,10 +71,21 @@ export function GameWordle() {
       .catch((err) => console.error("Failed to save wordle score:", err));
   }, [gameStatus, user]);
 
+  const isRestartingRef = useRef(false);
+
   const handleRestart = useCallback(() => {
+    if (isRestartingRef.current) return;
+    isRestartingRef.current = true;
+
     scoreSavedRef.current = false;
     setShowLogin(false);
-    restart();
+    setShowGameOverPopup(false); // Trigger exit animation
+
+    // Wait for the exit animation to finish before resetting the game state
+    setTimeout(() => {
+      restart();
+      isRestartingRef.current = false;
+    }, 500);
   }, [restart]);
 
   return (
