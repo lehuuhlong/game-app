@@ -42,43 +42,43 @@ export const WordleTile = memo(function WordleTile({
     styleKey = "empty";
   }
 
+  // Animation timing for evaluated tiles
+  const flipDelay = index * 0.2; // Stagger delay (200ms between each tile)
+  const colorChangeDelay = flipDelay + 0.2; // Halfway point of the 400ms flip
+
   return (
     <motion.div
-      // Pop animation when a letter is typed
+      initial={false}
+      // Animate the entire tile flip or just a pop when typing
       animate={
-        hasLetter && !isEvaluated
+        isEvaluated
+          ? { rotateX: [0, 90, 0] }
+          : hasLetter
           ? { scale: [1, 1.1, 1] }
-          : undefined
+          : { scale: 1, rotateX: 0 }
       }
-      transition={{ duration: 0.1 }}
+      transition={
+        isEvaluated
+          ? { duration: 0.4, delay: flipDelay, times: [0, 0.5, 1], ease: "easeInOut" }
+          : { duration: 0.1 }
+      }
+      style={{
+        // We delay the color switch until the tile is face-down (at 90 degrees rotateX)
+        transitionProperty: "background-color, border-color, color",
+        transitionDuration: isEvaluated ? "0s" : "0.15s",
+        transitionDelay: isEvaluated ? `${colorChangeDelay}s` : "0s",
+      }}
       className={`
         relative flex items-center justify-center
         w-[52px] h-[52px] sm:w-[62px] sm:h-[62px]
         border-2 rounded-lg
         text-2xl sm:text-3xl font-extrabold uppercase
         select-none
-        transition-colors duration-300
         ${STATUS_STYLES[styleKey]}
         ${isActive && !hasLetter ? "border-border" : ""}
       `}
     >
-      {/* Flip animation for evaluated tiles */}
-      {isEvaluated ? (
-        <motion.span
-          initial={{ rotateX: 90, opacity: 0 }}
-          animate={{ rotateX: 0, opacity: 1 }}
-          transition={{
-            delay: index * 0.15,
-            duration: 0.3,
-            ease: "easeOut",
-          }}
-          className="inline-block"
-        >
-          {tile.letter}
-        </motion.span>
-      ) : (
-        <span>{tile.letter}</span>
-      )}
+      {tile.letter}
     </motion.div>
   );
 });

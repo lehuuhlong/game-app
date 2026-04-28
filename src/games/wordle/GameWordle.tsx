@@ -26,10 +26,21 @@ export function GameWordle() {
 
   const gameOver = gameStatus === "won" || gameStatus === "lost";
 
+  const [showGameOverPopup, setShowGameOverPopup] = useState(false);
+
+  useEffect(() => {
+    if (gameOver) {
+      const t = setTimeout(() => setShowGameOverPopup(true), 1400);
+      return () => clearTimeout(t);
+    } else {
+      setShowGameOverPopup(false);
+    }
+  }, [gameOver]);
+
   // ── Login prompt on game end (if not logged in) ─────────────────
   useEffect(() => {
     if (gameOver && !user) {
-      const t = setTimeout(() => setShowLogin(true), 1200);
+      const t = setTimeout(() => setShowLogin(true), 1600);
       return () => clearTimeout(t);
     }
   }, [gameOver, user]);
@@ -96,55 +107,57 @@ export function GameWordle() {
 
       {/* ── Game Over Message ─────────────────────────────────── */}
       <AnimatePresence>
-        {gameOver && (
+        {showGameOverPopup && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 1, duration: 0.3 }}
-            className="flex flex-col items-center gap-3 p-4 rounded-xl bg-surface border border-border shadow-md"
+            initial={{ opacity: 0, height: 0, scale: 0.95 }}
+            animate={{ opacity: 1, height: "auto", scale: 1 }}
+            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="overflow-hidden w-full flex justify-center"
           >
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">
-                {gameStatus === "won" ? "🎉" : "😔"}
-              </span>
-              <div>
-                <h3 className="text-lg font-bold text-foreground">
-                  {gameStatus === "won" ? "Congratulations!" : "Better luck next time!"}
-                </h3>
-                <p className="text-sm text-foreground-secondary">
-                  {gameStatus === "won"
-                    ? `You got it in ${currentRow} ${currentRow === 1 ? "guess" : "guesses"}!`
-                    : (
-                      <>
-                        The word was{" "}
-                        <span className="font-bold text-foreground">{solution}</span>
-                      </>
-                    )}
-                </p>
-                {gameStatus === "won" && user && (
-                  <p className="text-xs text-emerald-500 mt-1">✓ Win saved to leaderboard</p>
-                )}
+            <div className="flex flex-col items-center gap-3 p-4 mb-4 rounded-xl bg-surface border border-border shadow-md">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">
+                  {gameStatus === "won" ? "🎉" : "😔"}
+                </span>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {gameStatus === "won" ? "Congratulations!" : "Better luck next time!"}
+                  </h3>
+                  <p className="text-sm text-foreground-secondary">
+                    {gameStatus === "won"
+                      ? `You got it in ${currentRow} ${currentRow === 1 ? "guess" : "guesses"}!`
+                      : (
+                        <>
+                          The word was{" "}
+                          <span className="font-bold text-foreground">{solution}</span>
+                        </>
+                      )}
+                  </p>
+                  {gameStatus === "won" && user && (
+                    <p className="text-xs text-emerald-500 mt-1">✓ Win saved to leaderboard</p>
+                  )}
+                </div>
               </div>
-            </div>
-            <button
-              onClick={handleRestart}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 px-6 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
+              <button
+                onClick={handleRestart}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 px-6 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
               >
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
-              New Word
-            </button>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                New Word
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
