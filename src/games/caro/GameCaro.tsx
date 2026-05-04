@@ -155,21 +155,26 @@ export function GameCaro() {
     socket.on("player_left", ({ room }: any) => {
       setPlayers(room.players);
       if (screenRef.current === "playing") {
-        stopTimer();
-        saveCaro(true);
-        setWinnerMsg("🏃 Opponent left — you win!");
-        setScreen("finished");
-        
-        // Reset board
-        const fresh = makeEmptyBoard();
-        boardRef.current = fresh;
-        currentTurnRef.current = "X";
-        gameStartedRef.current = false;
-        setBoard(fresh);
-        setCurrentTurn("X");
-        setWinningCells([]);
-        setLastMove(null);
-        setMoveCount(0);
+        if (gameStartedRef.current) {
+          stopTimer();
+          saveCaro(true);
+          setWinnerMsg("🏃 Opponent left — you win!");
+          setScreen("finished");
+          
+          // Reset board
+          const fresh = makeEmptyBoard();
+          boardRef.current = fresh;
+          currentTurnRef.current = "X";
+          gameStartedRef.current = false;
+          setBoard(fresh);
+          setCurrentTurn("X");
+          setWinningCells([]);
+          setLastMove(null);
+          setMoveCount(0);
+        } else {
+          setScreen("waiting");
+          setStatusMsg("Opponent left. Waiting for another player...");
+        }
       } else {
         setStatusMsg("Opponent left.");
       }
@@ -218,6 +223,7 @@ export function GameCaro() {
         const isMe = move.player === mySymbolRef.current;
         setWinnerMsg(isMe ? "🏆 You win!" : `😔 You lose!`);
         setScreen("finished");
+        saveCaro(isMe);
         return;
       }
 
@@ -278,6 +284,9 @@ export function GameCaro() {
   };
 
   const handleLeaveRoom = () => {
+    if (screenRef.current === "playing" && gameStartedRef.current) {
+      saveCaro(false);
+    }
     stopTimer();
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();
@@ -516,7 +525,6 @@ export function GameCaro() {
                         <p className="text-sm font-semibold text-foreground truncate">
                           {p.username} {isMySymbol && <span className="text-xs text-foreground-muted font-normal">(you)</span>}
                         </p>
-                        {isTurn && <p className="text-xs text-accent">Thinking...</p>}
                       </div>
                     </div>
                   );
