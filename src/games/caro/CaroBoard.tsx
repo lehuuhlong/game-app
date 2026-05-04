@@ -35,8 +35,8 @@ export function CaroBoard({
       <div
         className="inline-grid bg-surface border border-border rounded-lg shadow-lg"
         style={{
-          gridTemplateColumns: `repeat(${gridSize}, minmax(28px, 36px))`,
-          gridTemplateRows: `repeat(${gridSize}, minmax(28px, 36px))`,
+          gridTemplateColumns: `repeat(${gridSize}, minmax(28px, 28px))`,
+          gridTemplateRows: `repeat(${gridSize}, minmax(28px, 28px))`,
         }}
       >
         {board.map((row, r) =>
