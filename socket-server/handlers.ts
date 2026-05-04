@@ -142,9 +142,20 @@ export function registerSocketHandlers(io: GameIO): void {
         return;
       }
 
+      // Prevent double restart if both players click "Rematch" at the same time
+      const now = Date.now();
+      if ((room as any).lastRestart && now - (room as any).lastRestart < 2000) {
+        return;
+      }
+      (room as any).lastRestart = now;
+
       room.status = "playing";
       const gameState = createInitialGameState();
       gameStates.set(roomId, gameState);
+      
+      // Swap players so they alternate who goes first (X always goes first)
+      room.players.reverse();
+      
       io.to(roomId).emit("game_started", { room, gameState });
       console.log(`🔄 Game restarted in room ${roomId}`);
     });
