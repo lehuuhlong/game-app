@@ -26,7 +26,7 @@ import type {
 } from "./types";
 
 const DEFAULT_CONFIG: CaroConfig = {
-  gridSize: 30,
+  gridSize: 15,
   winLength: 5,
   blockedEndsRule: true,
 };
