@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth";
 import { checkWin } from "./winDetection";
 import type { CellValue, Player } from "./types";
 
-const GRID_SIZE = 15;
+const GRID_SIZE = 25;
 const TURN_SECONDS = 30;
 type Screen = "lobby" | "waiting" | "playing" | "finished";
 

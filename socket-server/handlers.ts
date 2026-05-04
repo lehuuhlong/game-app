@@ -19,7 +19,7 @@ type GameIO = SocketIOServer<
 const rooms = new Map<string, Room>();
 const gameStates = new Map<string, CaroGameState>();
 
-const GRID_SIZE = 15;
+const GRID_SIZE = 25;
 
 function createInitialGameState(): CaroGameState {
   return {
