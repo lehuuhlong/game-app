@@ -7,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Left: branding */}
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-600">
+            {/* <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-600">
               <svg
                 width="14"
                 height="14"
@@ -20,7 +20,7 @@ export function Footer() {
               >
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-            </div>
+            </div> */}
             <span className="text-sm font-semibold text-foreground">
               Game<span className="text-gradient">Portal</span>
             </span>
