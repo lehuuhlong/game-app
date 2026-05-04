@@ -9,6 +9,7 @@ export interface IUser extends Document {
   username: string;
   avatarUrl?: string | null;
   bestScore2048: number;       // 2048: best score only
+  highest2048Tile: number;     // 2048: highest tile reached
   caroWins: number;            // Caro: total wins
   caroTotal: number;           // Caro: total games played
   msBestBeginner: number;      // Minesweeper Beginner: best time (seconds, 0 = never won)
@@ -32,6 +33,7 @@ const UserSchema = new Schema<IUser>(
       default: null,
     },
     bestScore2048:     { type: Number, default: 0 },
+    highest2048Tile:   { type: Number, default: 0 },
     caroWins:          { type: Number, default: 0 },
     caroTotal:         { type: Number, default: 0 },
     msBestBeginner:    { type: Number, default: 0 },

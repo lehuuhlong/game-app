@@ -20,6 +20,7 @@ function toClientUser(user: InstanceType<typeof User>) {
     username: user.username,
     avatarUrl: user.avatarUrl ?? null,
     bestScore2048: user.bestScore2048 ?? 0,
+    highest2048Tile: user.highest2048Tile ?? 0,
     caroWins: user.caroWins ?? 0,
     caroTotal: user.caroTotal ?? 0,
   };

@@ -11,6 +11,7 @@ interface Entry2048 {
   username: string;
   avatarUrl: string | null;
   score: number;
+  highestTile: number;
 }
 
 interface EntryCaro {
@@ -295,9 +296,10 @@ export default function LeaderboardPage() {
               {/* ── 2048 ── */}
               {activeTab === "2048" && (
                 <>
-                  <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                  <TableHeader cols="grid-cols-[56px_1fr_100px_120px]">
                     <span>Rank</span>
                     <span>Player</span>
+                    <span className="text-right">Highest Tile</span>
                     <span className="text-right">Best Score</span>
                   </TableHeader>
                   {isLoading ? (
@@ -307,9 +309,12 @@ export default function LeaderboardPage() {
                   ) : (
                     <div>
                       {data2048.map((entry, i) => (
-                        <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_120px]" isLast={i === data2048.length - 1}>
+                        <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_100px_120px]" isLast={i === data2048.length - 1}>
                           <RankBadge rank={entry.rank} />
                           <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                          <span className="text-sm font-bold text-amber-500 text-right tabular-nums">
+                            {entry.highestTile > 0 ? entry.highestTile : "-"}
+                          </span>
                           <span className="text-sm font-bold text-foreground text-right tabular-nums">
                             {entry.score.toLocaleString()}
                           </span>

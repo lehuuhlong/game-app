@@ -6,7 +6,7 @@
  * Minesweeper: saves best time (lower is better) per difficulty level.
  * Wordle:      increments wordleWins on a win.
  *
- * Body (2048):        { game: "2048", score: number }
+ * Body (2048):        { game: "2048", score: number, highestTile?: number }
  * Body (caro):        { game: "caro", won: boolean }
  * Body (minesweeper): { game: "minesweeper", difficulty: "beginner"|"intermediate"|"expert", time: number }
  * Body (wordle):      { game: "wordle", won: boolean }
@@ -43,12 +43,15 @@ export async function PATCH(
     }
 
     if (game === "2048") {
-      const { score } = body;
+      const { score, highestTile } = body;
       if (typeof score !== "number" || score < 0) {
         return NextResponse.json({ error: "Invalid score" }, { status: 400 });
       }
       if (score > user.bestScore2048) {
         user.bestScore2048 = score;
+      }
+      if (typeof highestTile === "number" && highestTile > (user.highest2048Tile || 0)) {
+        user.highest2048Tile = highestTile;
       }
     } else if (game === "caro") {
       const { won } = body;
@@ -79,6 +82,7 @@ export async function PATCH(
 
     return NextResponse.json({
       bestScore2048:     user.bestScore2048,
+      highest2048Tile:   user.highest2048Tile,
       caroWins:          user.caroWins,
       caroTotal:         user.caroTotal,
       msBestBeginner:    user.msBestBeginner,

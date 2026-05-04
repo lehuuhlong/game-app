@@ -51,12 +51,12 @@ export function Game2048() {
     fetch(`/api/users/${user.id}/score`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "2048", score }),
+      body: JSON.stringify({ game: "2048", score, highestTile: Math.max(...tiles.map((t) => t.value), 0) }),
     })
       .then((r) => r.json())
       .then((d) => {
         if (d.bestScore2048 !== undefined) {
-          refreshUser({ bestScore2048: d.bestScore2048 });
+          refreshUser({ bestScore2048: d.bestScore2048, highest2048Tile: d.highest2048Tile });
         }
       })
       .catch((err) => console.error("Failed to save score:", err));

@@ -14,6 +14,7 @@ export interface AuthUser {
   username: string;
   avatarUrl: string | null;
   bestScore2048: number;
+  highest2048Tile: number;
   caroWins: number;
   caroTotal: number;
 }

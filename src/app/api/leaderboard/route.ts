@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
     if (game === "2048") {
       const leaderboard = await User.find({ bestScore2048: { $gt: 0 } })
-        .select("username avatarUrl bestScore2048")
+        .select("username avatarUrl bestScore2048 highest2048Tile")
         .sort({ bestScore2048: -1 })
         .limit(10)
         .lean();
@@ -40,6 +40,7 @@ export async function GET(request: Request) {
           username: u.username,
           avatarUrl: u.avatarUrl || null,
           score: u.bestScore2048,
+          highestTile: (u as any).highest2048Tile || 0,
         })),
       });
     }
