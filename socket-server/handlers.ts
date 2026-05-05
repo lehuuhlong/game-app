@@ -1,4 +1,6 @@
 import { Server as SocketIOServer } from "socket.io";
+import fs from "fs";
+import path from "path";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -96,31 +98,51 @@ async function validateEnglishWord(word: string): Promise<boolean> {
 }
 
 /**
- * Validate a Vietnamese compound word against a local mock list.
- * (Placeholder — ready to be swapped for a real JSON dataset)
+ * Load Vietnamese dictionary into a global Set for O(1) lookups.
+ * It attempts to read from src/data/vietnamese-words.txt to avoid API rate limits.
  */
-const MOCK_VIETNAMESE_WORDS = new Set([
-  "bóng đá", "đá cầu", "cầu lông", "lông vũ", "vũ trụ",
-  "trụ sở", "sở thích", "thích hợp", "hợp tác", "tác phẩm",
-  "phẩm chất", "chất lượng", "lượng tử", "tử tế", "tế bào",
-  "bào chữa", "chữa bệnh", "bệnh viện", "viện trợ", "trợ giúp",
-  "giúp đỡ", "đỡ đần", "công việc", "việc làm", "làm việc",
-  "học sinh", "sinh viên", "viên chức", "chức năng", "năng lực",
-  "lực lượng", "lượng giá", "giá trị", "trị liệu", "liệu pháp",
-  "pháp luật", "luật sư", "sư phạm", "phạm vi", "vi phạm",
-  "gia đình", "đình công", "công nghệ", "nghệ thuật", "thuật toán",
-  "toán học", "học hỏi", "hỏi han", "han rỉ", "rỉ sét",
-  "hạnh phúc", "phúc lợi", "lợi ích", "ích kỷ", "kỷ niệm",
-  "niệm phật", "phật giáo", "giáo dục", "dục vọng", "vọng cổ",
-  "cổ đại", "đại học", "học viện", "viện sĩ", "sĩ quan",
-  "quan tâm", "tâm lý", "lý tưởng", "tưởng tượng", "tượng hình",
-]);
+let vietnameseDictionary = new Set<string>();
+
+try {
+  const dictPath = path.join(process.cwd(), "src", "data", "ee-vietnamese-words.txt");
+  if (fs.existsSync(dictPath)) {
+    const fileContent = fs.readFileSync(dictPath, "utf-8");
+    fileContent.split(/\r?\n/).forEach((line) => {
+      // Normalize: lower case and replace underscores with spaces just in case
+      const normalized = line.trim().toLowerCase().replace(/_/g, " ");
+      if (normalized) {
+        vietnameseDictionary.add(normalized);
+      }
+    });
+    console.log(`✅ Loaded ${vietnameseDictionary.size} Vietnamese words from local dictionary.`);
+  } else {
+    console.warn(`⚠ Local dictionary not found at ${dictPath}. Using fallback mock dataset.`);
+    vietnameseDictionary = new Set([
+      "bóng đá", "đá cầu", "cầu lông", "lông vũ", "vũ trụ",
+      "trụ sở", "sở thích", "thích hợp", "hợp tác", "tác phẩm",
+      "phẩm chất", "chất lượng", "lượng tử", "tử tế", "tế bào",
+      "bào chữa", "chữa bệnh", "bệnh viện", "viện trợ", "trợ giúp",
+      "giúp đỡ", "đỡ đần", "công việc", "việc làm", "làm việc",
+      "học sinh", "sinh viên", "viên chức", "chức năng", "năng lực",
+      "lực lượng", "lượng giá", "giá trị", "trị liệu", "liệu pháp",
+      "pháp luật", "luật sư", "sư phạm", "phạm vi", "vi phạm",
+      "gia đình", "đình công", "công nghệ", "nghệ thuật", "thuật toán",
+      "toán học", "học hỏi", "hỏi han", "han rỉ", "rỉ sét",
+      "hạnh phúc", "phúc lợi", "lợi ích", "ích kỷ", "kỷ niệm",
+      "niệm phật", "phật giáo", "giáo dục", "dục vọng", "vọng cổ",
+      "cổ đại", "đại học", "học viện", "viện sĩ", "sĩ quan",
+      "quan tâm", "tâm lý", "lý tưởng", "tưởng tượng", "tượng hình",
+    ]);
+  }
+} catch (error) {
+  console.error("Failed to load Vietnamese dictionary:", error);
+}
 
 async function validateVietnameseWord(word: string): Promise<boolean> {
-  const lower = word.trim().toLowerCase();
-  // Check if it's at least 2 syllables (compound word)
+  const lower = word.trim().toLowerCase().replace(/_/g, " ");
+  // Optional: check if it's at least 2 syllables (compound word) for your game rules
   if (lower.split(/\s+/).length < 2) return false;
-  return MOCK_VIETNAMESE_WORDS.has(lower);
+  return vietnameseDictionary.has(lower);
 }
 
 function createInitialWCState(
