@@ -25,7 +25,7 @@ import type {
   WordChainPlayer,
 } from "./types";
 
-const TURN_DURATION = 10; // seconds — matches server
+const TURN_DURATION = 20; // seconds — matches server
 
 // ── Hook ──────────────────────────────────────────────────────────
 
@@ -62,9 +62,7 @@ export function useWordChain() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Result ──────────────────────────────────────────────────────
-  const [winnerName, setWinnerName] = useState("");
-  const [loserName, setLoserName] = useState("");
-  const [endReason, setEndReason] = useState<string | null>(null);
+  const [winnerMsg, setWinnerMsg] = useState<string>("");
   const [didIWin, setDidIWin] = useState(false);
 
   // ── Refs for socket & identity ──────────────────────────────────
@@ -207,13 +205,11 @@ export function useWordChain() {
         setGameLanguage(gameState.language);
         setWordInput("");
         setRejectMsg("");
-        setWinnerName("");
-        setLoserName("");
-        setEndReason(null);
+        setWinnerMsg("");
         setIsSubmitting(false);
         setScreen("playing");
         // Timer starts visually when the first word is submitted
-        setTimeLeft(10);
+        setTimeLeft(20);
         stopTimer();
       });
 
@@ -240,11 +236,16 @@ export function useWordChain() {
       // ── Game over ─────────────────────────────────────────────
       socket.on("wc_game_over", (data: any) => {
         stopTimer();
-        setWinnerName(data.winnerName);
-        setLoserName(data.loserName);
-        setEndReason(data.reason);
         const win = data.winnerId === myPlayerIdRef.current;
         setDidIWin(win);
+        
+        const suffix = data.reason === "timeout" ? " (Time out)" : "";
+        if (data.reason === "disconnect") {
+          setWinnerMsg("🏃 Opponent left — you win!");
+        } else {
+          setWinnerMsg(win ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
+        }
+
         setChain(data.gameState.chain);
         setScreen("finished");
         saveWordchain(win);
@@ -321,9 +322,7 @@ export function useWordChain() {
     setRoomId("");
     setWordInput("");
     setRejectMsg("");
-    setWinnerName("");
-    setLoserName("");
-    setEndReason(null);
+    setWinnerMsg("");
     setIsSubmitting(false);
     setJoinInput("");
     setJoinError("");
@@ -337,9 +336,7 @@ export function useWordChain() {
     setChain([]);
     setWordInput("");
     setRejectMsg("");
-    setWinnerName("");
-    setLoserName("");
-    setEndReason(null);
+    setWinnerMsg("");
     setIsSubmitting(false);
     setScreen("playing");
   }, [stopTimer, setScreen]);
@@ -433,9 +430,7 @@ export function useWordChain() {
     timerColor,
 
     // Result
-    winnerName,
-    loserName,
-    endReason,
+    winnerMsg,
     didIWin,
 
     // Actions

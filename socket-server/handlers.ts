@@ -27,7 +27,7 @@ const wcStates = new Map<string, WordChainGameState>();
 const wcTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 const CARO_GRID_SIZE = 25;
-const WC_TURN_DURATION = 10; // seconds
+const WC_TURN_DURATION = 20; // seconds
 
 // ── Caro helpers ──────────────────────────────────────────────────
 

@@ -36,9 +36,7 @@ export function GameWordChain() {
     timeLeft,
     timerPercent,
     timerColor,
-    winnerName,
-    loserName,
-    endReason,
+    winnerMsg,
     didIWin,
     leaveRoom,
     requestRematch,
@@ -118,7 +116,7 @@ export function GameWordChain() {
         <div className="w-full text-center sm:text-left shrink-0">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">Word Chain</h1>
           <p className="text-sm text-foreground-secondary mt-0.5">
-            Connect words. 10 seconds per turn. Don't run out of time!
+            Connect words. 20 seconds per turn. Don't run out of time!
           </p>
         </div>
 
@@ -231,72 +229,13 @@ export function GameWordChain() {
 
         {/* ── PLAYING / FINISHED ─────────────────────────────────── */}
         {(screen === "playing" || screen === "finished") && (
-          <div className="w-full flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+          <div className="w-full flex flex-col lg:flex-row items-start gap-6">
             
-            {/* Players Sidebar */}
-            <div className="w-full md:w-64 shrink-0 flex flex-col gap-4">
-              <div className="rounded-2xl border border-border bg-surface p-4 flex flex-col gap-4">
-                <div className="flex justify-between items-center pb-3 border-b border-border">
-                  <span className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">Room {roomId}</span>
-                  <span className="text-xs font-medium bg-background px-2 py-1 rounded border border-border">
-                    {gameLanguage === "en" ? "EN" : "VI"}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {players.map((p) => {
-                    const isActive = p.id === currentTurnPlayerId && screen === "playing";
-                    const isMe = p.id === myPlayerId;
-                    
-                    return (
-                      <div 
-                        key={p.id} 
-                        className={`flex flex-col gap-2 p-3 rounded-xl transition-all ${
-                          isActive 
-                            ? "bg-accent/10 border border-accent/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]" 
-                            : "bg-background border border-transparent"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`h-2.5 w-2.5 rounded-full ${isActive ? "bg-accent animate-pulse" : "bg-foreground-muted"}`} />
-                          <span className={`font-semibold text-sm truncate ${isActive ? "text-accent" : "text-foreground"}`}>
-                            {p.username} {isMe && "(You)"}
-                          </span>
-                        </div>
-                        
-                        {isActive && (
-                          <div className="space-y-1 mt-1">
-                            <div className="flex justify-between text-xs font-mono">
-                              <span className={timeLeft <= 3 ? "text-red-500 font-bold" : "text-foreground-secondary"}>{timeLeft}s</span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-border overflow-hidden">
-                              <motion.div
-                                className={`h-full rounded-full transition-colors ${timerColor}`}
-                                style={{ width: `${timerPercent}%` }}
-                                transition={{ duration: 0.5 }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <button 
-                  onClick={leaveRoom}
-                  className="mt-2 text-sm text-foreground-muted hover:text-red-500 transition-colors py-2 border border-transparent hover:border-red-500/30 rounded-lg"
-                >
-                  Leave Room
-                </button>
-              </div>
-            </div>
-
             {/* Chat/Game Area */}
-            <div className="flex-1 flex flex-col bg-surface border border-border rounded-2xl overflow-hidden shadow-sm relative min-h-[400px]">
+            <div className="flex-1 flex flex-col w-full bg-surface border border-border rounded-2xl overflow-hidden shadow-sm relative min-h-[500px]">
               
               {/* Chain Display */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth min-h-[400px]">
                 {chain.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-foreground-muted opacity-60">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-4">
@@ -400,42 +339,95 @@ export function GameWordChain() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-6"
+                    className="absolute inset-0 flex items-center justify-center bg-background/75 backdrop-blur-[2px] rounded-xl z-10"
                   >
-                    <motion.div 
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", bounce: 0.5 }}
-                      className="bg-surface border border-border rounded-2xl p-8 max-w-sm w-full text-center shadow-xl"
-                    >
-                      <div className="text-6xl mb-4">{didIWin ? "🎉" : "💀"}</div>
-                      <h2 className="text-2xl font-extrabold text-foreground mb-1">
-                        {didIWin ? "You Win!" : "You Lose!"}
-                      </h2>
-                      <p className="text-foreground-secondary text-sm mb-6">
-                        {endReason === "timeout" && `${loserName} ran out of time.`}
-                        {endReason === "disconnect" && `${loserName} disconnected.`}
-                        {endReason === "invalid" && `${loserName} made too many invalid guesses.`}
-                      </p>
-                      
-                      <div className="flex flex-col gap-3">
+                    <div className="text-center space-y-4 p-8">
+                      <p className="text-3xl font-extrabold text-foreground">{winnerMsg}</p>
+                      <div className="flex gap-3 justify-center">
                         <button 
-                          onClick={requestRematch}
-                          className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 py-3 text-sm font-bold text-white hover:from-emerald-600 hover:to-green-700 hover:-translate-y-0.5 transition-all shadow-md"
+                          onClick={requestRematch} 
+                          disabled={players.length < 2}
+                          className={`rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
+                            players.length < 2 
+                              ? "bg-surface-hover text-foreground-muted cursor-not-allowed" 
+                              : "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
+                          }`}
                         >
-                          Play Again
+                          {players.length < 2 ? "Waiting for opponent..." : "Rematch"}
                         </button>
-                        <button 
-                          onClick={leaveRoom}
-                          className="w-full rounded-xl border border-border bg-background py-3 text-sm font-semibold text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all"
-                        >
-                          Leave Game
+                        <button onClick={leaveRoom} className="rounded-xl border border-border px-6 py-2.5 text-sm font-semibold text-foreground-secondary hover:bg-surface-hover transition-all">
+                          Leave
                         </button>
                       </div>
-                    </motion.div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Side panel */}
+            <div className="w-full lg:w-64 shrink-0 space-y-4">
+              {/* Timer */}
+              {chain.length > 0 && screen === "playing" && (
+                <div className={`rounded-xl border p-4 text-center transition-all ${
+                  isMyTurn ? "border-accent/50 bg-accent/5" : "border-border bg-surface"
+                }`}>
+                  <p className="text-xs text-foreground-muted uppercase tracking-wider mb-2">
+                    {isMyTurn ? "Your turn" : "Opponent's turn"}
+                  </p>
+                  <p className={`text-4xl font-extrabold tabular-nums ${timeLeft <= 5 ? "text-red-500 animate-pulse" : "text-foreground"}`}>
+                    {timeLeft}s
+                  </p>
+                  <div className="mt-2 h-1.5 rounded-full bg-border overflow-hidden">
+                    <motion.div
+                      className={`h-full rounded-full transition-colors ${timerColor}`}
+                      style={{ width: `${timerPercent}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Waiting for first move */}
+              {chain.length === 0 && screen === "playing" && (
+                <div className="rounded-xl border border-border bg-surface p-4 text-center">
+                  <p className="text-sm text-foreground-muted">
+                    {isMyTurn ? "🎯 Make the first move!" : "⏳ Waiting for first move..."}
+                  </p>
+                </div>
+              )}
+
+              {/* Room + players */}
+              <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">Room</span>
+                  <span className="font-mono font-bold text-accent text-sm">{roomId}</span>
+                </div>
+
+                {players.map((p, i) => {
+                  const isTurn = p.id === currentTurnPlayerId && screen === "playing";
+                  const isMe = p.id === myPlayerId;
+                  return (
+                    <div key={p.id} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${isTurn ? "bg-accent/10 border border-accent/30" : "bg-background"}`}>
+                      <div className={`h-2.5 w-2.5 rounded-full ${isTurn ? "bg-accent animate-pulse" : "bg-foreground-muted"}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {p.username} {isMe && <span className="text-xs text-foreground-muted font-normal">(you)</span>}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-xl border border-border bg-surface p-4">
+                <p className="text-xs text-foreground-muted uppercase tracking-wider mb-1">Chain Length</p>
+                <p className="text-2xl font-extrabold text-foreground">{chain.length}</p>
+              </div>
+
+              <button onClick={leaveRoom} className="w-full rounded-xl border border-border py-2 text-sm text-foreground-muted hover:border-red-400 hover:text-red-400 transition-all">
+                Leave Room
+              </button>
             </div>
           </div>
         )}
