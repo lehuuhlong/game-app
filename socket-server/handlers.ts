@@ -219,6 +219,12 @@ export function registerSocketHandlers(io: GameIO): void {
         };
         rooms.set(roomId, room);
         console.log(`🏠 Room created: ${roomId} (${gameType}${room.language ? `, ${room.language}` : ""})`);
+      } else {
+        // Validate that the requested game type matches the existing room's game type
+        if (room.gameType !== gameType) {
+          socket.emit("error", { message: `Cannot join: This room is for ${room.gameType === 'caro' ? 'Caro' : 'Word Chain'}.` });
+          return;
+        }
       }
 
       if (room.players.find((p) => p.socketId === socket.id)) return;
