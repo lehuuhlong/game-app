@@ -256,7 +256,7 @@ export function registerSocketHandlers(io: GameIO): void {
           const gameState = createInitialWCState(lang, firstPlayer.id);
           wcStates.set(roomId, gameState);
           io.to(roomId).emit("wc_game_started", { room, gameState });
-          startWCTimer(roomId, io);
+          // Timer starts after the first word is submitted
         }
 
         console.log(`🎮 Game started in room ${roomId}`);
@@ -464,7 +464,7 @@ export function registerSocketHandlers(io: GameIO): void {
         const gameState = createInitialWCState(lang, firstPlayer.id);
         wcStates.set(roomId, gameState);
         io.to(roomId).emit("wc_game_started", { room, gameState });
-        startWCTimer(roomId, io);
+        // Timer starts after the first word is submitted
       }
 
       console.log(`🔄 Game restarted in room ${roomId}`);

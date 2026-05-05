@@ -212,7 +212,9 @@ export function useWordChain() {
         setEndReason(null);
         setIsSubmitting(false);
         setScreen("playing");
-        startTimer();
+        // Timer starts visually when the first word is submitted
+        setTimeLeft(10);
+        stopTimer();
       });
 
       // ── Word accepted ─────────────────────────────────────────
@@ -301,6 +303,9 @@ export function useWordChain() {
   );
 
   const leaveRoom = useCallback(() => {
+    if (screenRef.current === "playing") {
+      saveWordchain(false);
+    }
     stopTimer();
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();
@@ -380,6 +385,9 @@ export function useWordChain() {
 
   useEffect(() => {
     return () => {
+      // Note: We don't save loss on unmount here because if they just navigate away or close tab,
+      // the server will emit game over to the OTHER player. The other player will get the win.
+      // Explicitly leaving via button saves the loss right away.
       stopTimer();
       socketRef.current?.disconnect();
       socketRef.current = null;
