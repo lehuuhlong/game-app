@@ -47,9 +47,12 @@ export function GameWordChain() {
 
   // Auto-scroll chat
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    const timer = setTimeout(() => {
+      if (chatEndRef.current) {
+        chatEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [chain]);
 
   // Focus input on turn
@@ -229,13 +232,13 @@ export function GameWordChain() {
 
         {/* ── PLAYING / FINISHED ─────────────────────────────────── */}
         {(screen === "playing" || screen === "finished") && (
-          <div className="w-full flex flex-col lg:flex-row items-start gap-6">
+          <div className="w-full flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
             
             {/* Chat/Game Area */}
-            <div className="flex-1 flex flex-col w-full bg-surface border border-border rounded-2xl overflow-hidden shadow-sm relative min-h-[500px]">
+            <div className="flex-1 flex flex-col w-full bg-surface border border-border rounded-2xl overflow-hidden shadow-sm relative">
               
               {/* Chain Display */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth min-h-[400px]">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
                 {chain.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-foreground-muted opacity-60">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-4">
