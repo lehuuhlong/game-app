@@ -449,7 +449,7 @@ export function GameCaro() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 flex items-center justify-center bg-background/75 backdrop-blur-sm rounded-xl"
+                    className="absolute inset-0 flex items-center justify-center bg-background/75 backdrop-blur-[2px] rounded-xl"
                   >
                     <div className="text-center space-y-4 p-8">
                       <p className="text-3xl font-extrabold text-foreground">{winnerMsg}</p>
