@@ -19,9 +19,13 @@ export interface Room {
   players: Player[];
   status: "waiting" | "playing" | "finished";
   createdAt: Date;
+  /** Word Chain only — selected language for the room */
+  language?: WordChainLanguage;
 }
 
-export type GameType = "2048" | "caro";
+export type GameType = "2048" | "caro" | "wordchain";
+
+export type WordChainLanguage = "en" | "vi";
 
 // ── Caro-specific ────────────────────────────────────────────────
 
@@ -39,27 +43,85 @@ export interface CaroGameState {
   moveHistory: CaroMove[];
 }
 
+// ── Word Chain types ─────────────────────────────────────────────
+
+export interface WordChainEntry {
+  word: string;
+  playerId: string;
+  username: string;
+  /** The connecting segment (last letter for EN, last syllable for VI) */
+  connector: string;
+}
+
+export interface WordChainGameState {
+  language: WordChainLanguage;
+  /** Ordered list of submitted words */
+  chain: WordChainEntry[];
+  /** Array of used words (lowercased) for duplicate checking */
+  usedWords: string[];
+  /** Player ID whose turn it is */
+  currentTurnPlayerId: string;
+  /** Unix timestamp when the current turn started */
+  turnStartedAt: number;
+  /** Turn duration in seconds */
+  turnDuration: number;
+  /** Winner player ID (null while playing) */
+  winner: string | null;
+  /** Reason the game ended */
+  endReason: "timeout" | "invalid" | "disconnect" | "forfeit" | null;
+}
+
 // ── Socket Event Maps ────────────────────────────────────────────
 
 /** Events the client can emit to the server */
 export interface ClientToServerEvents {
-  join_room: (data: { roomId: string; gameType: GameType; username: string; action?: "create" | "join" }) => void;
+  // Shared
+  join_room: (data: {
+    roomId: string;
+    gameType: GameType;
+    username: string;
+    action?: "create" | "join";
+    language?: WordChainLanguage;
+  }) => void;
   leave_room: (data: { roomId: string }) => void;
-  make_move: (data: CaroMove) => void;
   restart_game: (data: { roomId: string }) => void;
+
+  // Caro
+  make_move: (data: CaroMove) => void;
   timeout_turn: (data: { roomId: string; losingPlayer: "X" | "O" }) => void;
+
+  // Word Chain
+  wc_submit_word: (data: { roomId: string; word: string }) => void;
+  wc_timeout: (data: { roomId: string }) => void;
 }
 
 /** Events the server can emit to clients */
 export interface ServerToClientEvents {
+  // Shared
   room_joined: (data: { room: Room; playerId: string }) => void;
   player_joined: (data: { player: Player; room: Room }) => void;
   player_left: (data: { playerId: string; room: Room }) => void;
+  error: (data: { message: string }) => void;
+  online_players_count: (count: number) => void;
+
+  // Caro
   game_started: (data: { room: Room; gameState: CaroGameState }) => void;
   move_made: (data: { move: CaroMove; gameState: CaroGameState }) => void;
   game_over: (data: { winner: string | null; gameState: CaroGameState }) => void;
-  error: (data: { message: string }) => void;
-  online_players_count: (count: number) => void;
+
+  // Word Chain
+  wc_game_started: (data: { room: Room; gameState: WordChainGameState }) => void;
+  wc_word_accepted: (data: { entry: WordChainEntry; gameState: WordChainGameState }) => void;
+  wc_word_rejected: (data: { word: string; reason: string }) => void;
+  wc_turn_changed: (data: { currentTurnPlayerId: string; turnStartedAt: number }) => void;
+  wc_game_over: (data: {
+    winnerId: string;
+    winnerName: string;
+    loserId: string;
+    loserName: string;
+    reason: "timeout" | "invalid" | "disconnect" | "forfeit";
+    gameState: WordChainGameState;
+  }) => void;
 }
 
 /** Internal server-to-server events (for scaling with Redis adapter later) */

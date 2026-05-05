@@ -82,4 +82,28 @@ export const GAMES: GameInfo[] = [
     tags: ["Number", "Single Player", "Logic"],
     color: "from-sky-500 to-blue-600",
   },
+  {
+    id: "trex",
+    title: "T-Rex Runner",
+    description:
+      "Chrome's classic offline dinosaur game. Jump over cacti, dodge pterodactyls, and chase your high score in this endless runner!",
+    thumbnail: "/games/trex/thumbnail.png",
+    route: "/games/trex",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Arcade", "Single Player", "Endless"],
+    color: "from-stone-500 to-zinc-700",
+  },
+  {
+    id: "wordchain",
+    title: "Word Chain",
+    description:
+      "A fast-paced multiplayer word game. Connect words where the next word starts with the last letter of the previous one. English and Vietnamese supported!",
+    thumbnail: "/games/wordchain/thumbnail.png",
+    route: "/games/wordchain",
+    minPlayers: 2,
+    maxPlayers: 2,
+    tags: ["Word", "Multiplayer", "Fast Paced"],
+    color: "from-emerald-400 to-teal-500",
+  },
 ];

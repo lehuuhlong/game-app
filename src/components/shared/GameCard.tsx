@@ -96,6 +96,39 @@ const gameIcons: Record<string, React.ReactNode> = {
       <text x="44" y="30" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">9</text>
     </svg>
   ),
+  trex: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Dino body */}
+      <rect x="18" y="10" width="14" height="18" rx="2" fill="rgba(255,255,255,0.5)" />
+      {/* Head */}
+      <rect x="22" y="4" width="14" height="10" rx="2" fill="rgba(255,255,255,0.6)" />
+      {/* Eye */}
+      <rect x="32" y="7" width="3" height="3" rx="1" fill="white" />
+      {/* Arm */}
+      <rect x="14" y="18" width="6" height="3" rx="1" fill="rgba(255,255,255,0.4)" />
+      {/* Tail */}
+      <rect x="10" y="12" width="10" height="3" rx="1" fill="rgba(255,255,255,0.3)" />
+      {/* Legs */}
+      <rect x="20" y="28" width="4" height="10" rx="1" fill="rgba(255,255,255,0.5)" />
+      <rect x="28" y="28" width="4" height="8" rx="1" fill="rgba(255,255,255,0.4)" />
+      {/* Ground */}
+      <line x1="4" y1="40" x2="44" y2="40" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
+      {/* Cactus */}
+      <rect x="40" y="32" width="3" height="8" rx="1" fill="rgba(255,255,255,0.4)" />
+      <rect x="38" y="34" width="3" height="3" rx="1" fill="rgba(255,255,255,0.3)" />
+    </svg>
+  ),
+  wordchain: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Chain link 1 */}
+      <path d="M14 28 C8 28 8 20 14 20 L20 20 C26 20 26 28 20 28 Z" stroke="rgba(255,255,255,0.8)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Chain link 2 */}
+      <path d="M28 28 C34 28 34 20 28 20 L22 20 C16 20 16 28 22 28 Z" stroke="rgba(255,255,255,0.4)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Letters */}
+      <text x="17" y="27" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">W</text>
+      <text x="31" y="27" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" opacity="0.6">C</text>
+    </svg>
+  ),
 };
 
 export function GameCard({ game, index }: GameCardProps) {

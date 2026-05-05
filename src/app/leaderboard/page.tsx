@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type GameTab = "2048" | "caro" | "minesweeper" | "wordle";
+type GameTab = "2048" | "caro" | "minesweeper" | "wordle" | "trex" | "wordchain";
 type MsLevel = "beginner" | "intermediate" | "expert";
 
 interface Entry2048 {
@@ -35,6 +35,22 @@ interface EntryWordle {
   username: string;
   avatarUrl: string | null;
   wins: number;
+}
+
+interface EntryTrex {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  score: number;
+}
+
+interface EntryWordChain {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  wins: number;
+  total: number;
+  winRate: number;
 }
 
 const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
@@ -82,6 +98,27 @@ const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    id: "trex",
+    label: "T-Rex",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v2M16 2v2M20 2v2M4 14l4-4M16 10l-4 4" />
+        <rect x="2" y="10" width="20" height="4" rx="2" />
+        <path d="M6 14v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6" />
+      </svg>
+    ),
+  },
+  {
+    id: "wordchain",
+    label: "Word Chain",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    ),
+  },
 ];
 
 const MS_LEVELS: { id: MsLevel; label: string }[] = [
@@ -96,7 +133,7 @@ const MEDAL_COLORS = [
   "from-amber-600 to-orange-700",
 ];
 
-const TAB_INDEX: Record<string, number> = { "2048": 0, caro: 1, minesweeper: 2, wordle: 3 };
+const TAB_INDEX: Record<string, number> = { "2048": 0, caro: 1, minesweeper: 2, wordle: 3, trex: 4, wordchain: 5 };
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
 
 function formatTime(seconds: number): string {
@@ -155,6 +192,8 @@ export default function LeaderboardPage() {
   const [dataCaro, setDataCaro] = useState<EntryCaro[]>([]);
   const [dataMs, setDataMs] = useState<EntryMinesweeper[]>([]);
   const [dataWordle, setDataWordle] = useState<EntryWordle[]>([]);
+  const [dataTrex, setDataTrex] = useState<EntryTrex[]>([]);
+  const [dataWordChain, setDataWordChain] = useState<EntryWordChain[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Direction for slide: 1 = forward (right), -1 = backward (left)
@@ -188,12 +227,16 @@ export default function LeaderboardPage() {
         else if (activeTab === "caro") setDataCaro(json.leaderboard);
         else if (activeTab === "minesweeper") setDataMs(json.leaderboard);
         else if (activeTab === "wordle") setDataWordle(json.leaderboard);
+        else if (activeTab === "trex") setDataTrex(json.leaderboard);
+        else if (activeTab === "wordchain") setDataWordChain(json.leaderboard);
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
         if (activeTab === "2048") setData2048([]);
         else if (activeTab === "caro") setDataCaro([]);
         else if (activeTab === "minesweeper") setDataMs([]);
         else if (activeTab === "wordle") setDataWordle([]);
+        else if (activeTab === "trex") setDataTrex([]);
+        else if (activeTab === "wordchain") setDataWordChain([]);
       } finally {
         setIsLoading(false);
       }
@@ -409,6 +452,69 @@ export default function LeaderboardPage() {
                           <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
                             <span className="text-emerald-500">🏆</span>
                             {entry.wins}
+                          </span>
+                        </TableRow>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── T-Rex ── */}
+              {activeTab === "trex" && (
+                <>
+                  <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                    <span>Rank</span>
+                    <span>Player</span>
+                    <span className="text-right">Best Score</span>
+                  </TableHeader>
+                  {isLoading ? (
+                    <Spinner />
+                  ) : dataTrex.length === 0 ? (
+                    <Empty text="No high scores yet. Start running!" />
+                  ) : (
+                    <div>
+                      {dataTrex.map((entry, i) => (
+                        <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_120px]" isLast={i === dataTrex.length - 1}>
+                          <RankBadge rank={entry.rank} />
+                          <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                          <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
+                            <span className="text-amber-500">⭐</span>
+                            {entry.score.toLocaleString()}
+                          </span>
+                        </TableRow>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Word Chain ── */}
+              {activeTab === "wordchain" && (
+                <>
+                  <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px]">
+                    <span>Rank</span>
+                    <span>Player</span>
+                    <span className="text-right">Wins</span>
+                    <span className="text-right">Games</span>
+                    <span className="text-right">Win %</span>
+                  </TableHeader>
+                  {isLoading ? (
+                    <Spinner />
+                  ) : dataWordChain.length === 0 ? (
+                    <Empty text="No players yet. Be the first to win a Word Chain match!" />
+                  ) : (
+                    <div>
+                      {dataWordChain.map((entry, i) => (
+                        <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_80px_80px_80px]" isLast={i === dataWordChain.length - 1}>
+                          <RankBadge rank={entry.rank} />
+                          <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                          <span className="text-sm font-bold text-foreground text-right tabular-nums">{entry.wins}</span>
+                          <span className="text-sm text-foreground-secondary text-right tabular-nums">{entry.total}</span>
+                          <span className="text-sm text-right tabular-nums">
+                            <span className={`font-semibold ${entry.winRate >= 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
+                              {entry.winRate}%
+                            </span>
                           </span>
                         </TableRow>
                       ))}

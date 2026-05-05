@@ -17,6 +17,9 @@ export interface AuthUser {
   highest2048Tile: number;
   caroWins: number;
   caroTotal: number;
+  bestScoreTrex: number;
+  wordchainWins: number;
+  wordchainTotal: number;
 }
 
 interface AuthContextValue {

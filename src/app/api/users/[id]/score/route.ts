@@ -16,7 +16,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
-const VALID_GAMES = ["2048", "caro", "minesweeper", "wordle"];
+const VALID_GAMES = ["2048", "caro", "minesweeper", "wordle", "trex", "wordchain"];
 const MS_FIELD_MAP: Record<string, "msBestBeginner" | "msBestIntermediate" | "msBestExpert"> = {
   beginner:     "msBestBeginner",
   intermediate: "msBestIntermediate",
@@ -76,6 +76,18 @@ export async function PATCH(
       if (won === true) {
         user.wordleWins += 1;
       }
+    } else if (game === "trex") {
+      const { score } = body;
+      if (typeof score !== "number" || score < 0) {
+        return NextResponse.json({ error: "Invalid score" }, { status: 400 });
+      }
+      if (score > user.bestScoreTrex) {
+        user.bestScoreTrex = score;
+      }
+    } else if (game === "wordchain") {
+      const { won } = body;
+      user.wordchainTotal += 1;
+      if (won === true) user.wordchainWins += 1;
     }
 
     await user.save();
@@ -89,6 +101,9 @@ export async function PATCH(
       msBestIntermediate:user.msBestIntermediate,
       msBestExpert:      user.msBestExpert,
       wordleWins:        user.wordleWins,
+      bestScoreTrex:     user.bestScoreTrex,
+      wordchainWins:     user.wordchainWins,
+      wordchainTotal:    user.wordchainTotal,
     });
   } catch (error) {
     console.error("PATCH /api/users/[id]/score error:", error);

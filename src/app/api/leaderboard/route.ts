@@ -108,6 +108,44 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "trex") {
+      const leaderboard = await User.find({ bestScoreTrex: { $gt: 0 } })
+        .select("username avatarUrl bestScoreTrex")
+        .sort({ bestScoreTrex: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "trex",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.bestScoreTrex,
+        })),
+      });
+    }
+
+    if (game === "wordchain") {
+      const leaderboard = await User.find({ wordchainWins: { $gt: 0 } })
+        .select("username avatarUrl wordchainWins wordchainTotal")
+        .sort({ wordchainWins: -1, wordchainTotal: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "wordchain",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          wins: u.wordchainWins,
+          total: u.wordchainTotal,
+          winRate: u.wordchainTotal > 0 ? Math.round((u.wordchainWins / u.wordchainTotal) * 100) : 0,
+        })),
+      });
+    }
+
     return NextResponse.json({ error: "Missing ?game= parameter" }, { status: 400 });
   } catch (error) {
     console.error("GET /api/leaderboard error:", error);
