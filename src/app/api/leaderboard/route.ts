@@ -2,11 +2,13 @@
  * Leaderboard API route.
  *
  * GET /api/leaderboard?game=2048                       → Top 10 by bestScore2048 (score > 0)
- * GET /api/leaderboard?game=caro                       → Top 10 by caroWins (wins > 0)
+ * GET /api/leaderboard?game=caro                       → Top 10 by caroTotal (total > 0)
  * GET /api/leaderboard?game=minesweeper&level=beginner → Top 10 fastest times
  * GET /api/leaderboard?game=minesweeper&level=intermediate
  * GET /api/leaderboard?game=minesweeper&level=expert
  * GET /api/leaderboard?game=wordle                     → Top 10 by wordleWins (wins > 0)
+ * GET /api/leaderboard?game=wordchain                  → Top 10 by wordchainTotal (total > 0)
+ * GET /api/leaderboard?game=trex                       → Top 10 by bestScoreTrex (score > 0)
  */
 
 import { NextResponse } from "next/server";
@@ -46,7 +48,7 @@ export async function GET(request: Request) {
     }
 
     if (game === "caro") {
-      const leaderboard = await User.find({ caroWins: { $gt: 0 } })
+      const leaderboard = await User.find({ caroTotal: { $gt: 0 } })
         .select("username avatarUrl caroWins caroTotal")
         .sort({ caroWins: -1, caroTotal: -1 })
         .limit(10)
@@ -127,7 +129,7 @@ export async function GET(request: Request) {
     }
 
     if (game === "wordchain") {
-      const leaderboard = await User.find({ wordchainWins: { $gt: 0 } })
+      const leaderboard = await User.find({ wordchainTotal: { $gt: 0 } })
         .select("username avatarUrl wordchainWins wordchainTotal")
         .sort({ wordchainWins: -1, wordchainTotal: -1 })
         .limit(10)
