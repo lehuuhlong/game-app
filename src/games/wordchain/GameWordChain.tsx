@@ -124,7 +124,9 @@ useEffect(() => {
       <div className="flex flex-col items-center gap-6 mx-auto max-w-4xl h-[calc(100vh-8rem)]">
         {/* Header */}
         <div className="w-full text-center sm:text-left shrink-0">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">Word Chain</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">
+            Word <span className="text-gradient">Chain</span>
+          </h1>
           <p className="text-sm text-foreground-secondary mt-0.5">
             Connect words. 20 seconds per turn. Don't run out of time!
           </p>
@@ -166,7 +168,7 @@ useEffect(() => {
               <button 
                 onClick={() => user && createRoom(user.username)} 
                 disabled={!user}
-                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 py-3 text-sm font-bold text-white hover:from-emerald-600 hover:to-green-700 hover:-translate-y-0.5 transition-all shadow-lg disabled:opacity-50 disabled:hover:-translate-y-0"
+                className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 transition-all shadow-lg"
               >
                 Create Room
               </button>

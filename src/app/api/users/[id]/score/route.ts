@@ -10,17 +10,23 @@
  * Body (caro):        { game: "caro", won: boolean }
  * Body (minesweeper): { game: "minesweeper", difficulty: "beginner"|"intermediate"|"expert", time: number }
  * Body (wordle):      { game: "wordle", won: boolean }
+ * Body (sudoku):      { game: "sudoku", difficulty: "easy"|"medium"|"hard", time: number }
  */
 
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
-const VALID_GAMES = ["2048", "caro", "minesweeper", "wordle", "trex", "wordchain"];
+const VALID_GAMES = ["2048", "caro", "minesweeper", "wordle", "trex", "wordchain", "sudoku"];
 const MS_FIELD_MAP: Record<string, "msBestBeginner" | "msBestIntermediate" | "msBestExpert"> = {
   beginner:     "msBestBeginner",
   intermediate: "msBestIntermediate",
   expert:       "msBestExpert",
+};
+const SUDOKU_FIELD_MAP: Record<string, "sudokuBestEasy" | "sudokuBestMedium" | "sudokuBestHard"> = {
+  easy:   "sudokuBestEasy",
+  medium: "sudokuBestMedium",
+  hard:   "sudokuBestHard",
 };
 
 export async function PATCH(
@@ -88,6 +94,19 @@ export async function PATCH(
       const { won } = body;
       user.wordchainTotal += 1;
       if (won === true) user.wordchainWins += 1;
+    } else if (game === "sudoku") {
+      const { difficulty, time } = body;
+      const field = SUDOKU_FIELD_MAP[difficulty];
+      if (!field) {
+        return NextResponse.json({ error: "Invalid difficulty" }, { status: 400 });
+      }
+      if (typeof time !== "number" || time <= 0) {
+        return NextResponse.json({ error: "Invalid time" }, { status: 400 });
+      }
+      const current = user[field] as number;
+      if (current === 0 || time < current) {
+        user[field] = time;
+      }
     }
 
     await user.save();
@@ -104,6 +123,9 @@ export async function PATCH(
       bestScoreTrex:     user.bestScoreTrex,
       wordchainWins:     user.wordchainWins,
       wordchainTotal:    user.wordchainTotal,
+      sudokuBestEasy:    user.sudokuBestEasy,
+      sudokuBestMedium:  user.sudokuBestMedium,
+      sudokuBestHard:    user.sudokuBestHard,
     });
   } catch (error) {
     console.error("PATCH /api/users/[id]/score error:", error);

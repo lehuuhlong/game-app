@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSudoku } from './useSudoku';
 import { SudokuBoard } from './SudokuBoard';
 import { Numpad } from './Numpad';
 import { Difficulty, MAX_ERRORS, BOARD_SIZE, EMPTY_CELL, formatTime } from './utils';
+import { useAuth } from '@/components/auth';
+import { LoginModal } from '@/components/auth/LoginModal';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -148,21 +150,56 @@ export function GameSudoku() {
   } = useSudoku();
 
   const [savedTime, setSavedTime] = useState<number | null>(null);
+  const { user } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
+  const scoreSavedRef = useRef(false);
+
+  // Reset flags when game starts
+  useEffect(() => {
+    if (gameState === 'playing') {
+      scoreSavedRef.current = false;
+      setShowLogin(false);
+    }
+  }, [gameState]);
+
+  // Show login if won and not logged in
+  useEffect(() => {
+    if (gameState === 'won' && !user) {
+      const t = setTimeout(() => setShowLogin(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [gameState, user]);
 
   // Save result to DB when won
   useEffect(() => {
     if (gameState === 'won') {
       setSavedTime(elapsedSeconds);
-      // Save to leaderboard
-      const username = localStorage.getItem('username') || 'Anonymous';
-      fetch('/api/sudoku/complete', {
-        method: 'POST',
+      if (!user) return;
+      if (scoreSavedRef.current) return;
+      scoreSavedRef.current = true;
+
+      fetch(`/api/users/${user.id}/score`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, difficulty, timeSeconds: elapsedSeconds }),
-      }).catch(console.error);
+        body: JSON.stringify({ game: 'sudoku', difficulty, time: elapsedSeconds }),
+      })
+      .then(r => r.json())
+      .then(d => {
+        try {
+          const stored = localStorage.getItem("game-portal-user");
+          if (stored) {
+            const u = JSON.parse(stored);
+            if (d.sudokuBestEasy !== undefined) u.sudokuBestEasy = d.sudokuBestEasy;
+            if (d.sudokuBestMedium !== undefined) u.sudokuBestMedium = d.sudokuBestMedium;
+            if (d.sudokuBestHard !== undefined) u.sudokuBestHard = d.sudokuBestHard;
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          }
+        } catch { /* ignore */ }
+      })
+      .catch(console.error);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState]);
+  }, [gameState, user, difficulty, elapsedSeconds]);
 
   // Compute remaining counts for each digit
   const remainingCounts = useCallback(() => {
@@ -403,6 +440,15 @@ export function GameSudoku() {
       <p className="text-xs text-foreground-muted/50 mt-1 hidden sm:block">
         Arrow keys to navigate · N to toggle notes · Backspace to erase
       </p>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSuccess={() => setShowLogin(false)}
+          subtitle="Log in to save your Sudoku time to the leaderboard!"
+        />
+      )}
     </div>
   );
 }
