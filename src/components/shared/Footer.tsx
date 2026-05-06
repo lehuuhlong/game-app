@@ -35,7 +35,7 @@ export function Footer() {
               Leaderboard
             </Link>
             <a
-              href="https://github.com/lehuuhlong"
+              href="https://github.com/lehuuhlong/game-app"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground transition-colors"
