@@ -57,7 +57,7 @@ export function GameBattleship() {
     }
     if (roomIdInput.length === 6) {
       setActiveRoomId(roomIdInput.toUpperCase());
-      setGameStarted(true);
+      // setGameStarted(true);
     }
   };
 
@@ -73,10 +73,11 @@ export function GameBattleship() {
 
         <div className="w-full bg-surface border border-border p-6 rounded-2xl shadow-xl space-y-6">
           <div className="space-y-3">
-            <h2 className="text-lg font-bold text-foreground">Create Game</h2>
+            <h2 className="text-lg font-bold text-foreground">Create Game -- <span className="text-sky-500">Coming soon</span></h2>
             <button
               onClick={handleCreateRoom}
-              className="w-full py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              disabled={true}
+              className="w-full py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all"
             >
               Start New Fleet
             </button>
