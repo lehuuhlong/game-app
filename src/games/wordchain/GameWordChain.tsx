@@ -67,6 +67,13 @@ export function GameWordChain() {
     submitWord(wordInput);
   };
 
+useEffect(() => {
+  if (rejectMsg && inputRef.current) {
+    inputRef.current.focus();
+  }
+}, [rejectMsg]);
+
+  
   const renderWordWithHighlight = (word: string, connector: string, isLastInChain: boolean) => {
     if (!connector) return word;
 
