@@ -129,6 +129,31 @@ const gameIcons: Record<string, React.ReactNode> = {
       <text x="31" y="27" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" opacity="0.6">C</text>
     </svg>
   ),
+  aimtrainer: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Target Rings */}
+      <circle cx="24" cy="24" r="16" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+      <circle cx="24" cy="24" r="10" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+      <circle cx="24" cy="24" r="4" fill="rgba(255,255,255,0.6)" />
+      {/* Crosshair lines */}
+      <line x1="24" y1="4" x2="24" y2="12" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="24" y1="36" x2="24" y2="44" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="4" y1="24" x2="12" y2="24" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="36" y1="24" x2="44" y2="24" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
+  battleship: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Ship Hull */}
+      <path d="M8 32 L40 32 L36 40 L12 40 Z" fill="rgba(255,255,255,0.6)" />
+      {/* Deck Structure */}
+      <rect x="18" y="24" width="12" height="8" rx="1" fill="rgba(255,255,255,0.4)" />
+      <rect x="22" y="18" width="4" height="6" rx="1" fill="rgba(255,255,255,0.3)" />
+      {/* Waves */}
+      <path d="M4 36 Q12 34 20 36 T36 36 T44 36" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 42 Q14 40 22 42 T38 42 T46 42" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
 };
 
 export function GameCard({ game, index }: GameCardProps) {

@@ -23,7 +23,7 @@ export interface Room {
   language?: WordChainLanguage;
 }
 
-export type GameType = "2048" | "caro" | "wordchain";
+export type GameType = "2048" | "caro" | "wordchain" | "battleship";
 
 export type WordChainLanguage = "en" | "vi";
 
@@ -71,6 +71,35 @@ export interface WordChainGameState {
   endReason: "timeout" | "invalid" | "disconnect" | "forfeit" | null;
 }
 
+// ── Battleship types ─────────────────────────────────────────────
+
+export type BattleshipPhase = "placement" | "battle" | "finished";
+export type ShipType = "carrier" | "battleship" | "cruiser" | "submarine" | "destroyer";
+
+export interface ShipPlacement {
+  type: ShipType;
+  x: number;
+  y: number;
+  vertical: boolean;
+  hits: number;
+  length: number;
+}
+
+export interface BattleshipPlayerState {
+  playerId: string;
+  ready: boolean;
+  ships: ShipPlacement[];
+  shots: { x: number; y: number; result: "hit" | "miss" | "sunk" }[];
+}
+
+export interface BattleshipGameState {
+  phase: BattleshipPhase;
+  players: Record<string, BattleshipPlayerState>;
+  currentTurnPlayerId: string | null;
+  winner: string | null;
+}
+
+
 // ── Socket Event Maps ────────────────────────────────────────────
 
 /** Events the client can emit to the server */
@@ -93,6 +122,10 @@ export interface ClientToServerEvents {
   // Word Chain
   wc_submit_word: (data: { roomId: string; word: string }) => void;
   wc_timeout: (data: { roomId: string }) => void;
+
+  // Battleship
+  bs_ready: (data: { roomId: string; ships: ShipPlacement[] }) => void;
+  bs_fire: (data: { roomId: string; x: number; y: number }) => void;
 }
 
 /** Events the server can emit to clients */
@@ -122,6 +155,25 @@ export interface ServerToClientEvents {
     reason: "timeout" | "invalid" | "disconnect" | "forfeit";
     gameState: WordChainGameState;
   }) => void;
+
+  // Battleship
+  bs_game_state: (data: { 
+    room: Room; 
+    phase: BattleshipPhase;
+    currentTurnPlayerId: string | null;
+    myState: BattleshipPlayerState;
+    enemyShots: { x: number; y: number; result: "hit" | "miss" | "sunk" }[];
+    winner: string | null;
+  }) => void;
+  bs_fire_result: (data: {
+    x: number;
+    y: number;
+    result: "hit" | "miss" | "sunk";
+    shipType?: ShipType;
+    nextTurnPlayerId: string;
+    firedBy: string;
+  }) => void;
+  bs_game_over: (data: { winnerId: string; winnerName: string }) => void;
 }
 
 /** Internal server-to-server events (for scaling with Redis adapter later) */

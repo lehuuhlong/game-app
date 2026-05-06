@@ -106,4 +106,28 @@ export const GAMES: GameInfo[] = [
     tags: ["Word", "Multiplayer", "Fast Paced"],
     color: "from-emerald-400 to-teal-500",
   },
+  {
+    id: "aimtrainer",
+    title: "Aim Trainer",
+    description:
+      "Test your reflexes and precision. Hit as many targets as you can in 60 seconds and track your click accuracy.",
+    thumbnail: "/games/aimtrainer/thumbnail.png",
+    route: "/games/aimtrainer",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Action", "Single Player", "Reflex"],
+    color: "from-red-500 to-rose-600",
+  },
+  {
+    id: "battleship",
+    title: "Battleship",
+    description:
+      "Engage in tactical naval combat. Place your fleet strategically and sink the enemy's ships in this real-time multiplayer classic.",
+    thumbnail: "/games/battleship/thumbnail.png",
+    route: "/games/battleship",
+    minPlayers: 2,
+    maxPlayers: 2,
+    tags: ["Strategy", "Multiplayer", "War"],
+    color: "from-blue-600 to-indigo-800",
+  },
 ];

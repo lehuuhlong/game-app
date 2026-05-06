@@ -11,6 +11,10 @@ import type {
   WordChainGameState,
   WordChainLanguage,
   WordChainEntry,
+  BattleshipGameState,
+  BattleshipPhase,
+  ShipPlacement,
+  ShipType,
 } from "./types";
 
 type GameIO = SocketIOServer<
@@ -24,6 +28,7 @@ type GameIO = SocketIOServer<
 const rooms = new Map<string, Room>();
 const caroStates = new Map<string, CaroGameState>();
 const wcStates = new Map<string, WordChainGameState>();
+const bsStates = new Map<string, BattleshipGameState>();
 
 // Timers for Word Chain turns (server-authoritative)
 const wcTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -161,6 +166,40 @@ function createInitialWCState(
   };
 }
 
+// ── Battleship helpers ────────────────────────────────────────────
+
+function createInitialBSState(p1Id: string, p2Id: string): BattleshipGameState {
+  return {
+    phase: "placement",
+    players: {
+      [p1Id]: { playerId: p1Id, ready: false, ships: [], shots: [] },
+      [p2Id]: { playerId: p2Id, ready: false, ships: [], shots: [] },
+    },
+    currentTurnPlayerId: null,
+    winner: null,
+  };
+}
+
+function broadcastBSGameState(roomId: string, io: GameIO) {
+  const room = rooms.get(roomId);
+  const state = bsStates.get(roomId);
+  if (!room || !state) return;
+
+  room.players.forEach((p) => {
+    const other = room.players.find((x) => x.id !== p.id);
+    if (!other) return;
+    io.to(p.socketId).emit("bs_game_state", {
+      room,
+      phase: state.phase,
+      currentTurnPlayerId: state.currentTurnPlayerId,
+      myState: state.players[p.id],
+      enemyShots: state.players[other.id].shots,
+      winner: state.winner,
+    });
+  });
+}
+
+
 // ── Word Chain timer management ──────────────────────────────────
 
 function clearWCTimer(roomId: string) {
@@ -285,6 +324,11 @@ export function registerSocketHandlers(io: GameIO): void {
           wcStates.set(roomId, gameState);
           io.to(roomId).emit("wc_game_started", { room, gameState });
           // Timer starts after the first word is submitted
+        } else if (room.gameType === "battleship") {
+          const p1Id = room.players[0].id;
+          const p2Id = room.players[1].id;
+          bsStates.set(roomId, createInitialBSState(p1Id, p2Id));
+          broadcastBSGameState(roomId, io);
         }
 
         console.log(`🎮 Game started in room ${roomId}`);
@@ -459,6 +503,122 @@ export function registerSocketHandlers(io: GameIO): void {
     });
 
     // ══════════════════════════════════════════════════════════════
+    //  BATTLESHIP EVENTS
+    // ══════════════════════════════════════════════════════════════
+
+    socket.on("bs_ready", ({ roomId, ships }) => {
+      const room = rooms.get(roomId);
+      const state = bsStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || state.phase !== "placement") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const pState = state.players[player.id];
+      if (pState.ready) return;
+
+      // Basic validation could be added here
+      pState.ships = ships;
+      pState.ready = true;
+
+      const allReady = Object.values(state.players).every((ps) => ps.ready);
+      if (allReady) {
+        state.phase = "battle";
+        // Randomly decide who goes first
+        state.currentTurnPlayerId = room.players[Math.random() > 0.5 ? 0 : 1].id;
+      }
+
+      broadcastBSGameState(roomId, io);
+    });
+
+    socket.on("bs_fire", ({ roomId, x, y }) => {
+      const room = rooms.get(roomId);
+      const state = bsStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || state.phase !== "battle") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      if (player.id !== state.currentTurnPlayerId) {
+        socket.emit("error", { message: "Not your turn" });
+        return;
+      }
+
+      const enemy = room.players.find((p) => p.id !== player.id);
+      if (!enemy) return;
+
+      const pState = state.players[player.id];
+      const eState = state.players[enemy.id];
+
+      // Check if already fired here
+      if (pState.shots.find((s) => s.x === x && s.y === y)) return;
+
+      let result: "hit" | "miss" | "sunk" = "miss";
+      let hitShipType: ShipType | undefined = undefined;
+
+      // Check hits against enemy ships
+      for (const ship of eState.ships) {
+        let isHit = false;
+        if (ship.vertical) {
+          if (x === ship.x && y >= ship.y && y < ship.y + ship.length) isHit = true;
+        } else {
+          if (y === ship.y && x >= ship.x && x < ship.x + ship.length) isHit = true;
+        }
+
+        if (isHit) {
+          ship.hits++;
+          if (ship.hits >= ship.length) {
+            result = "sunk";
+            hitShipType = ship.type;
+          } else {
+            result = "hit";
+          }
+          break;
+        }
+      }
+
+      pState.shots.push({ x, y, result });
+
+      // Check win condition
+      const allSunk = eState.ships.every((s) => s.hits >= s.length);
+      if (allSunk) {
+        state.phase = "finished";
+        state.winner = player.id;
+        state.currentTurnPlayerId = null;
+        room.status = "finished";
+
+        io.to(roomId).emit("bs_fire_result", {
+          x,
+          y,
+          result,
+          shipType: hitShipType,
+          nextTurnPlayerId: player.id, // Game over, but field required
+          firedBy: player.id,
+        });
+
+        io.to(roomId).emit("bs_game_over", {
+          winnerId: player.id,
+          winnerName: player.username,
+        });
+      } else {
+        // Change turn if missed, or stay turn if hit? Classic rules usually allow firing again if hit.
+        // Let's implement classic rules: if hit, same player fires again.
+        const nextTurnId = (result === "hit" || result === "sunk") ? player.id : enemy.id;
+        state.currentTurnPlayerId = nextTurnId;
+
+        io.to(roomId).emit("bs_fire_result", {
+          x,
+          y,
+          result,
+          shipType: hitShipType,
+          nextTurnPlayerId: nextTurnId,
+          firedBy: player.id,
+        });
+      }
+    });
+
+
+    // ══════════════════════════════════════════════════════════════
     //  SHARED EVENTS
     // ══════════════════════════════════════════════════════════════
 
@@ -493,6 +653,11 @@ export function registerSocketHandlers(io: GameIO): void {
         wcStates.set(roomId, gameState);
         io.to(roomId).emit("wc_game_started", { room, gameState });
         // Timer starts after the first word is submitted
+      } else if (room.gameType === "battleship") {
+        const p1Id = room.players[0].id;
+        const p2Id = room.players[1].id;
+        bsStates.set(roomId, createInitialBSState(p1Id, p2Id));
+        broadcastBSGameState(roomId, io);
       }
 
       console.log(`🔄 Game restarted in room ${roomId}`);
@@ -521,6 +686,7 @@ export function registerSocketHandlers(io: GameIO): void {
         rooms.delete(id);
         caroStates.delete(id);
         wcStates.delete(id);
+        bsStates.delete(id);
         clearWCTimer(id);
         console.log(`🧹 Cleaned up stale room: ${id}`);
       }
@@ -569,6 +735,24 @@ function handleLeaveRoom(
     }
   }
 
+  // Handle Battleship disconnect
+  if (room.gameType === "battleship" && room.status === "playing") {
+    const state = bsStates.get(roomId);
+    const leavingPlayer = room.players.find((p) => p.socketId === socket.id);
+    const stayingPlayer = room.players.find((p) => p.socketId !== socket.id);
+
+    if (state && leavingPlayer && stayingPlayer) {
+      room.status = "finished";
+      state.phase = "finished";
+      state.winner = stayingPlayer.id;
+
+      io.to(roomId).emit("bs_game_over", {
+        winnerId: stayingPlayer.id,
+        winnerName: stayingPlayer.username,
+      });
+    }
+  }
+
   room.players = room.players.filter((p) => p.socketId !== socket.id);
   console.log(
     `👤 ${socket.data.username || socket.id} left room ${roomId} (${room.players.length} remaining)`
@@ -578,6 +762,7 @@ function handleLeaveRoom(
     rooms.delete(roomId);
     caroStates.delete(roomId);
     wcStates.delete(roomId);
+    bsStates.delete(roomId);
     clearWCTimer(roomId);
   } else {
     room.status = "finished";
