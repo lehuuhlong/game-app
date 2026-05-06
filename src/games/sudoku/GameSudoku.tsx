@@ -331,6 +331,11 @@ export function GameSudoku() {
         </div>
       </div>
 
+      {/* Keyboard hint */}
+      <p className="text-xs text-foreground-muted/50 mt-1 hidden sm:block">
+        Arrow keys to navigate · N to toggle notes · Backspace to erase
+      </p>
+
       {/* Board */}
       <div className="w-full relative flex flex-col items-center">
         <SudokuBoard
@@ -435,11 +440,6 @@ export function GameSudoku() {
         noteMode={noteMode}
         remainingCounts={remainingCounts}
       />
-
-      {/* Keyboard hint */}
-      <p className="text-xs text-foreground-muted/50 mt-1 hidden sm:block">
-        Arrow keys to navigate · N to toggle notes · Backspace to erase
-      </p>
 
       {/* Login Modal */}
       {showLogin && (
