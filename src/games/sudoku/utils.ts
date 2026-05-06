@@ -2,6 +2,7 @@ export type Difficulty = "easy" | "medium" | "hard";
 
 export const BOARD_SIZE = 9;
 export const EMPTY_CELL = 0;
+export const MAX_ERRORS = 3;
 
 export function createEmptyBoard(): number[][] {
   return Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(EMPTY_CELL));
@@ -124,4 +125,14 @@ export function getConflicts(board: number[][]): { row: number; col: number }[] 
   }
 
   return conflicts;
+}
+
+export function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }

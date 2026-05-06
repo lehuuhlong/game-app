@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type GameTab = "2048" | "caro" | "minesweeper" | "wordle" | "trex" | "wordchain";
+type GameTab = "2048" | "caro" | "minesweeper" | "wordle" | "trex" | "wordchain" | "sudoku";
 type MsLevel = "beginner" | "intermediate" | "expert";
+type SudokuLevel = "easy" | "medium" | "hard";
 
 interface Entry2048 {
   rank: number;
@@ -51,6 +52,13 @@ interface EntryWordChain {
   wins: number;
   total: number;
   winRate: number;
+}
+
+interface EntrySudoku {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  time: number;
 }
 
 const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
@@ -119,6 +127,18 @@ const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    id: "sudoku",
+    label: "Sudoku",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
 ];
 
 const MS_LEVELS: { id: MsLevel; label: string }[] = [
@@ -127,14 +147,21 @@ const MS_LEVELS: { id: MsLevel; label: string }[] = [
   { id: "expert", label: "Expert" },
 ];
 
+const SUDOKU_LEVELS: { id: SudokuLevel; label: string }[] = [
+  { id: "easy", label: "Easy" },
+  { id: "medium", label: "Medium" },
+  { id: "hard", label: "Hard" },
+];
+
 const MEDAL_COLORS = [
   "from-amber-400 to-yellow-500",
   "from-slate-300 to-slate-400",
   "from-amber-600 to-orange-700",
 ];
 
-const TAB_INDEX: Record<string, number> = { "2048": 0, caro: 1, minesweeper: 2, wordle: 3, trex: 4, wordchain: 5 };
+const TAB_INDEX: Record<string, number> = { "2048": 0, caro: 1, minesweeper: 2, wordle: 3, trex: 4, wordchain: 5, sudoku: 6 };
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
+const SUDOKU_INDEX: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -194,6 +221,8 @@ export default function LeaderboardPage() {
   const [dataWordle, setDataWordle] = useState<EntryWordle[]>([]);
   const [dataTrex, setDataTrex] = useState<EntryTrex[]>([]);
   const [dataWordChain, setDataWordChain] = useState<EntryWordChain[]>([]);
+  const [dataSudoku, setDataSudoku] = useState<EntrySudoku[]>([]);
+  const [sudokuLevel, setSudokuLevel] = useState<SudokuLevel>("easy");
   const [isLoading, setIsLoading] = useState(true);
 
   // Direction for slide: 1 = forward (right), -1 = backward (left)
@@ -211,6 +240,12 @@ export default function LeaderboardPage() {
     setMsLevel(lv);
   };
 
+  const handleSudokuLevelChange = (lv: SudokuLevel) => {
+    if (lv === sudokuLevel) return;
+    slideDirRef.current = SUDOKU_INDEX[lv] > SUDOKU_INDEX[sudokuLevel] ? 1 : -1;
+    setSudokuLevel(lv);
+  };
+
   useEffect(() => {
     async function fetchLeaderboard() {
       setIsLoading(true);
@@ -218,6 +253,9 @@ export default function LeaderboardPage() {
         let url = `/api/leaderboard?game=${activeTab}`;
         if (activeTab === "minesweeper") {
           url += `&level=${msLevel}`;
+        }
+        if (activeTab === "sudoku") {
+          url += `&level=${sudokuLevel}`;
         }
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch");
@@ -229,6 +267,7 @@ export default function LeaderboardPage() {
         else if (activeTab === "wordle") setDataWordle(json.leaderboard);
         else if (activeTab === "trex") setDataTrex(json.leaderboard);
         else if (activeTab === "wordchain") setDataWordChain(json.leaderboard);
+        else if (activeTab === "sudoku") setDataSudoku(json.leaderboard);
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
         if (activeTab === "2048") setData2048([]);
@@ -237,15 +276,16 @@ export default function LeaderboardPage() {
         else if (activeTab === "wordle") setDataWordle([]);
         else if (activeTab === "trex") setDataTrex([]);
         else if (activeTab === "wordchain") setDataWordChain([]);
+        else if (activeTab === "sudoku") setDataSudoku([]);
       } finally {
         setIsLoading(false);
       }
     }
     fetchLeaderboard();
-  }, [activeTab, msLevel]);
+  }, [activeTab, msLevel, sudokuLevel]);
 
   // Unique key that changes on every tab/level switch
-  const contentKey = activeTab === "minesweeper" ? `ms-${msLevel}` : activeTab;
+  const contentKey = activeTab === "minesweeper" ? `ms-${msLevel}` : activeTab === "sudoku" ? `sudoku-${sudokuLevel}` : activeTab;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
@@ -324,7 +364,42 @@ export default function LeaderboardPage() {
           )}
         </AnimatePresence>
 
-        {/* ── Content area with horizontal slide ────────────────── */}
+        {/* ── Sudoku sub-tabs ─────────────────────────────── */}
+        <AnimatePresence initial={false}>
+          {activeTab === "sudoku" && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-b border-border/60 bg-background-secondary/30"
+            >
+              <div className="flex items-center gap-1 px-4 py-2">
+                {SUDOKU_LEVELS.map((lv) => (
+                  <button
+                    key={lv.id}
+                    onClick={() => handleSudokuLevelChange(lv.id)}
+                    className={`relative px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      sudokuLevel === lv.id
+                        ? "text-foreground"
+                        : "text-foreground-muted hover:text-foreground-secondary"
+                    }`}
+                  >
+                    {sudokuLevel === lv.id && (
+                      <motion.div
+                        layoutId="sudoku-level-pill"
+                        className="absolute inset-0 rounded-md bg-accent-light"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{lv.label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="min-h-[400px] overflow-hidden">
           <AnimatePresence mode="wait" custom={slideDirRef.current} initial={false}>
             <motion.div
@@ -515,6 +590,35 @@ export default function LeaderboardPage() {
                             <span className={`font-semibold ${entry.winRate >= 60 ? "text-emerald-500" : entry.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
                               {entry.winRate}%
                             </span>
+                          </span>
+                        </TableRow>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Sudoku ── */}
+              {activeTab === "sudoku" && (
+                <>
+                  <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                    <span>Rank</span>
+                    <span>Player</span>
+                    <span className="text-right">Best Time</span>
+                  </TableHeader>
+                  {isLoading ? (
+                    <Spinner />
+                  ) : dataSudoku.length === 0 ? (
+                    <Empty text={`No records yet for ${sudokuLevel}. Be the first to solve a Sudoku!`} />
+                  ) : (
+                    <div>
+                      {dataSudoku.map((entry, i) => (
+                        <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_120px]" isLast={i === dataSudoku.length - 1}>
+                          <RankBadge rank={entry.rank} />
+                          <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                          <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
+                            <span className="text-foreground-muted">⏱</span>
+                            {formatTime(entry.time)}
                           </span>
                         </TableRow>
                       ))}

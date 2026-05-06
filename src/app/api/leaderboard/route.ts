@@ -9,6 +9,9 @@
  * GET /api/leaderboard?game=wordle                     → Top 10 by wordleWins (wins > 0)
  * GET /api/leaderboard?game=wordchain                  → Top 10 by wordchainTotal (total > 0)
  * GET /api/leaderboard?game=trex                       → Top 10 by bestScoreTrex (score > 0)
+ * GET /api/leaderboard?game=sudoku&level=easy          → Top 10 fastest times for Sudoku Easy
+ * GET /api/leaderboard?game=sudoku&level=medium
+ * GET /api/leaderboard?game=sudoku&level=hard
  */
 
 import { NextResponse } from "next/server";
@@ -19,6 +22,12 @@ const MS_FIELD_MAP: Record<string, string> = {
   beginner:     "msBestBeginner",
   intermediate: "msBestIntermediate",
   expert:       "msBestExpert",
+};
+
+const SUDOKU_FIELD_MAP: Record<string, string> = {
+  easy:   "sudokuBestEasy",
+  medium: "sudokuBestMedium",
+  hard:   "sudokuBestHard",
 };
 
 export async function GET(request: Request) {
@@ -144,6 +153,31 @@ export async function GET(request: Request) {
           wins: u.wordchainWins,
           total: u.wordchainTotal,
           winRate: u.wordchainTotal > 0 ? Math.round((u.wordchainWins / u.wordchainTotal) * 100) : 0,
+        })),
+      });
+    }
+
+    if (game === "sudoku") {
+      const level = searchParams.get("level") || "easy";
+      const field = SUDOKU_FIELD_MAP[level];
+      if (!field) {
+        return NextResponse.json({ error: "Invalid level" }, { status: 400 });
+      }
+
+      const leaderboard = await User.find({ [field]: { $gt: 0 } })
+        .select(`username avatarUrl ${field}`)
+        .sort({ [field]: 1 }) // ascending = fastest time first
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "sudoku",
+        level,
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          time: (u as unknown as Record<string, number>)[field] ?? 0,
         })),
       });
     }

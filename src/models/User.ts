@@ -19,6 +19,9 @@ export interface IUser extends Document {
   bestScoreTrex: number;       // Trex: best score
   wordchainWins: number;       // Wordchain: total wins
   wordchainTotal: number;      // Wordchain: total games played
+  sudokuBestEasy: number;      // Sudoku Easy: best time in seconds (0 = never won)
+  sudokuBestMedium: number;    // Sudoku Medium: best time in seconds
+  sudokuBestHard: number;      // Sudoku Hard: best time in seconds
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +49,9 @@ const UserSchema = new Schema<IUser>(
     bestScoreTrex:     { type: Number, default: 0 },
     wordchainWins:     { type: Number, default: 0 },
     wordchainTotal:    { type: Number, default: 0 },
+    sudokuBestEasy:    { type: Number, default: 0 },
+    sudokuBestMedium:  { type: Number, default: 0 },
+    sudokuBestHard:    { type: Number, default: 0 },
   },
   { timestamps: true }
 );
