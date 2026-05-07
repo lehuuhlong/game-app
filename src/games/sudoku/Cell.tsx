@@ -43,15 +43,15 @@ export function Cell({
     textClass = "text-red-500 font-bold";
   } else if (isSelected) {
     bgClass = "bg-sky-500/30";
-    textClass = isInitial ? "text-foreground font-bold" : "text-sky-400 font-bold";
+    textClass = isInitial ? "text-foreground font-bold" : "text-blue-600 font-bold";
   } else if (isSameValue && value !== EMPTY_CELL) {
     bgClass = "bg-sky-500/15";
-    textClass = isInitial ? "text-foreground font-semibold" : "text-sky-400 font-semibold";
+    textClass = isInitial ? "text-foreground font-semibold" : "text-blue-600 font-semibold";
   } else if (isHighlighted) {
     bgClass = "bg-white/[0.04]";
-    textClass = isInitial ? "text-foreground font-semibold" : "text-sky-400 font-semibold";
+    textClass = isInitial ? "text-foreground font-semibold" : "text-blue-600 font-semibold";
   } else if (!isInitial && value !== EMPTY_CELL) {
-    textClass = "text-sky-400 font-semibold";
+    textClass = "text-blue-600 font-semibold";
   }
 
   const hasNotes = notes && notes.size > 0;
