@@ -596,9 +596,13 @@ export function registerSocketHandlers(io: GameIO): void {
           firedBy: player.id,
         });
 
-        io.to(roomId).emit("bs_game_over", {
-          winnerId: player.id,
-          winnerName: player.username,
+        room.players.forEach((p) => {
+          const other = room.players.find((x) => x.id !== p.id);
+          io.to(p.socketId).emit("bs_game_over", {
+            winnerId: player.id,
+            winnerName: player.username,
+            enemyShips: other ? state.players[other.id].ships : undefined,
+          });
         });
       } else {
         // Change turn if missed, or stay turn if hit? Classic rules usually allow firing again if hit.
@@ -746,9 +750,13 @@ function handleLeaveRoom(
       state.phase = "finished";
       state.winner = stayingPlayer.id;
 
-      io.to(roomId).emit("bs_game_over", {
-        winnerId: stayingPlayer.id,
-        winnerName: stayingPlayer.username,
+      room.players.forEach((p) => {
+        const other = room.players.find((x) => x.id !== p.id);
+        io.to(p.socketId).emit("bs_game_over", {
+          winnerId: stayingPlayer.id,
+          winnerName: stayingPlayer.username,
+          enemyShips: other ? state.players[other.id].ships : undefined,
+        });
       });
     }
   }

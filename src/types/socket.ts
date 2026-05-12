@@ -173,7 +173,7 @@ export interface ServerToClientEvents {
     nextTurnPlayerId: string;
     firedBy: string;
   }) => void;
-  bs_game_over: (data: { winnerId: string; winnerName: string }) => void;
+  bs_game_over: (data: { winnerId: string; winnerName: string; enemyShips?: ShipPlacement[] }) => void;
 }
 
 /** Internal server-to-server events (for scaling with Redis adapter later) */

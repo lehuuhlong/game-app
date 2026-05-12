@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { 
   ClientToServerEvents, 
@@ -9,20 +9,20 @@ import {
   BattleshipPlayerState,
   Room
 } from '@/types/socket';
+import { SHIPS_CONFIG, GRID_SIZE, Shot, reconstructSunkShips } from './types';
+
+export { SHIPS_CONFIG };
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
-const GRID_SIZE = 10;
 
-export const SHIPS_CONFIG: { type: ShipType; length: number; label: string }[] = [
-  { type: 'carrier', length: 5, label: 'Carrier' },
-  { type: 'battleship', length: 4, label: 'Battleship' },
-  { type: 'cruiser', length: 3, label: 'Cruiser' },
-  { type: 'submarine', length: 3, label: 'Submarine' },
-  { type: 'destroyer', length: 2, label: 'Destroyer' },
-];
+export function useBattleship(username: string) {
+  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const roomIdRef = useRef('');
+  const playerIdRef = useRef<string | null>(null);
 
-export function useBattleship(roomId: string, username: string) {
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  /** Track all coordinates we've fired at to prevent double-fire */
+  const firedCoordsRef = useRef<Set<string>>(new Set());
+
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [phase, setPhase] = useState<BattleshipPhase>('placement');
@@ -31,61 +31,166 @@ export function useBattleship(roomId: string, username: string) {
   const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
   const [winner, setWinner] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [enemySunkTypes, setEnemySunkTypes] = useState<ShipType[]>([]);
+  const [revealedEnemyShips, setRevealedEnemyShips] = useState<ShipPlacement[]>([]);
+
+  /**
+   * Local shots: merged view of server shots + pending fires.
+   * This is the single source of truth for the enemy grid display.
+   * - Pending shots (result='pending') are added immediately on fire
+   * - Replaced with real result from bs_fire_result
+   * - Fully synced when bs_game_state arrives
+   */
+  const [localShots, setLocalShots] = useState<Shot[]>([]);
 
   // Placement local state
   const [placedShips, setPlacedShips] = useState<ShipPlacement[]>([]);
   const [currentShipIndex, setCurrentShipIndex] = useState(0);
   const [isVertical, setIsVertical] = useState(false);
 
-  // Initialize socket
-  useEffect(() => {
-    const s: Socket<ServerToClientEvents, ClientToServerEvents> = io(SOCKET_URL, {
-      transports: ['websocket'],
-      withCredentials: true,
-    });
+  const getSocket = useCallback((): Socket<ServerToClientEvents, ClientToServerEvents> => {
+    if (!socketRef.current || !socketRef.current.connected) {
+      socketRef.current = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+      });
+    }
+    return socketRef.current;
+  }, []);
 
-    s.on('connect', () => {
-      s.emit('join_room', { roomId, gameType: 'battleship', username });
-    });
+  const setupSocket = useCallback((socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
+    // Clear old listeners
+    socket.off('room_joined').off('player_joined').off('player_left')
+      .off('bs_game_state').off('bs_fire_result').off('bs_game_over').off('error');
 
-    s.on('room_joined', ({ room, playerId }) => {
+    socket.on('room_joined', ({ room, playerId }) => {
       setRoom(room);
       setPlayerId(playerId);
+      playerIdRef.current = playerId;
     });
 
-    s.on('bs_game_state', (data) => {
+    socket.on('player_joined' as any, ({ room }: { room: Room }) => {
+      setRoom(room);
+    });
+
+    socket.on('player_left' as any, ({ room }: { room: Room }) => {
+      setRoom(room);
+    });
+
+    socket.on('bs_game_state', (data) => {
       setRoom(data.room);
       setPhase(data.phase);
       setCurrentTurnPlayerId(data.currentTurnPlayerId);
       setMyState(data.myState);
       setEnemyShots(data.enemyShots);
+
+      // Sync localShots with server state (authoritative)
+      // Keep any pending shots that server hasn't confirmed yet
+      const serverShots: Shot[] = data.myState.shots.map(s => ({
+        x: s.x, y: s.y, result: s.result,
+      }));
+      setLocalShots(prev => {
+        const serverKeys = new Set(serverShots.map(s => `${s.x},${s.y}`));
+        const stillPending = prev.filter(
+          s => s.result === 'pending' && !serverKeys.has(`${s.x},${s.y}`)
+        );
+        return [...serverShots, ...stillPending];
+      });
+
+      // Sync firedCoordsRef with server state
+      firedCoordsRef.current = new Set(
+        data.myState.shots.map(s => `${s.x},${s.y}`)
+      );
+
       if (data.winner) {
-        // Find winner name from room players
         const winnerPlayer = data.room.players.find(p => p.id === data.winner);
         if (winnerPlayer) setWinner({ id: data.winner, name: winnerPlayer.username });
       }
     });
 
-    s.on('bs_fire_result', (data) => {
+    socket.on('bs_fire_result', (data) => {
       setCurrentTurnPlayerId(data.nextTurnPlayerId);
-      // The actual grid updates will come from the next bs_game_state emission or we can optimistic update
+
+      // If WE fired, optimistically update our local shots with the result
+      if (data.firedBy === playerIdRef.current) {
+        setLocalShots(prev => {
+          const exists = prev.some(s => s.x === data.x && s.y === data.y && s.result !== 'pending');
+          if (exists) return prev; // Already has a real result
+
+          // Replace pending with actual result, or add new
+          const hasPending = prev.some(s => s.x === data.x && s.y === data.y && s.result === 'pending');
+          if (hasPending) {
+            return prev.map(s =>
+              s.x === data.x && s.y === data.y && s.result === 'pending'
+                ? { ...s, result: data.result }
+                : s
+            );
+          }
+          return [...prev, { x: data.x, y: data.y, result: data.result }];
+        });
+
+        // Track sunk enemy ship types
+        if (data.result === 'sunk' && data.shipType) {
+          setEnemySunkTypes(prev => [...prev, data.shipType!]);
+        }
+      }
     });
 
-    s.on('bs_game_over', (data) => {
+    socket.on('bs_game_over', (data) => {
       setWinner({ id: data.winnerId, name: data.winnerName });
       setPhase('finished');
+      if (data.enemyShips) {
+        setRevealedEnemyShips(data.enemyShips);
+      }
     });
 
-    s.on('error', (data) => {
+    socket.on('error', (data) => {
       setError(data.message);
+      setTimeout(() => setError(null), 3000);
     });
+  }, []);
 
-    setSocket(s);
-
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      s.disconnect();
+      socketRef.current?.disconnect();
+      socketRef.current = null;
     };
-  }, [roomId, username]);
+  }, []);
+
+  const joinRoom = useCallback((roomId: string, action: 'create' | 'join' = 'join') => {
+    const socket = getSocket();
+    roomIdRef.current = roomId;
+    setupSocket(socket);
+    socket.emit('join_room', { roomId, gameType: 'battleship', username, action });
+  }, [username, getSocket, setupSocket]);
+
+  const resetAllState = useCallback(() => {
+    setRoom(null);
+    setPlayerId(null);
+    playerIdRef.current = null;
+    setPhase('placement');
+    setMyState(null);
+    setEnemyShots([]);
+    setCurrentTurnPlayerId(null);
+    setWinner(null);
+    setError(null);
+    setPlacedShips([]);
+    setCurrentShipIndex(0);
+    setIsVertical(false);
+    setEnemySunkTypes([]);
+    setRevealedEnemyShips([]);
+    setLocalShots([]);
+    firedCoordsRef.current.clear();
+  }, []);
+
+  const leaveRoom = useCallback((roomId: string) => {
+    socketRef.current?.emit('leave_room', { roomId });
+    socketRef.current?.disconnect();
+    socketRef.current = null;
+    roomIdRef.current = '';
+    resetAllState();
+  }, [resetAllState]);
 
   const canPlaceShip = useCallback((x: number, y: number, length: number, vertical: boolean, currentShips: ShipPlacement[]) => {
     if (vertical) {
@@ -144,25 +249,49 @@ export function useBattleship(roomId: string, username: string) {
   }, []);
 
   const readyUp = useCallback(() => {
-    if (placedShips.length === SHIPS_CONFIG.length && socket) {
-      socket.emit('bs_ready', { roomId, ships: placedShips });
+    if (placedShips.length === SHIPS_CONFIG.length && socketRef.current) {
+      socketRef.current.emit('bs_ready', { roomId: roomIdRef.current, ships: placedShips });
     }
-  }, [socket, roomId, placedShips]);
+  }, [placedShips]);
 
   const fire = useCallback((x: number, y: number) => {
-    if (socket && phase === 'battle' && currentTurnPlayerId === playerId) {
-      socket.emit('bs_fire', { roomId, x, y });
-    }
-  }, [socket, roomId, phase, currentTurnPlayerId, playerId]);
+    const key = `${x},${y}`;
+
+    // Prevent double-fire: check ref (instant, no stale closure)
+    if (firedCoordsRef.current.has(key)) return;
+    if (!(socketRef.current && phase === 'battle' && currentTurnPlayerId === playerId)) return;
+
+    // Mark as fired immediately
+    firedCoordsRef.current.add(key);
+
+    // Optimistic: add pending shot to local state immediately
+    setLocalShots(prev => [...prev, { x, y, result: 'pending' }]);
+
+    // Emit to server
+    socketRef.current.emit('bs_fire', { roomId: roomIdRef.current, x, y });
+  }, [phase, currentTurnPlayerId, playerId]);
 
   const restart = useCallback(() => {
-    if (socket) {
-      socket.emit('restart_game', { roomId });
+    if (socketRef.current) {
+      socketRef.current.emit('restart_game', { roomId: roomIdRef.current });
       setWinner(null);
       setPlacedShips([]);
       setCurrentShipIndex(0);
+      setPhase('placement');
+      setMyState(null);
+      setEnemyShots([]);
+      setIsVertical(false);
+      setEnemySunkTypes([]);
+      setRevealedEnemyShips([]);
+      setLocalShots([]);
+      firedCoordsRef.current.clear();
     }
-  }, [socket, roomId]);
+  }, []);
+
+  /** Reconstruct sunk enemy ship placements from shot data */
+  const sunkEnemyShips = useMemo(() => {
+    return reconstructSunkShips(localShots);
+  }, [localShots]);
 
   return {
     room,
@@ -181,6 +310,13 @@ export function useBattleship(roomId: string, username: string) {
     resetPlacement,
     readyUp,
     fire,
-    restart
+    restart,
+    joinRoom,
+    leaveRoom,
+    sunkEnemyShips,
+    enemySunkTypes,
+    revealedEnemyShips,
+    /** Merged local shots (server + pending) — use this for enemy grid display */
+    localShots,
   };
 }
