@@ -50,34 +50,47 @@ export function GameBattleship() {
     enemySunkTypes,
     revealedEnemyShips,
     localShots,
+    joinError: hookJoinError,
   } = useBattleship(user?.username || '');
 
   const isMyTurn = currentTurnPlayerId === playerId;
   const currentShip = SHIPS_CONFIG[currentShipIndex];
   const allShipsPlaced = placedShips.length === SHIPS_CONFIG.length;
 
-  // Sync hook state with screen
+  // ── Screen transitions (reactive, driven by hook state) ─────────
+
+  // lobby → waiting: fires as soon as server confirms room_joined
+  useEffect(() => {
+    if (room && playerId && screenRef.current === 'lobby') {
+      setScreen('waiting');
+    }
+  }, [room, playerId, setScreen]);
+
+  // waiting → playing: fires when 2nd player joins
   useEffect(() => {
     if (room && room.players.length >= 2 && screenRef.current === 'waiting') {
-      // Two players connected — move to playing
       setScreen('playing');
     }
   }, [room, setScreen]);
 
+  // playing → finished
   useEffect(() => {
     if (phase === 'finished' && winner) {
       setScreen('finished');
     }
   }, [phase, winner, setScreen]);
 
-  // Listen for player count changes while waiting
+  // finished → playing (Rematch initiated by either player)
+  useEffect(() => {
+    if (phase === 'placement' && screenRef.current === 'finished') {
+      setScreen('playing');
+    }
+  }, [phase, setScreen]);
+
+  // Status message
   useEffect(() => {
     if (room) {
-      if (room.players.length < 2) {
-        setStatusMsg('Waiting for opponent...');
-      } else {
-        setStatusMsg('2/2 players connected');
-      }
+      setStatusMsg(room.players.length < 2 ? 'Waiting for opponent...' : '2/2 players connected');
     }
   }, [room?.players.length]);
 
@@ -85,8 +98,8 @@ export function GameBattleship() {
     if (!user) { setShowLogin(true); return; }
     const newId = Math.random().toString(36).slice(2, 8).toUpperCase();
     setRoomId(newId);
+    setJoinError('');
     hookJoinRoom(newId, 'create');
-    setScreen('waiting');
   };
 
   const handleJoinRoom = () => {
@@ -96,7 +109,6 @@ export function GameBattleship() {
     setJoinError('');
     setRoomId(id);
     hookJoinRoom(id, 'join');
-    setScreen('waiting');
   };
 
   const handleLeaveRoom = () => {
@@ -178,7 +190,7 @@ export function GameBattleship() {
                   Join
                 </button>
               </div>
-              {joinError && <p className="text-sm text-red-500">{joinError}</p>}
+              {(joinError || hookJoinError) && <p className="text-sm text-red-500">{joinError || hookJoinError}</p>}
             </div>
           </motion.div>
         )}
@@ -426,41 +438,66 @@ export function GameBattleship() {
                   </motion.div>
                 )}
 
-                {/* Ship Status in Battle Phase */}
-                {phase !== 'placement' && myState?.ships && (
-                  <div className="bg-surface border border-border p-4 rounded-xl space-y-2">
-                    <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Fleet Status</p>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {myState.ships.map((ship) => {
-                        const isSunk = ship.hits >= ship.length;
-                        return (
-                          <div
-                            key={ship.type}
-                            className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-all ${
-                              isSunk
-                                ? 'bg-red-500/10 text-red-400 line-through'
-                                : 'bg-background text-foreground'
-                            }`}
-                          >
-                            <span className="font-bold">{ship.type.charAt(0).toUpperCase() + ship.type.slice(1)}</span>
-                            <div className="flex gap-0.5">
-                              {Array.from({ length: ship.length }).map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={`w-3 h-3 rounded-sm border ${
-                                    i < ship.hits
-                                      ? 'bg-red-500 border-red-600'
-                                      : 'bg-green-500/30 border-green-500/40'
-                                  }`}
-                                />
-                              ))}
+                {/* Ship Status in Battle Phase — computed from enemyShots for realtime accuracy */}
+                {phase !== 'placement' && myState?.ships && (() => {
+                  // Count hits per ship from enemyShots (updates immediately via bs_fire_result)
+                  const shipsWithLiveHits = myState.ships.map((ship) => {
+                    const hitCount = enemyShots.filter((shot) => {
+                      if (shot.result === 'miss') return false;
+                      if (ship.vertical) {
+                        return shot.x === ship.x && shot.y >= ship.y && shot.y < ship.y + ship.length;
+                      } else {
+                        return shot.y === ship.y && shot.x >= ship.x && shot.x < ship.x + ship.length;
+                      }
+                    }).length;
+                    return { ...ship, liveHits: hitCount };
+                  });
+
+                  return (
+                    <div className="bg-surface border border-border p-4 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Fleet Status</p>
+                        <span className="text-xs font-bold text-sky-400">
+                          {shipsWithLiveHits.filter(s => s.liveHits < s.length).length}/{shipsWithLiveHits.length} afloat
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {shipsWithLiveHits.map((ship) => {
+                          const isSunk = ship.liveHits >= ship.length;
+                          return (
+                            <div
+                              key={ship.type}
+                              className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-all ${
+                                isSunk
+                                  ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                                  : 'bg-background border border-border text-foreground'
+                              }`}
+                            >
+                              <span className={`font-bold ${isSunk ? 'line-through' : ''}`}>
+                                {ship.type.charAt(0).toUpperCase() + ship.type.slice(1)}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex gap-0.5">
+                                  {Array.from({ length: ship.length }).map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`w-3 h-3 rounded-sm border transition-all ${
+                                        i < ship.liveHits
+                                          ? 'bg-red-500 border-red-600'
+                                          : 'bg-green-500/30 border-green-500/40'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                {isSunk && <span className="text-[10px]">💀</span>}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* RIGHT: Enemy Waters */}
@@ -576,20 +613,6 @@ export function GameBattleship() {
 
           </div>
         )}
-
-        {/* Error toast */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-red-500 text-white rounded-full shadow-lg font-bold text-sm z-50"
-            >
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </>
   );

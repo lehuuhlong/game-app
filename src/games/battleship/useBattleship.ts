@@ -27,12 +27,16 @@ export function useBattleship(username: string) {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [phase, setPhase] = useState<BattleshipPhase>('placement');
   const [myState, setMyState] = useState<BattleshipPlayerState | null>(null);
-  const [enemyShots, setEnemyShots] = useState<{ x: number; y: number; result: 'hit' | 'miss' | 'sunk' }[]>([]);
+  const [enemyShots, setEnemyShots] = useState<Shot[]>([]);
   const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
   const [winner, setWinner] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [enemySunkTypes, setEnemySunkTypes] = useState<ShipType[]>([]);
   const [revealedEnemyShips, setRevealedEnemyShips] = useState<ShipPlacement[]>([]);
+
+  /** Callback fired when room_joined is confirmed by server */
+  const onJoinSuccessRef = useRef<(() => void) | null>(null);
 
   /**
    * Local shots: merged view of server shots + pending fires.
@@ -67,6 +71,9 @@ export function useBattleship(username: string) {
       setRoom(room);
       setPlayerId(playerId);
       playerIdRef.current = playerId;
+      // Confirm join to component so it can advance screen
+      onJoinSuccessRef.current?.();
+      onJoinSuccessRef.current = null;
     });
 
     socket.on('player_joined' as any, ({ room }: { room: Room }) => {
@@ -105,19 +112,30 @@ export function useBattleship(username: string) {
       if (data.winner) {
         const winnerPlayer = data.room.players.find(p => p.id === data.winner);
         if (winnerPlayer) setWinner({ id: data.winner, name: winnerPlayer.username });
+      } else {
+        setWinner(null);
+      }
+
+      // If server says it's placement phase, it means a new game started.
+      // Ensure all previous game state is cleared for BOTH players (especially the one who didn't click rematch).
+      if (data.phase === 'placement') {
+        setRevealedEnemyShips([]);
+        setEnemySunkTypes([]);
+        setPlacedShips([]);
+        setCurrentShipIndex(0);
+        setIsVertical(false);
       }
     });
 
     socket.on('bs_fire_result', (data) => {
       setCurrentTurnPlayerId(data.nextTurnPlayerId);
 
-      // If WE fired, optimistically update our local shots with the result
       if (data.firedBy === playerIdRef.current) {
+        // WE fired — update our local attack shots optimistically
         setLocalShots(prev => {
           const exists = prev.some(s => s.x === data.x && s.y === data.y && s.result !== 'pending');
-          if (exists) return prev; // Already has a real result
+          if (exists) return prev;
 
-          // Replace pending with actual result, or add new
           const hasPending = prev.some(s => s.x === data.x && s.y === data.y && s.result === 'pending');
           if (hasPending) {
             return prev.map(s =>
@@ -133,6 +151,13 @@ export function useBattleship(username: string) {
         if (data.result === 'sunk' && data.shipType) {
           setEnemySunkTypes(prev => [...prev, data.shipType!]);
         }
+      } else {
+        // ENEMY fired at us — update enemyShots immediately (don't wait for bs_game_state)
+        setEnemyShots(prev => {
+          const alreadyExists = prev.some(s => s.x === data.x && s.y === data.y);
+          if (alreadyExists) return prev;
+          return [...prev, { x: data.x, y: data.y, result: data.result }];
+        });
       }
     });
 
@@ -146,7 +171,11 @@ export function useBattleship(username: string) {
 
     socket.on('error', (data) => {
       setError(data.message);
-      setTimeout(() => setError(null), 3000);
+      // Also surface as joinError for lobby flow
+      setJoinError(data.message);
+      // Clear onJoinSuccess so screen doesn't advance on error
+      onJoinSuccessRef.current = null;
+      setTimeout(() => { setError(null); setJoinError(null); }, 4000);
     });
   }, []);
 
@@ -158,10 +187,13 @@ export function useBattleship(username: string) {
     };
   }, []);
 
-  const joinRoom = useCallback((roomId: string, action: 'create' | 'join' = 'join') => {
+  const joinRoom = useCallback((roomId: string, action: 'create' | 'join' = 'join', onSuccess?: () => void) => {
     const socket = getSocket();
     roomIdRef.current = roomId;
     setupSocket(socket);
+    if (onSuccess) {
+      onJoinSuccessRef.current = onSuccess;
+    }
     socket.emit('join_room', { roomId, gameType: 'battleship', username, action });
   }, [username, getSocket, setupSocket]);
 
@@ -181,7 +213,9 @@ export function useBattleship(username: string) {
     setEnemySunkTypes([]);
     setRevealedEnemyShips([]);
     setLocalShots([]);
+    setJoinError(null);
     firedCoordsRef.current.clear();
+    onJoinSuccessRef.current = null;
   }, []);
 
   const leaveRoom = useCallback((roomId: string) => {
@@ -302,6 +336,7 @@ export function useBattleship(username: string) {
     currentTurnPlayerId,
     winner,
     error,
+    joinError,
     placedShips,
     currentShipIndex,
     isVertical,
