@@ -46,6 +46,7 @@ export function useBattleship(username: string) {
    * - Fully synced when bs_game_state arrives
    */
   const [localShots, setLocalShots] = useState<Shot[]>([]);
+  const localShotsRef = useRef<Shot[]>([]);
 
   // Placement local state
   const [placedShips, setPlacedShips] = useState<ShipPlacement[]>([]);
@@ -101,7 +102,9 @@ export function useBattleship(username: string) {
         const stillPending = prev.filter(
           s => s.result === 'pending' && !serverKeys.has(`${s.x},${s.y}`)
         );
-        return [...serverShots, ...stillPending];
+        const next = [...serverShots, ...stillPending];
+        localShotsRef.current = next;
+        return next;
       });
 
       // Sync firedCoordsRef with server state
@@ -130,21 +133,35 @@ export function useBattleship(username: string) {
     socket.on('bs_fire_result', (data) => {
       setCurrentTurnPlayerId(data.nextTurnPlayerId);
 
-      if (data.firedBy === playerIdRef.current) {
+      let weFired = false;
+      if (data.firedBy !== undefined) {
+        weFired = data.firedBy === playerIdRef.current;
+      } else {
+        // Fallback for older backend deployments
+        weFired = localShotsRef.current.some(
+          s => s.x === data.x && s.y === data.y && s.result === 'pending'
+        );
+      }
+
+      if (weFired) {
         // WE fired — update our local attack shots optimistically
         setLocalShots(prev => {
           const exists = prev.some(s => s.x === data.x && s.y === data.y && s.result !== 'pending');
           if (exists) return prev;
 
           const hasPending = prev.some(s => s.x === data.x && s.y === data.y && s.result === 'pending');
+          let next;
           if (hasPending) {
-            return prev.map(s =>
+            next = prev.map(s =>
               s.x === data.x && s.y === data.y && s.result === 'pending'
                 ? { ...s, result: data.result }
                 : s
             );
+          } else {
+            next = [...prev, { x: data.x, y: data.y, result: data.result }];
           }
-          return [...prev, { x: data.x, y: data.y, result: data.result }];
+          localShotsRef.current = next;
+          return next;
         });
 
         // Track sunk enemy ship types
@@ -213,6 +230,7 @@ export function useBattleship(username: string) {
     setEnemySunkTypes([]);
     setRevealedEnemyShips([]);
     setLocalShots([]);
+    localShotsRef.current = [];
     setJoinError(null);
     firedCoordsRef.current.clear();
     onJoinSuccessRef.current = null;
@@ -299,7 +317,11 @@ export function useBattleship(username: string) {
     firedCoordsRef.current.add(key);
 
     // Optimistic: add pending shot to local state immediately
-    setLocalShots(prev => [...prev, { x, y, result: 'pending' }]);
+    setLocalShots(prev => {
+      const next = [...prev, { x, y, result: 'pending' as const }];
+      localShotsRef.current = next;
+      return next;
+    });
 
     // Emit to server
     socketRef.current.emit('bs_fire', { roomId: roomIdRef.current, x, y });
@@ -318,6 +340,7 @@ export function useBattleship(username: string) {
       setEnemySunkTypes([]);
       setRevealedEnemyShips([]);
       setLocalShots([]);
+      localShotsRef.current = [];
       firedCoordsRef.current.clear();
     }
   }, []);
