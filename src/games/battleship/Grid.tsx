@@ -23,6 +23,8 @@ interface GridProps {
   isOwnBoard?: boolean;
   /** Sunk enemy ships to reveal on enemy board */
   revealedShips?: ShipPlacement[];
+  onShipDrop?: (shipType: string, x: number, y: number, offsetX: number, offsetY: number) => void;
+  onCellContextMenu?: (x: number, y: number) => void;
 }
 
 export function Grid({
@@ -34,6 +36,8 @@ export function Grid({
   activeTurn = false,
   isOwnBoard = false,
   revealedShips = [],
+  onShipDrop,
+  onCellContextMenu,
 }: GridProps) {
   const allShips = [...ships, ...revealedShips];
 
@@ -110,7 +114,24 @@ export function Grid({
               <button
                 key={`${x}-${y}`}
                 onClick={() => canClick && onCellClick?.(x, y)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (!disabled) onCellContextMenu?.(x, y);
+                }}
                 disabled={disabled || isAlreadyShot}
+                onDragOver={(e) => {
+                  e.preventDefault(); // necessary to allow dropping
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (disabled) return;
+                  const shipType = e.dataTransfer.getData('shipType');
+                  const offsetX = parseInt(e.dataTransfer.getData('offsetX') || '0', 10);
+                  const offsetY = parseInt(e.dataTransfer.getData('offsetY') || '0', 10);
+                  if (shipType) {
+                    onShipDrop?.(shipType, x, y, offsetX, offsetY);
+                  }
+                }}
                 className={`
                   w-9 h-9 relative transition-all duration-150
                   border-[0.5px] border-white/5
@@ -134,7 +155,17 @@ export function Grid({
                 {/* Ship Layer — own board ships OR revealed sunk enemy ships */}
                 {shouldShowShip && ship && shipPart && colors && (
                   <div
-                    className={`absolute inset-[2px] ${isSunkCell ? 'bg-red-900/80' : colors.bg} shadow-inner transition-all`}
+                    draggable={!disabled && isOwnBoard && !isAlreadyShot}
+                    onDragStart={(e) => {
+                      if (disabled || !isOwnBoard) {
+                        e.preventDefault();
+                        return;
+                      }
+                      e.dataTransfer.setData('shipType', ship.type);
+                      e.dataTransfer.setData('offsetX', (x - ship.x).toString());
+                      e.dataTransfer.setData('offsetY', (y - ship.y).toString());
+                    }}
+                    className={`absolute inset-[2px] ${isSunkCell ? 'bg-red-900/80' : colors.bg} shadow-inner transition-all ${(!disabled && isOwnBoard && !isAlreadyShot) ? 'cursor-grab active:cursor-grabbing' : ''}`}
                     style={{
                       borderRadius: getShipBorderRadius(shipPart, ship.vertical),
                       opacity: isSunkCell ? 0.7 : shot ? 0.5 : 0.85,

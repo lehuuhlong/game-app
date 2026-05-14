@@ -6,6 +6,7 @@ import { useAuth } from '@/components/auth';
 import { LoginModal } from '@/components/auth/LoginModal';
 import { useBattleship, SHIPS_CONFIG } from './useBattleship';
 import { Grid } from './Grid';
+import { SHIP_COLORS } from './types';
 
 type Screen = 'lobby' | 'waiting' | 'playing' | 'finished';
 
@@ -36,9 +37,10 @@ export function GameBattleship() {
     winner,
     error,
     placedShips,
-    currentShipIndex,
     isVertical,
     handlePlaceShip,
+    placeNextAvailableShip,
+    rotatePlacedShip,
     rotateShip,
     resetPlacement,
     readyUp,
@@ -51,11 +53,35 @@ export function GameBattleship() {
     revealedEnemyShips,
     localShots,
     joinError: hookJoinError,
+    moveShip,
   } = useBattleship(user?.username || '');
 
   const isMyTurn = currentTurnPlayerId === playerId;
-  const currentShip = SHIPS_CONFIG[currentShipIndex];
   const allShipsPlaced = placedShips.length === SHIPS_CONFIG.length;
+
+  const handleShipDrop = useCallback((shipType: string, x: number, y: number, offsetX: number, offsetY: number) => {
+    const targetX = Math.max(0, Math.min(9, x - offsetX));
+    const targetY = Math.max(0, Math.min(9, y - offsetY));
+    
+    const isUnplaced = !placedShips.some(s => s.type === shipType);
+    if (isUnplaced) {
+      handlePlaceShip(shipType, targetX, targetY, isVertical);
+    } else {
+      moveShip(shipType as any, targetX, targetY);
+    }
+  }, [placedShips, isVertical, handlePlaceShip, moveShip]);
+
+  // Handle Space to rotate
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && phase === 'placement' && !myState?.ready) {
+        e.preventDefault();
+        rotateShip();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, myState?.ready, rotateShip]);
 
   // ── Screen transitions (reactive, driven by hook state) ─────────
 
@@ -348,95 +374,22 @@ export function GameBattleship() {
                   ships={phase === 'placement' ? placedShips : (myState?.ships || [])}
                   shots={enemyShots}
                   showShips={true}
-                  disabled={phase !== 'placement'}
-                  onCellClick={handlePlaceShip}
+                  disabled={phase !== 'placement' || myState?.ready}
+                  onCellClick={placeNextAvailableShip}
+                  onCellContextMenu={(x, y) => {
+                    const ship = placedShips.find(s => {
+                      if (s.vertical) return s.x === x && y >= s.y && y < s.y + s.length;
+                      return y === s.y && x >= s.x && x < s.x + s.length;
+                    });
+                    if (ship) {
+                      rotatePlacedShip(ship.type);
+                    } else {
+                      rotateShip();
+                    }
+                  }}
+                  onShipDrop={handleShipDrop}
                   isOwnBoard={true}
                 />
-
-                {/* Placement Controls */}
-                {phase === 'placement' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-surface border border-border p-5 rounded-2xl space-y-4"
-                  >
-                    {/* Ship Queue */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Ship Queue</p>
-                      <div className="flex flex-wrap gap-2">
-                        {SHIPS_CONFIG.map((ship, idx) => {
-                          const isPlaced = idx < currentShipIndex;
-                          const isCurrent = idx === currentShipIndex;
-                          return (
-                            <div
-                              key={ship.type}
-                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                isPlaced
-                                  ? 'bg-green-500/10 text-green-500 border border-green-500/20'
-                                  : isCurrent
-                                    ? 'bg-sky-500/10 text-sky-500 border border-sky-500/30 ring-1 ring-sky-500/30'
-                                    : 'bg-background text-foreground-muted border border-border'
-                              }`}
-                            >
-                              {isPlaced ? '✓' : ''}
-                              <span>{ship.label}</span>
-                              <span className="opacity-60">({ship.length})</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Current Ship Indicator */}
-                    {currentShip && (
-                      <div className="flex items-center justify-between bg-sky-500/5 border border-sky-500/20 rounded-xl px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">🚢</span>
-                          <div>
-                            <p className="text-sm font-bold text-foreground">{currentShip.label}</p>
-                            <p className="text-xs text-foreground-muted">Size: {currentShip.length} cells • {isVertical ? 'Vertical' : 'Horizontal'}</p>
-                          </div>
-                        </div>
-                        {/* Preview of ship size */}
-                        <div className={`flex ${isVertical ? 'flex-col' : 'flex-row'} gap-0.5`}>
-                          {Array.from({ length: currentShip.length }).map((_, i) => (
-                            <div key={i} className="w-4 h-4 bg-sky-500/40 rounded-sm border border-sky-500/50" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={rotateShip}
-                        disabled={allShipsPlaced}
-                        className="py-2.5 bg-background border border-border rounded-xl text-xs font-bold hover:bg-surface-hover transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-                        ROTATE ({isVertical ? 'V' : 'H'})
-                      </button>
-                      <button
-                        onClick={resetPlacement}
-                        className="py-2.5 bg-background border border-border rounded-xl text-xs font-bold hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg>
-                        RESET
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={readyUp}
-                      disabled={!allShipsPlaced || myState?.ready}
-                      className={`w-full py-3 font-bold rounded-xl shadow-lg transition-all ${
-                        allShipsPlaced && !myState?.ready
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/20 hover:-translate-y-0.5'
-                          : 'bg-surface-hover text-foreground-muted border border-border'
-                      }`}
-                    >
-                      {myState?.ready ? '⏳ WAITING FOR ENEMY...' : allShipsPlaced ? '✅ LOCK FLEET & READY' : `Place ${SHIPS_CONFIG.length - placedShips.length} more ship(s)`}
-                    </button>
-                  </motion.div>
-                )}
 
                 {/* Ship Status in Battle Phase — computed from enemyShots for realtime accuracy */}
                 {phase !== 'placement' && myState?.ships && (() => {
@@ -499,9 +452,104 @@ export function GameBattleship() {
                   );
                 })()}
               </div>
+              {/* RIGHT: Placement Controls OR Enemy Waters */}
+              {phase === 'placement' ? (
+                <div className="flex flex-col w-full max-w-sm">
+                  {/* Placement Controls */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-surface border border-border p-5 rounded-2xl space-y-4 shadow-xl"
+                  >
+                    {/* Orientation & Tips */}
+                    <div className="bg-sky-500/5 border border-sky-500/20 rounded-xl p-3.5 mb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-foreground">Placement Direction:</span>
+                        <span className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider ${isVertical ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+                          {isVertical ? '↕️ Vertical' : '↔️ Horizontal'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-foreground-muted leading-relaxed">
+                        💡 <strong className="text-foreground">Tip:</strong> Press <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded font-mono shadow-sm mx-0.5">Space</kbd> or <strong className="text-foreground">Right-Click</strong> on the board to rotate ship orientation.
+                      </p>
+                    </div>
 
-              {/* RIGHT: Enemy Waters */}
-              {phase !== 'placement' && (
+                    {/* Unplaced Ships List */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Unplaced Ships</p>
+                        <span className="text-[10px] text-foreground-muted">Drag to board or click board</span>
+                      </div>
+                      
+                      <div className="flex flex-col gap-3 min-h-[160px]">
+                        {SHIPS_CONFIG.filter(s => !placedShips.some(ps => ps.type === s.type)).map((ship) => {
+                          const colors = SHIP_COLORS[ship.type as keyof typeof SHIP_COLORS];
+                          return (
+                            <div 
+                              key={ship.type}
+                              draggable={!myState?.ready}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('shipType', ship.type);
+                                e.dataTransfer.setData('offsetX', '0');
+                                e.dataTransfer.setData('offsetY', '0');
+                              }}
+                              className={`flex items-center justify-between bg-surface border border-border rounded-xl px-4 py-3 ${!myState?.ready ? 'cursor-grab active:cursor-grabbing hover:bg-surface-hover hover:-translate-y-0.5' : ''} transition-all shadow-sm`}
+                            >
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-foreground">{ship.label}</span>
+                                <span className="text-xs text-foreground-muted">Size: {ship.length}</span>
+                              </div>
+                              {/* Preview of ship */}
+                              <div className="flex flex-row gap-0.5">
+                                {Array.from({ length: ship.length }).map((_, i) => (
+                                  <div key={i} className={`w-5 h-5 rounded-sm shadow-inner opacity-80 ${colors?.bg || 'bg-slate-500'}`} />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {allShipsPlaced && (
+                          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-xl text-foreground-muted bg-green-500/5">
+                            <span className="text-2xl mb-2">✅</span>
+                            <span className="text-sm font-bold text-green-500">All ships placed!</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <button
+                        onClick={rotateShip}
+                        disabled={allShipsPlaced}
+                        className="py-2.5 bg-background border border-border rounded-xl text-xs font-bold hover:bg-surface-hover transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                        ROTATE ({isVertical ? 'V' : 'H'})
+                      </button>
+                      <button
+                        onClick={resetPlacement}
+                        disabled={myState?.ready}
+                        className="py-2.5 bg-background border border-border rounded-xl text-xs font-bold hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all flex items-center justify-center gap-1.5 disabled:opacity-40 shadow-sm"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path></svg>
+                        RESET
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={readyUp}
+                      disabled={!allShipsPlaced || myState?.ready}
+                      className={`w-full py-3.5 font-bold rounded-xl shadow-lg transition-all mt-2 ${
+                        allShipsPlaced && !myState?.ready
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-green-500/20 hover:-translate-y-0.5 ring-2 ring-green-500/30 ring-offset-2 ring-offset-background'
+                          : 'bg-surface-hover text-foreground-muted border border-border'
+                      }`}
+                    >
+                      {myState?.ready ? '⏳ WAITING FOR ENEMY...' : allShipsPlaced ? '✅ LOCK FLEET & READY' : `Place ${SHIPS_CONFIG.length - placedShips.length} more ship(s)`}
+                    </button>
+                  </motion.div>
+                </div>
+              ) : (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}

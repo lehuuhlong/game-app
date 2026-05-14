@@ -26,6 +26,7 @@ export function useBattleship(username: string) {
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [phase, setPhase] = useState<BattleshipPhase>('placement');
+  const phaseRef = useRef<BattleshipPhase>('placement');
   const [myState, setMyState] = useState<BattleshipPlayerState | null>(null);
   const [enemyShots, setEnemyShots] = useState<Shot[]>([]);
   const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
@@ -119,15 +120,18 @@ export function useBattleship(username: string) {
         setWinner(null);
       }
 
-      // If server says it's placement phase, it means a new game started.
+      // If server says it's placement phase AND we were previously in 'finished' phase, it means a rematch started.
       // Ensure all previous game state is cleared for BOTH players (especially the one who didn't click rematch).
-      if (data.phase === 'placement') {
+      if (data.phase === 'placement' && phaseRef.current === 'finished') {
         setRevealedEnemyShips([]);
         setEnemySunkTypes([]);
         setPlacedShips([]);
         setCurrentShipIndex(0);
         setIsVertical(false);
       }
+      
+      setPhase(data.phase);
+      phaseRef.current = data.phase;
     });
 
     socket.on('bs_fire_result', (data) => {
@@ -273,23 +277,69 @@ export function useBattleship(username: string) {
     return true;
   }, []);
 
-  const handlePlaceShip = useCallback((x: number, y: number) => {
-    if (phase !== 'placement' || currentShipIndex >= SHIPS_CONFIG.length) return;
+  const handlePlaceShip = useCallback((shipType: string, x: number, y: number, vertical: boolean) => {
+    if (phase !== 'placement') return;
+    if (placedShips.some(s => s.type === shipType)) return;
 
-    const shipConfig = SHIPS_CONFIG[currentShipIndex];
-    if (canPlaceShip(x, y, shipConfig.length, isVertical, placedShips)) {
+    const shipConfig = SHIPS_CONFIG.find(s => s.type === shipType);
+    if (!shipConfig) return;
+
+    if (canPlaceShip(x, y, shipConfig.length, vertical, placedShips)) {
       const newShip: ShipPlacement = {
         type: shipConfig.type,
         x,
         y,
-        vertical: isVertical,
+        vertical,
         length: shipConfig.length,
         hits: 0
       };
       setPlacedShips(prev => [...prev, newShip]);
-      setCurrentShipIndex(prev => prev + 1);
     }
-  }, [phase, currentShipIndex, isVertical, placedShips, canPlaceShip]);
+  }, [phase, placedShips, canPlaceShip]);
+
+  const placeNextAvailableShip = useCallback((x: number, y: number) => {
+    if (phase !== 'placement') return;
+    const unplaced = SHIPS_CONFIG.find(s => !placedShips.some(ps => ps.type === s.type));
+    if (!unplaced) return;
+    handlePlaceShip(unplaced.type, x, y, isVertical);
+  }, [phase, placedShips, isVertical, handlePlaceShip]);
+
+  const rotatePlacedShip = useCallback((shipType: string) => {
+    if (phase !== 'placement') return;
+    setPlacedShips(prev => {
+      const shipIndex = prev.findIndex(s => s.type === shipType);
+      if (shipIndex === -1) return prev;
+      
+      const ship = prev[shipIndex];
+      const otherShips = prev.filter((_, i) => i !== shipIndex);
+      
+      // Try to rotate in place
+      if (canPlaceShip(ship.x, ship.y, ship.length, !ship.vertical, otherShips)) {
+        const next = [...prev];
+        next[shipIndex] = { ...ship, vertical: !ship.vertical };
+        return next;
+      }
+      return prev; // cannot rotate (collision or out of bounds)
+    });
+  }, [phase, canPlaceShip]);
+
+  const moveShip = useCallback((shipType: ShipType, newX: number, newY: number) => {
+    if (phase !== 'placement') return;
+    setPlacedShips(prev => {
+      const shipIndex = prev.findIndex(s => s.type === shipType);
+      if (shipIndex === -1) return prev;
+      
+      const ship = prev[shipIndex];
+      const otherShips = prev.filter((_, i) => i !== shipIndex);
+      
+      if (canPlaceShip(newX, newY, ship.length, ship.vertical, otherShips)) {
+        const next = [...prev];
+        next[shipIndex] = { ...ship, x: newX, y: newY };
+        return next;
+      }
+      return prev;
+    });
+  }, [phase, canPlaceShip]);
 
   const resetPlacement = useCallback(() => {
     setPlacedShips([]);
@@ -363,8 +413,12 @@ export function useBattleship(username: string) {
     placedShips,
     currentShipIndex,
     isVertical,
+    canPlaceShip,
     handlePlaceShip,
+    placeNextAvailableShip,
+    rotatePlacedShip,
     rotateShip,
+    moveShip,
     resetPlacement,
     readyUp,
     fire,
