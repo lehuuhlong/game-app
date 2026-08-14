@@ -185,6 +185,8 @@ export function useBattleship(username: string) {
     socket.on('bs_game_over', (data) => {
       setWinner({ id: data.winnerId, name: data.winnerName });
       setPhase('finished');
+      phaseRef.current = 'finished';
+      
       if (data.enemyShips) {
         setRevealedEnemyShips(data.enemyShips);
       }
