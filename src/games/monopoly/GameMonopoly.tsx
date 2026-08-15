@@ -171,181 +171,113 @@ export function GameMonopoly() {
         )}
 
         <AnimatePresence mode="wait">
-          {/* ── LOBBY SCREEN ───────────────────────────────────────── */}
+          {/* ── LOBBY SCREEN (Synchronized with Caro / Battleship / Word Chain) ── */}
           {screen === 'lobby' && (
             <motion.div
               key="lobby"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-md mx-auto"
+              exit={{ opacity: 0, y: -16 }}
+              className="w-full max-w-md mx-auto space-y-4"
             >
-              <div className="p-6 rounded-3xl border border-slate-200 dark:border-amber-500/20 bg-white/95 dark:bg-slate-900/90 backdrop-blur-2xl shadow-xl dark:shadow-2xl dark:shadow-slate-950/60 space-y-6">
-                <div className="text-center space-y-1.5">
-                  <div className="text-5xl drop-shadow-md mb-2">🎩</div>
-                  <h2 className="text-xl font-black tracking-wide text-slate-900 dark:text-slate-100">
-                    Monopoly Lobby
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Create a match or join your friends with a code
-                  </p>
-                </div>
-
-                {/* Create Room Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+              <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
+                <h2 className="text-lg font-bold text-foreground">Create a Room</h2>
+                <p className="text-sm text-foreground-secondary">Start a new game and share the room code with your friends.</p>
+                <button
                   onClick={handleCreateRoom}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/20 border border-amber-300 hover:shadow-amber-500/40 transition-all text-sm tracking-wide cursor-pointer"
+                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 transition-all shadow-lg cursor-pointer"
                 >
-                  🏠 CREATE NEW ROOM
-                </motion.button>
+                  Create Room
+                </button>
+              </div>
 
-                {/* Divider */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">or join code</span>
-                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-                </div>
-
-                {/* Join Room Form */}
-                <div className="flex gap-2.5">
+              <div className="rounded-2xl border border-border bg-surface p-6 space-y-3">
+                <h2 className="text-lg font-bold text-foreground">Join a Room</h2>
+                <div className="flex gap-2">
                   <input
                     type="text"
                     value={joinInput}
                     onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
-                    placeholder="ROOM CODE"
-                    className="flex-1 px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/80 text-amber-700 dark:text-amber-300 placeholder:text-slate-400 dark:placeholder:text-slate-600 text-sm font-mono font-bold tracking-[0.25em] focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                    maxLength={8}
+                    placeholder="Room code..."
+                    maxLength={6}
+                    className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none uppercase font-mono tracking-widest"
                   />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     onClick={handleJoinRoom}
-                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 font-bold rounded-2xl transition-colors text-sm cursor-pointer shadow-sm"
+                    className="rounded-xl bg-surface-hover border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-accent hover:text-white hover:border-accent transition-all cursor-pointer"
                   >
                     Join
-                  </motion.button>
+                  </button>
                 </div>
-
-                {/* Error Banner */}
-                <AnimatePresence>
-                  {joinError && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="text-xs text-rose-600 dark:text-rose-400 text-center font-bold bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/40 py-2 rounded-xl"
-                    >
-                      ⚠️ {joinError}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {(joinError || hookJoinError) && (
+                  <p className="text-sm text-red-500">{joinError || hookJoinError}</p>
+                )}
               </div>
             </motion.div>
           )}
 
-          {/* ── WAITING SCREEN ─────────────────────────────────────── */}
+          {/* ── WAITING SCREEN (Synchronized with Caro / Battleship / Word Chain) ── */}
           {screen === 'waiting' && (
             <motion.div
               key="waiting"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-md mx-auto"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md mx-auto text-center"
             >
-              <div className="p-6 rounded-3xl border border-slate-200 dark:border-amber-500/20 bg-white/95 dark:bg-slate-900/90 backdrop-blur-2xl shadow-xl dark:shadow-2xl dark:shadow-slate-950/60 space-y-6">
-                {/* Room code section */}
-                <div className="text-center bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">
-                    SHARE ROOM CODE WITH FRIENDS
-                  </div>
+              <div className="rounded-2xl border border-border bg-surface p-8 space-y-5 shadow-sm">
+                <div className="h-12 w-12 rounded-full border-4 border-sky-500 border-t-transparent animate-spin mx-auto" />
+                <h2 className="text-xl font-bold text-foreground">{statusMsg}</h2>
+
+                <div className="rounded-xl bg-background border border-border p-5 relative">
+                  <p className="text-xs text-foreground-muted mb-1">Room Code</p>
                   <div className="flex items-center justify-center gap-3">
-                    <span className="text-3xl sm:text-4xl font-black tracking-[0.25em] text-amber-600 dark:text-amber-400 font-mono drop-shadow">
-                      {roomId}
-                    </span>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
+                    <p className="text-4xl font-extrabold text-sky-500 font-mono tracking-widest">{roomId}</p>
+                    <button
                       onClick={handleCopyCode}
-                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-                      title="Copy code"
+                      className="p-2 rounded-lg bg-surface hover:bg-surface-hover text-foreground-secondary hover:text-foreground transition-colors border border-border cursor-pointer"
+                      title="Copy Room Code"
                     >
                       {copied ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold">COPIED!</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>
                       ) : (
-                        <span className="text-sm">📋</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                       )}
-                    </motion.button>
+                    </button>
                   </div>
+                  <p className="text-xs text-foreground-muted mt-2">Share with your friend</p>
                 </div>
 
-                {/* Status indicator */}
-                <div className="text-center text-xs font-semibold text-slate-600 dark:text-slate-300 animate-pulse bg-slate-100 dark:bg-slate-800/50 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
-                  ⏳ {statusMsg}
-                </div>
-
-                {/* Players list */}
-                <div className="space-y-2.5">
-                  {room?.players.map((p, i) => {
-                    const colorKey = tokenColorsArray[i % tokenColorsArray.length];
-                    const tokenStyle = TOKEN_STYLES[colorKey];
-                    return (
-                      <div
-                        key={p.id}
-                        className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70"
-                      >
-                        <div className={`w-4 h-4 rounded-full ${tokenStyle.bg} ring-2 ${tokenStyle.ring} ${tokenStyle.glow} shadow-md`} />
-                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100 flex-1">
-                          {p.username}
-                        </span>
-                        {i === 0 && (
-                          <span className="text-[9px] px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 rounded-full font-black">
-                            HOST
-                          </span>
-                        )}
-                        {p.id === playerId && (
-                          <span className="text-[9px] px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 rounded-full font-black">
-                            YOU
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Empty player slots */}
-                  {Array.from({ length: 4 - (room?.players.length || 0) }).map((_, i) => (
-                    <div
-                      key={`empty-${i}`}
-                      className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-slate-950/30"
-                    >
-                      <div className="w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-800" />
-                      <span className="text-xs italic font-medium">Waiting for player slot {room?.players.length ? room.players.length + i + 1 : i + 1}...</span>
+                <div className="space-y-1.5 text-sm text-foreground-secondary">
+                  {room?.players.map((p, i) => (
+                    <div key={p.id} className="flex items-center justify-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="font-medium text-foreground">{p.username}</span>
+                      {p.id === playerId && <span className="text-xs text-foreground-muted">(you)</span>}
+                      {i === 0 && <span className="text-xs text-amber-500 font-bold">(host)</span>}
                     </div>
                   ))}
                 </div>
 
-                {/* Host Control / Leave Buttons */}
-                <div className="flex gap-2.5 pt-2">
+                {isHost && (room?.players.length ?? 0) >= 2 && (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleLeaveRoom}
-                    className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl transition-colors text-xs tracking-wider cursor-pointer"
+                    onClick={startGame}
+                    className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 transition-all shadow-lg cursor-pointer"
                   >
-                    LEAVE
+                    Start Game ({room?.players.length}/4)
                   </motion.button>
+                )}
 
-                  {isHost && (room?.players.length ?? 0) >= 2 && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={startGame}
-                      className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 text-slate-950 font-black rounded-2xl shadow-xl shadow-emerald-500/20 border border-emerald-300 hover:shadow-emerald-500/40 transition-all text-xs tracking-wider cursor-pointer"
-                    >
-                      🎮 START GAME ({room?.players.length}/4)
-                    </motion.button>
-                  )}
+                <div>
+                  <button
+                    onClick={handleLeaveRoom}
+                    className="text-sm text-foreground-muted hover:text-red-500 transition-colors underline cursor-pointer"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -376,20 +308,6 @@ export function GameMonopoly() {
                 buyOffer={buyOffer}
                 upgradeOffer={upgradeOffer}
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Global Error Notification Toast */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-rose-600 text-white text-xs font-bold rounded-2xl shadow-2xl border border-rose-400 z-50 flex items-center gap-2"
-            >
-              <span>⚠️</span> {error}
             </motion.div>
           )}
         </AnimatePresence>

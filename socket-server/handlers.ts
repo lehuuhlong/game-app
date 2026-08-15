@@ -331,6 +331,47 @@ function checkMonopolyWinner(state: MonopolyGameState): string | null {
 }
 
 /**
+ * Advance Monopoly turn to the next active player.
+ * Checks for game over if only 1 active player remains.
+ */
+function advanceMonopolyTurn(
+  state: MonopolyGameState,
+  currentPlayerId: string,
+  room: Room,
+  io: GameIO,
+  roomId: string
+): void {
+  const player = state.players.find((p) => p.playerId === currentPlayerId);
+  if (player) {
+    player.doublesCount = 0;
+  }
+
+  const nextPlayerId = getNextActivePlayer(state, currentPlayerId);
+  if (!nextPlayerId) {
+    const winner = state.players.find((p) => p.playerId === currentPlayerId);
+    room.status = "finished";
+    state.winner = currentPlayerId;
+    state.turnPhase = "end";
+    mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+    io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+    io.to(roomId).emit("mp_game_over", {
+      winnerId: currentPlayerId,
+      winnerName: winner?.username || "Unknown",
+      gameState: { ...state },
+    });
+    return;
+  }
+
+  state.currentTurnPlayerId = nextPlayerId;
+  state.turnPhase = "roll";
+  state.lastDice = null;
+
+  const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
+  mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+  io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+}
+
+/**
  * Resolve what happens when a player lands on a space.
  * Returns true if the player should be offered to buy (turn stays in 'action').
  */
@@ -512,7 +553,8 @@ export function registerSocketHandlers(io: GameIO): void {
 
       if (!room) {
         if (action === "join") {
-          socket.emit("error", { message: "Room does not exist" });
+          socket.emit("error", { message: "Room not found." });
+          console.log(`⚠️ Join failed: Room ${roomId} does not exist (user: ${username}, game: ${gameType})`);
           return;
         }
 
@@ -525,11 +567,13 @@ export function registerSocketHandlers(io: GameIO): void {
           language: gameType === "wordchain" ? (language || "en") : undefined,
         };
         rooms.set(roomId, room);
-        console.log(`🏠 Room created: ${roomId} (${gameType}${room.language ? `, ${room.language}` : ""})`);
+        const maxPlayers = gameType === "monopoly" ? MONOPOLY_MAX_PLAYERS : 2;
+        console.log(`🏠 Room created: ${roomId} [${gameType}] (max: ${maxPlayers}${room.language ? `, lang: ${room.language}` : ""})`);
       } else {
         // Validate that the requested game type matches the existing room's game type
         if (room.gameType !== gameType) {
-          socket.emit("error", { message: `Cannot join: This room is for ${room.gameType === 'caro' ? 'Caro' : 'Word Chain'}.` });
+          socket.emit("error", { message: "Room not found." });
+          console.log(`⚠️ Join failed: Room ${roomId} is for '${room.gameType}', not '${gameType}' (user: ${username})`);
           return;
         }
       }
@@ -537,8 +581,18 @@ export function registerSocketHandlers(io: GameIO): void {
       if (room.players.find((p) => p.socketId === socket.id)) return;
 
       const maxPlayers = room.gameType === "monopoly" ? MONOPOLY_MAX_PLAYERS : 2;
+
+      // Check if room is already full
       if (room.players.length >= maxPlayers) {
-        socket.emit("error", { message: "Room is full" });
+        socket.emit("error", { message: "Room is full." });
+        console.log(`⚠️ Join failed: Room ${roomId} is full (${room.players.length}/${maxPlayers}) (user: ${username})`);
+        return;
+      }
+
+      // Check if game has already started (cannot join midway)
+      if (room.status !== "waiting") {
+        socket.emit("error", { message: "Game has already started in this room." });
+        console.log(`⚠️ Join failed: Room ${roomId} has already started (${room.status}) (user: ${username})`);
         return;
       }
 
@@ -554,7 +608,7 @@ export function registerSocketHandlers(io: GameIO): void {
       socket.emit("room_joined", { room, playerId: player.id });
       socket.to(roomId).emit("player_joined", { player, room });
 
-      console.log(`👤 ${username} joined room ${roomId} (${room.players.length}/2)`);
+      console.log(`👤 ${username} joined room ${roomId} (${room.players.length}/${maxPlayers}) [${room.gameType}]`);
 
       // Auto-start when 2 players
       if (room.players.length === 2 && room.gameType !== "monopoly") {
@@ -641,42 +695,29 @@ export function registerSocketHandlers(io: GameIO): void {
         if (isDoubles) {
           mpPlayer.inJail = false;
           mpPlayer.jailTurns = 0;
-          mpLog(state, `🔓 ${mpPlayer.username} rolled doubles and got out of Jail!`);
+          mpPlayer.doublesCount = 0;
+          mpLog(state, `🔓 ${mpPlayer.username} rolled doubles and escaped Lost Island!`);
         } else {
           mpPlayer.jailTurns++;
           if (mpPlayer.jailTurns >= 3) {
-            // Must pay $50 and get out after 3 turns
+            // Must pay $50 bail after 3 failed turns
             mpPlayer.balance -= 50;
             mpPlayer.inJail = false;
             mpPlayer.jailTurns = 0;
-            mpLog(state, `💵 ${mpPlayer.username} paid $50 bail after 3 turns in Jail.`);
+            mpPlayer.doublesCount = 0;
+            mpLog(state, `💵 ${mpPlayer.username} paid $50 bail after 3 turns on Lost Island.`);
             if (mpPlayer.balance <= 0) {
               mpPlayer.balance = 0;
               mpPlayer.isActive = false;
               mpPlayer.ownedProperties = [];
+              mpPlayer.houseLevels = {};
               mpLog(state, `💀 ${mpPlayer.username} went bankrupt!`);
-              state.turnPhase = "end";
-              io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-
-              // Check winner
-              const winnerId = checkMonopolyWinner(state);
-              if (winnerId) {
-                const winner = state.players.find((p) => p.playerId === winnerId);
-                room.status = "finished";
-                state.winner = winnerId;
-                mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-                io.to(roomId).emit("mp_game_over", {
-                  winnerId,
-                  winnerName: winner?.username || "Unknown",
-                  gameState: { ...state },
-                });
-              }
+              advanceMonopolyTurn(state, player.id, room, io, roomId);
               return;
             }
           } else {
-            mpLog(state, `🔒 ${mpPlayer.username} is still in Jail (turn ${mpPlayer.jailTurns}/3).`);
-            state.turnPhase = "end";
-            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            mpLog(state, `🔒 ${mpPlayer.username} is still trapped on Lost Island (turn ${mpPlayer.jailTurns}/3).`);
+            advanceMonopolyTurn(state, player.id, room, io, roomId);
             return;
           }
         }
@@ -691,8 +732,7 @@ export function registerSocketHandlers(io: GameIO): void {
             mpPlayer.jailTurns = 0;
             mpPlayer.doublesCount = 0;
             mpLog(state, `🏝️ ${mpPlayer.username} rolled 3 doubles in a row — sent to Lost Island!`);
-            state.turnPhase = "end";
-            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            advanceMonopolyTurn(state, player.id, room, io, roomId);
             return;
           }
         } else {
@@ -721,22 +761,7 @@ export function registerSocketHandlers(io: GameIO): void {
 
       // Check if player went bankrupt from space resolution
       if (!mpPlayer.isActive) {
-        state.turnPhase = "end";
-        const winnerId = checkMonopolyWinner(state);
-        if (winnerId) {
-          const winner = state.players.find((p) => p.playerId === winnerId);
-          room.status = "finished";
-          state.winner = winnerId;
-          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-          io.to(roomId).emit("mp_game_over", {
-            winnerId,
-            winnerName: winner?.username || "Unknown",
-            gameState: { ...state },
-          });
-        } else {
-          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-        }
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
         return;
       }
 
@@ -771,29 +796,7 @@ export function registerSocketHandlers(io: GameIO): void {
           mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
           io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         } else {
-          // Auto-end turn: advance to next player automatically
-          mpPlayer.doublesCount = 0;
-          const nextPlayerId = getNextActivePlayer(state, player.id);
-          if (!nextPlayerId) {
-            const winner = state.players.find((p) => p.playerId === player.id);
-            room.status = "finished";
-            state.winner = player.id;
-            mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-            state.turnPhase = "end";
-            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-            io.to(roomId).emit("mp_game_over", {
-              winnerId: player.id,
-              winnerName: winner?.username || "Unknown",
-              gameState: { ...state },
-            });
-          } else {
-            state.currentTurnPlayerId = nextPlayerId;
-            state.turnPhase = "roll";
-            state.lastDice = null;
-            const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
-            mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
-            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-          }
+          advanceMonopolyTurn(state, player.id, room, io, roomId);
         }
       }
     });
@@ -848,29 +851,7 @@ export function registerSocketHandlers(io: GameIO): void {
         mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
       } else {
-        // Auto-advance to next player
-        mpPlayer.doublesCount = 0;
-        const nextPlayerId = getNextActivePlayer(state, player.id);
-        if (!nextPlayerId) {
-          const winner = state.players.find((p) => p.playerId === player.id);
-          room.status = "finished";
-          state.winner = player.id;
-          state.turnPhase = "end";
-          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-          io.to(roomId).emit("mp_game_over", {
-            winnerId: player.id,
-            winnerName: winner?.username || "Unknown",
-            gameState: { ...state },
-          });
-        } else {
-          state.currentTurnPlayerId = nextPlayerId;
-          state.turnPhase = "roll";
-          state.lastDice = null;
-          const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
-          mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
-          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-        }
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
       }
     });
 
@@ -903,34 +884,7 @@ export function registerSocketHandlers(io: GameIO): void {
         return;
       }
 
-      // Auto-advance to next player
-      if (mpPlayer) {
-        mpPlayer.doublesCount = 0;
-      }
-
-      const nextPlayerId = getNextActivePlayer(state, player.id);
-      if (!nextPlayerId) {
-        const winner = state.players.find((p) => p.playerId === player.id);
-        room.status = "finished";
-        state.winner = player.id;
-        state.turnPhase = "end";
-        mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-        io.to(roomId).emit("mp_game_over", {
-          winnerId: player.id,
-          winnerName: winner?.username || "Unknown",
-          gameState: { ...state },
-        });
-        return;
-      }
-
-      state.currentTurnPlayerId = nextPlayerId;
-      state.turnPhase = "roll";
-      state.lastDice = null;
-
-      const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
-      mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
-      io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+      advanceMonopolyTurn(state, player.id, room, io, roomId);
     });
 
     // ── Monopoly: upgrade property (build house) ─────────────────
@@ -989,28 +943,7 @@ export function registerSocketHandlers(io: GameIO): void {
         mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
       } else {
-        mpPlayer.doublesCount = 0;
-        const nextPlayerId = getNextActivePlayer(state, player.id);
-        if (!nextPlayerId) {
-          const winner = state.players.find((p) => p.playerId === player.id);
-          room.status = "finished";
-          state.winner = player.id;
-          state.turnPhase = "end";
-          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-          io.to(roomId).emit("mp_game_over", {
-            winnerId: player.id,
-            winnerName: winner?.username || "Unknown",
-            gameState: { ...state },
-          });
-        } else {
-          state.currentTurnPlayerId = nextPlayerId;
-          state.turnPhase = "roll";
-          state.lastDice = null;
-          const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
-          mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
-          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-        }
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
       }
     });
 
