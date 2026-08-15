@@ -23,7 +23,7 @@ export interface Room {
   language?: WordChainLanguage;
 }
 
-export type GameType = "2048" | "caro" | "wordchain" | "battleship";
+export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly";
 
 export type WordChainLanguage = "en" | "vi";
 
@@ -99,6 +99,59 @@ export interface BattleshipGameState {
   winner: string | null;
 }
 
+// ── Monopoly types ───────────────────────────────────────────────
+
+export type MonopolySpaceType =
+  | "go" | "property" | "railroad" | "utility"
+  | "chance" | "community_chest" | "tax"
+  | "jail" | "free_parking" | "go_to_jail";
+
+export type MonopolyColorGroup =
+  | "brown" | "light_blue" | "pink" | "orange"
+  | "red" | "yellow" | "green" | "dark_blue"
+  | "railroad" | "utility" | null;
+
+export interface MonopolyBoardSpace {
+  index: number;
+  name: string;
+  type: MonopolySpaceType;
+  colorGroup: MonopolyColorGroup;
+  price: number | null;
+  baseRent: number | null;
+  /** Rent with houses: [1house, 2houses, 3houses, 4houses, hotel] */
+  rentScale?: number[];
+}
+
+export type MonopolyTokenColor = "red" | "blue" | "green" | "yellow";
+
+export interface MonopolyPlayerState {
+  playerId: string;
+  username: string;
+  tokenColor: MonopolyTokenColor;
+  position: number;          // 0-31
+  balance: number;           // starts $1500
+  ownedProperties: number[]; // space indices
+  houseLevels: Record<number, number>; // spaceIndex → level (0-4)
+  inJail: boolean;
+  jailTurns: number;         // turns spent in jail
+  isActive: boolean;         // false if disconnected/bankrupt
+  doublesCount: number;      // consecutive doubles this turn
+}
+
+export interface MonopolyEventLog {
+  message: string;
+  timestamp: number;
+}
+
+export interface MonopolyGameState {
+  players: MonopolyPlayerState[];
+  currentTurnPlayerId: string;
+  turnPhase: "roll" | "action" | "end";
+  lastDice: [number, number] | null;
+  eventLog: MonopolyEventLog[];
+  winner: string | null;
+}
+
 
 // ── Socket Event Maps ────────────────────────────────────────────
 
@@ -126,6 +179,13 @@ export interface ClientToServerEvents {
   // Battleship
   bs_ready: (data: { roomId: string; ships: ShipPlacement[] }) => void;
   bs_fire: (data: { roomId: string; x: number; y: number }) => void;
+
+  // Monopoly
+  mp_roll_dice: (data: { roomId: string }) => void;
+  mp_buy_property: (data: { roomId: string }) => void;
+  mp_end_turn: (data: { roomId: string }) => void;
+  mp_start_game: (data: { roomId: string }) => void;
+  mp_upgrade_property: (data: { roomId: string }) => void;
 }
 
 /** Events the server can emit to clients */
@@ -174,6 +234,13 @@ export interface ServerToClientEvents {
     firedBy: string;
   }) => void;
   bs_game_over: (data: { winnerId: string; winnerName: string; enemyShips?: ShipPlacement[] }) => void;
+
+  // Monopoly
+  mp_game_started: (data: { room: Room; gameState: MonopolyGameState }) => void;
+  mp_game_update: (data: { gameState: MonopolyGameState }) => void;
+  mp_offer_buy: (data: { spaceIndex: number; spaceName: string; price: number }) => void;
+  mp_offer_upgrade: (data: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number }) => void;
+  mp_game_over: (data: { winnerId: string; winnerName: string; gameState: MonopolyGameState }) => void;
 }
 
 /** Internal server-to-server events (for scaling with Redis adapter later) */

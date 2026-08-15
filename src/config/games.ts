@@ -130,4 +130,16 @@ export const GAMES: GameInfo[] = [
     tags: ["Strategy", "Multiplayer", "War"],
     color: "from-blue-600 to-indigo-800",
   },
+  {
+    id: "monopoly",
+    title: "Monopoly",
+    description:
+      "The classic property trading board game. Roll dice, buy properties, collect rent, and bankrupt your opponents in real-time 2-4 player multiplayer.",
+    thumbnail: "/games/monopoly/thumbnail.png",
+    route: "/games/monopoly",
+    minPlayers: 2,
+    maxPlayers: 4,
+    tags: ["Strategy", "Multiplayer", "Board Game"],
+    color: "from-amber-500 via-red-500 to-emerald-600",
+  },
 ];

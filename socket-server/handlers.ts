@@ -12,10 +12,11 @@ import type {
   WordChainLanguage,
   WordChainEntry,
   BattleshipGameState,
-  BattleshipPhase,
-  ShipPlacement,
   ShipType,
+  MonopolyGameState,
+  MonopolyTokenColor,
 } from "./types";
+import { MONOPOLY_BOARD } from "./src/data/monopoly-board";
 
 type GameIO = SocketIOServer<
   ClientToServerEvents,
@@ -29,6 +30,7 @@ const rooms = new Map<string, Room>();
 const caroStates = new Map<string, CaroGameState>();
 const wcStates = new Map<string, WordChainGameState>();
 const bsStates = new Map<string, BattleshipGameState>();
+const mpStates = new Map<string, MonopolyGameState>();
 
 // Timers for Word Chain turns (server-authoritative)
 const wcTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -109,7 +111,7 @@ async function validateEnglishWord(word: string): Promise<boolean> {
 let vietnameseDictionary = new Set<string>();
 
 try {
-  const dictPath = path.join(process.cwd(), "src", "data", "ee-vietnamese-words.txt");
+  const dictPath = path.join(process.cwd(), "src", "data", "vietnamese-words.txt");
   if (fs.existsSync(dictPath)) {
     const fileContent = fs.readFileSync(dictPath, "utf-8");
     fileContent.split(/\r?\n/).forEach((line) => {
@@ -198,6 +200,250 @@ function broadcastBSGameState(roomId: string, io: GameIO) {
     });
   });
 }
+
+// ── Monopoly helpers ──────────────────────────────────────────────
+
+const MONOPOLY_TOKEN_COLORS: MonopolyTokenColor[] = ["red", "blue", "green", "yellow"];
+const MONOPOLY_STARTING_BALANCE = 1500;
+const MONOPOLY_MIN_PLAYERS = 2;
+const MONOPOLY_MAX_PLAYERS = 4;
+
+function createInitialMonopolyState(
+  players: { id: string; username: string }[]
+): MonopolyGameState {
+  const mpPlayers = players.map((p, i) => ({
+    playerId: p.id,
+    username: p.username,
+    tokenColor: MONOPOLY_TOKEN_COLORS[i],
+    position: 0,
+    balance: MONOPOLY_STARTING_BALANCE,
+    ownedProperties: [] as number[],
+    houseLevels: {} as Record<number, number>,
+    inJail: false,
+    jailTurns: 0,
+    isActive: true,
+    doublesCount: 0,
+  }));
+
+  return {
+    players: mpPlayers,
+    currentTurnPlayerId: players[0].id,
+    turnPhase: "roll",
+    lastDice: null,
+    eventLog: [
+      { message: "🎩 Monopoly game started! Good luck!", timestamp: Date.now() },
+      { message: `🎲 ${players[0].username}'s turn — roll the dice!`, timestamp: Date.now() },
+    ],
+    winner: null,
+  };
+}
+
+/**
+ * Get the next active player after the given player.
+ * Skips inactive (disconnected/bankrupt) players.
+ */
+function getNextActivePlayer(
+  state: MonopolyGameState,
+  currentPlayerId: string
+): string | null {
+  const activePlayers = state.players.filter((p) => p.isActive);
+  if (activePlayers.length <= 1) return null;
+
+  const currentIndex = activePlayers.findIndex((p) => p.playerId === currentPlayerId);
+  const nextIndex = (currentIndex + 1) % activePlayers.length;
+  return activePlayers[nextIndex].playerId;
+}
+
+/**
+ * Calculate rent for a space, considering railroads (doubles per owned)
+ * and utilities (4× or 10× dice roll).
+ */
+function calculateRent(
+  spaceIndex: number,
+  state: MonopolyGameState,
+  diceTotal: number
+): number {
+  const space = MONOPOLY_BOARD[spaceIndex];
+  if (!space) return 0;
+
+  // Find the owner
+  const owner = state.players.find((p) =>
+    p.isActive && p.ownedProperties.includes(spaceIndex)
+  );
+  if (!owner) return 0;
+
+  if (space.type === "railroad") {
+    // $25 base, doubles for each railroad owned
+    const railroadIndices = MONOPOLY_BOARD
+      .filter((s) => s.type === "railroad")
+      .map((s) => s.index);
+    const ownedCount = railroadIndices.filter((i) =>
+      owner.ownedProperties.includes(i)
+    ).length;
+    return 25 * Math.pow(2, ownedCount - 1);
+  }
+
+  if (space.type === "utility") {
+    // 4× or 10× dice roll
+    const utilityIndices = MONOPOLY_BOARD
+      .filter((s) => s.type === "utility")
+      .map((s) => s.index);
+    const ownedCount = utilityIndices.filter((i) =>
+      owner.ownedProperties.includes(i)
+    ).length;
+    return diceTotal * (ownedCount >= 2 ? 10 : 4);
+  }
+
+  // Regular property — check house level for scaled rent
+  const houseLevel = owner.houseLevels[spaceIndex] ?? 0;
+  if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
+    return space.rentScale[houseLevel - 1];
+  }
+
+  // Base rent (no houses)
+  return space.baseRent ?? 0;
+}
+
+/** Tax amounts for tax spaces. */
+const TAX_AMOUNTS: Record<number, number> = {
+  4: 200, // Income Tax
+};
+
+/**
+ * Add an event log entry to the game state (capped at 50).
+ */
+function mpLog(state: MonopolyGameState, message: string): void {
+  state.eventLog.push({ message, timestamp: Date.now() });
+  if (state.eventLog.length > 50) {
+    state.eventLog = state.eventLog.slice(-50);
+  }
+}
+
+/**
+ * Check if there's a winner (only 1 active player remaining).
+ */
+function checkMonopolyWinner(state: MonopolyGameState): string | null {
+  const activePlayers = state.players.filter((p) => p.isActive);
+  if (activePlayers.length === 1) {
+    return activePlayers[0].playerId;
+  }
+  return null;
+}
+
+/**
+ * Resolve what happens when a player lands on a space.
+ * Returns true if the player should be offered to buy (turn stays in 'action').
+ */
+function resolveSpace(
+  state: MonopolyGameState,
+  player: typeof state.players[0],
+  diceTotal: number,
+  io: GameIO,
+  roomId: string
+): boolean {
+  const space = MONOPOLY_BOARD[player.position];
+  if (!space) return false;
+
+  // Go To Jail / World Tour
+  if (space.type === "go_to_jail") {
+    player.position = 8;
+    player.inJail = true;
+    player.jailTurns = 0;
+    player.doublesCount = 0;
+    mpLog(state, `🏝️ ${player.username} was sent to Lost Island!`);
+    return false;
+  }
+
+  // Tax
+  if (space.type === "tax") {
+    const taxAmount = TAX_AMOUNTS[player.position] ?? 0;
+    player.balance -= taxAmount;
+    mpLog(state, `💰 ${player.username} paid $${taxAmount} in ${space.name}.`);
+    if (player.balance <= 0) {
+      player.balance = 0;
+      player.isActive = false;
+      // Release all properties
+      player.ownedProperties = [];
+      mpLog(state, `💀 ${player.username} went bankrupt!`);
+    }
+    return false;
+  }
+
+  // Chance / Community Chest — simplified: random $$ event
+  if (space.type === "chance" || space.type === "community_chest") {
+    const events = [
+      { message: "Bank pays you dividend of $50", amount: 50 },
+      { message: "Doctor's fees — pay $50", amount: -50 },
+      { message: "You won a crossword competition — collect $100", amount: 100 },
+      { message: "Pay hospital fees of $100", amount: -100 },
+      { message: "Income tax refund — collect $20", amount: 20 },
+      { message: "Pay school fees of $50", amount: -50 },
+      { message: "Receive $25 consultancy fee", amount: 25 },
+      { message: "You are assessed for street repairs — pay $40", amount: -40 },
+      { message: "You have won second prize in a beauty contest — collect $10", amount: 10 },
+      { message: "Life insurance matures — collect $100", amount: 100 },
+    ];
+    const event = events[Math.floor(Math.random() * events.length)];
+    player.balance += event.amount;
+    const icon = space.type === "chance" ? "❓" : "🏦";
+    mpLog(state, `${icon} ${player.username}: ${event.message}`);
+    if (player.balance <= 0) {
+      player.balance = 0;
+      player.isActive = false;
+      player.ownedProperties = [];
+      mpLog(state, `💀 ${player.username} went bankrupt!`);
+    }
+    return false;
+  }
+
+  // Purchasable space (property, railroad, utility)
+  if (space.type === "property" || space.type === "railroad" || space.type === "utility") {
+    // Check if owned by anyone
+    const owner = state.players.find((p) =>
+      p.isActive && p.ownedProperties.includes(player.position)
+    );
+
+    if (owner && owner.playerId !== player.playerId) {
+      // Pay rent to owner
+      const rent = calculateRent(player.position, state, diceTotal);
+      player.balance -= rent;
+      owner.balance += rent;
+      const houseLevel = owner.houseLevels[player.position] ?? 0;
+      const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
+      mpLog(state, `🏠 ${player.username} paid $${rent} rent${levelStr} to ${owner.username} for ${space.name}.`);
+      if (player.balance <= 0) {
+        player.balance = 0;
+        player.isActive = false;
+        player.ownedProperties = [];
+        player.houseLevels = {};
+        mpLog(state, `💀 ${player.username} went bankrupt!`);
+      }
+      return false;
+    }
+
+    if (owner && owner.playerId === player.playerId) {
+      // Landing on own property — offer upgrade if possible
+      const currentLevel = owner.houseLevels[player.position] ?? 0;
+      if (space.type === "property" && currentLevel < 4 && space.rentScale) {
+        // Will be offered upgrade via "action" phase
+        return true; // triggers action phase
+      }
+      return false;
+    }
+
+    if (!owner && space.price) {
+      // Unowned — offer to buy
+      return true;
+    }
+
+    // No price — nothing happens
+    return false;
+  }
+
+  // GO, Jail (just visiting), Free Parking — nothing special
+  return false;
+}
+
 
 
 // ── Word Chain timer management ──────────────────────────────────
@@ -290,7 +536,8 @@ export function registerSocketHandlers(io: GameIO): void {
 
       if (room.players.find((p) => p.socketId === socket.id)) return;
 
-      if (room.players.length >= 2) {
+      const maxPlayers = room.gameType === "monopoly" ? MONOPOLY_MAX_PLAYERS : 2;
+      if (room.players.length >= maxPlayers) {
         socket.emit("error", { message: "Room is full" });
         return;
       }
@@ -310,7 +557,7 @@ export function registerSocketHandlers(io: GameIO): void {
       console.log(`👤 ${username} joined room ${roomId} (${room.players.length}/2)`);
 
       // Auto-start when 2 players
-      if (room.players.length === 2) {
+      if (room.players.length === 2 && room.gameType !== "monopoly") {
         room.status = "playing";
 
         if (room.gameType === "caro") {
@@ -332,6 +579,438 @@ export function registerSocketHandlers(io: GameIO): void {
         }
 
         console.log(`🎮 Game started in room ${roomId}`);
+      }
+    });
+
+    // ── Monopoly: manual start (host triggers when 2-4 players are in) ─
+    socket.on("mp_start_game", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.gameType !== "monopoly" || room.status !== "waiting") return;
+
+      if (room.players.length < MONOPOLY_MIN_PLAYERS) {
+        socket.emit("error", { message: `Need at least ${MONOPOLY_MIN_PLAYERS} players to start.` });
+        return;
+      }
+
+      // Only the first player (host) can start
+      if (room.players[0].socketId !== socket.id) {
+        socket.emit("error", { message: "Only the host can start the game." });
+        return;
+      }
+
+      room.status = "playing";
+      const gameState = createInitialMonopolyState(
+        room.players.map((p) => ({ id: p.id, username: p.username }))
+      );
+      mpStates.set(roomId, gameState);
+      io.to(roomId).emit("mp_game_started", { room, gameState });
+      console.log(`🎩 Monopoly started in room ${roomId} with ${room.players.length} players`);
+    });
+
+    // ══════════════════════════════════════════════════════════════
+    //  MONOPOLY EVENTS
+    // ══════════════════════════════════════════════════════════════
+
+    socket.on("mp_roll_dice", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      if (player.id !== state.currentTurnPlayerId || state.turnPhase !== "roll") {
+        socket.emit("error", { message: "Not your turn or can't roll now." });
+        return;
+      }
+
+      // Roll 2 dice
+      const die1 = Math.floor(Math.random() * 6) + 1;
+      const die2 = Math.floor(Math.random() * 6) + 1;
+      const diceTotal = die1 + die2;
+      const isDoubles = die1 === die2;
+
+      state.lastDice = [die1, die2];
+      mpLog(state, `🎲 ${mpPlayer.username} rolled ${die1} + ${die2} = ${diceTotal}${isDoubles ? " (Doubles!)" : ""}`);
+
+      // ── Jail logic ──────────────────────────────────────────────
+      if (mpPlayer.inJail) {
+        if (isDoubles) {
+          mpPlayer.inJail = false;
+          mpPlayer.jailTurns = 0;
+          mpLog(state, `🔓 ${mpPlayer.username} rolled doubles and got out of Jail!`);
+        } else {
+          mpPlayer.jailTurns++;
+          if (mpPlayer.jailTurns >= 3) {
+            // Must pay $50 and get out after 3 turns
+            mpPlayer.balance -= 50;
+            mpPlayer.inJail = false;
+            mpPlayer.jailTurns = 0;
+            mpLog(state, `💵 ${mpPlayer.username} paid $50 bail after 3 turns in Jail.`);
+            if (mpPlayer.balance <= 0) {
+              mpPlayer.balance = 0;
+              mpPlayer.isActive = false;
+              mpPlayer.ownedProperties = [];
+              mpLog(state, `💀 ${mpPlayer.username} went bankrupt!`);
+              state.turnPhase = "end";
+              io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+
+              // Check winner
+              const winnerId = checkMonopolyWinner(state);
+              if (winnerId) {
+                const winner = state.players.find((p) => p.playerId === winnerId);
+                room.status = "finished";
+                state.winner = winnerId;
+                mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+                io.to(roomId).emit("mp_game_over", {
+                  winnerId,
+                  winnerName: winner?.username || "Unknown",
+                  gameState: { ...state },
+                });
+              }
+              return;
+            }
+          } else {
+            mpLog(state, `🔒 ${mpPlayer.username} is still in Jail (turn ${mpPlayer.jailTurns}/3).`);
+            state.turnPhase = "end";
+            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            return;
+          }
+        }
+      } else {
+        // Not in jail — track doubles
+        if (isDoubles) {
+          mpPlayer.doublesCount++;
+          if (mpPlayer.doublesCount >= 3) {
+            // 3 doubles in a row → go to Lost Island
+            mpPlayer.position = 8;
+            mpPlayer.inJail = true;
+            mpPlayer.jailTurns = 0;
+            mpPlayer.doublesCount = 0;
+            mpLog(state, `🏝️ ${mpPlayer.username} rolled 3 doubles in a row — sent to Lost Island!`);
+            state.turnPhase = "end";
+            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            return;
+          }
+        } else {
+          mpPlayer.doublesCount = 0;
+        }
+      }
+
+      // ── Move player ─────────────────────────────────────────────
+      const oldPosition = mpPlayer.position;
+      mpPlayer.position = (mpPlayer.position + diceTotal) % MONOPOLY_BOARD.length;
+
+      // Check if passed or landed on GO
+      if (mpPlayer.position < oldPosition && mpPlayer.position !== 0) {
+        mpPlayer.balance += 200;
+        mpLog(state, `💵 ${mpPlayer.username} passed GO — collected $200!`);
+      } else if (mpPlayer.position === 0 && oldPosition !== 0) {
+        mpPlayer.balance += 200;
+        mpLog(state, `💵 ${mpPlayer.username} landed on GO — collected $200!`);
+      }
+
+      const landedSpace = MONOPOLY_BOARD[mpPlayer.position];
+      mpLog(state, `📍 ${mpPlayer.username} landed on ${landedSpace?.name || "unknown"}.`);
+
+      // ── Resolve the space ───────────────────────────────────────
+      const shouldOfferBuy = resolveSpace(state, mpPlayer, diceTotal, io, roomId);
+
+      // Check if player went bankrupt from space resolution
+      if (!mpPlayer.isActive) {
+        state.turnPhase = "end";
+        const winnerId = checkMonopolyWinner(state);
+        if (winnerId) {
+          const winner = state.players.find((p) => p.playerId === winnerId);
+          room.status = "finished";
+          state.winner = winnerId;
+          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(roomId).emit("mp_game_over", {
+            winnerId,
+            winnerName: winner?.username || "Unknown",
+            gameState: { ...state },
+          });
+        } else {
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        }
+        return;
+      }
+
+      if (shouldOfferBuy) {
+        state.turnPhase = "action";
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+
+        const space = MONOPOLY_BOARD[mpPlayer.position];
+
+        // Check if this is own property → offer upgrade; else → offer buy
+        const isOwnProperty = mpPlayer.ownedProperties.includes(mpPlayer.position);
+        if (isOwnProperty && space.type === "property") {
+          const currentLevel = mpPlayer.houseLevels[mpPlayer.position] ?? 0;
+          const upgradeCost = Math.floor((space.price ?? 0) * 0.5);
+          io.to(socket.id).emit("mp_offer_upgrade", {
+            spaceIndex: mpPlayer.position,
+            spaceName: space.name,
+            currentLevel,
+            upgradeCost,
+          });
+        } else {
+          io.to(socket.id).emit("mp_offer_buy", {
+            spaceIndex: mpPlayer.position,
+            spaceName: space.name,
+            price: space.price!,
+          });
+        }
+      } else {
+        // No action needed — auto-advance turn
+        if (isDoubles && !mpPlayer.inJail) {
+          state.turnPhase = "roll";
+          mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        } else {
+          // Auto-end turn: advance to next player automatically
+          mpPlayer.doublesCount = 0;
+          const nextPlayerId = getNextActivePlayer(state, player.id);
+          if (!nextPlayerId) {
+            const winner = state.players.find((p) => p.playerId === player.id);
+            room.status = "finished";
+            state.winner = player.id;
+            mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+            state.turnPhase = "end";
+            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            io.to(roomId).emit("mp_game_over", {
+              winnerId: player.id,
+              winnerName: winner?.username || "Unknown",
+              gameState: { ...state },
+            });
+          } else {
+            state.currentTurnPlayerId = nextPlayerId;
+            state.turnPhase = "roll";
+            state.lastDice = null;
+            const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
+            mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+            io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          }
+        }
+      }
+    });
+
+    socket.on("mp_buy_property", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      if (player.id !== state.currentTurnPlayerId || state.turnPhase !== "action") {
+        socket.emit("error", { message: "Can't buy right now." });
+        return;
+      }
+
+      const space = MONOPOLY_BOARD[mpPlayer.position];
+      if (!space || !space.price) {
+        socket.emit("error", { message: "This space cannot be purchased." });
+        return;
+      }
+
+      // Check if already owned
+      const isOwned = state.players.some((p) =>
+        p.isActive && p.ownedProperties.includes(mpPlayer.position)
+      );
+      if (isOwned) {
+        socket.emit("error", { message: "This property is already owned." });
+        return;
+      }
+
+      if (mpPlayer.balance < space.price) {
+        mpLog(state, `⚠️ ${mpPlayer.username} cannot afford ${space.name} ($${space.price}).`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        socket.emit("error", { message: `Not enough money. You need $${space.price} but only have $${mpPlayer.balance}.` });
+        return;
+      }
+
+      // Buy it
+      mpPlayer.balance -= space.price;
+      mpPlayer.ownedProperties.push(mpPlayer.position);
+      mpPlayer.houseLevels[mpPlayer.position] = 0;
+      mpLog(state, `🏠 ${mpPlayer.username} bought ${space.name} for $${space.price}.`);
+
+      // If doubles were rolled, allow rolling again
+      if (mpPlayer.doublesCount > 0 && !mpPlayer.inJail) {
+        state.turnPhase = "roll";
+        mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+      } else {
+        // Auto-advance to next player
+        mpPlayer.doublesCount = 0;
+        const nextPlayerId = getNextActivePlayer(state, player.id);
+        if (!nextPlayerId) {
+          const winner = state.players.find((p) => p.playerId === player.id);
+          room.status = "finished";
+          state.winner = player.id;
+          state.turnPhase = "end";
+          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(roomId).emit("mp_game_over", {
+            winnerId: player.id,
+            winnerName: winner?.username || "Unknown",
+            gameState: { ...state },
+          });
+        } else {
+          state.currentTurnPlayerId = nextPlayerId;
+          state.turnPhase = "roll";
+          state.lastDice = null;
+          const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
+          mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        }
+      }
+    });
+
+    socket.on("mp_end_turn", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      if (player.id !== state.currentTurnPlayerId) {
+        socket.emit("error", { message: "Not your turn." });
+        return;
+      }
+
+      // Allow ending turn from 'action' (decline to buy/upgrade) phase
+      if (state.turnPhase !== "action") {
+        socket.emit("error", { message: "No action to skip." });
+        return;
+      }
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+
+      // Handle declining purchase/upgrade during 'action' phase
+      if (mpPlayer && mpPlayer.doublesCount > 0 && !mpPlayer.inJail) {
+        state.turnPhase = "roll";
+        mpLog(state, `🎲 ${mpPlayer.username} declined and rolled doubles — roll again!`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
+      // Auto-advance to next player
+      if (mpPlayer) {
+        mpPlayer.doublesCount = 0;
+      }
+
+      const nextPlayerId = getNextActivePlayer(state, player.id);
+      if (!nextPlayerId) {
+        const winner = state.players.find((p) => p.playerId === player.id);
+        room.status = "finished";
+        state.winner = player.id;
+        state.turnPhase = "end";
+        mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        io.to(roomId).emit("mp_game_over", {
+          winnerId: player.id,
+          winnerName: winner?.username || "Unknown",
+          gameState: { ...state },
+        });
+        return;
+      }
+
+      state.currentTurnPlayerId = nextPlayerId;
+      state.turnPhase = "roll";
+      state.lastDice = null;
+
+      const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
+      mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+      io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+    });
+
+    // ── Monopoly: upgrade property (build house) ─────────────────
+    socket.on("mp_upgrade_property", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      if (player.id !== state.currentTurnPlayerId || state.turnPhase !== "action") {
+        socket.emit("error", { message: "Can't upgrade right now." });
+        return;
+      }
+
+      const space = MONOPOLY_BOARD[mpPlayer.position];
+      if (!space || space.type !== "property" || !space.price) {
+        socket.emit("error", { message: "This space cannot be upgraded." });
+        return;
+      }
+
+      // Must own the property
+      if (!mpPlayer.ownedProperties.includes(mpPlayer.position)) {
+        socket.emit("error", { message: "You don't own this property." });
+        return;
+      }
+
+      const currentLevel = mpPlayer.houseLevels[mpPlayer.position] ?? 0;
+      if (currentLevel >= 4) {
+        socket.emit("error", { message: "Property is already at max level (Hotel)." });
+        return;
+      }
+
+      const upgradeCost = Math.floor(space.price * 0.5);
+      if (mpPlayer.balance < upgradeCost) {
+        mpLog(state, `⚠️ ${mpPlayer.username} cannot afford to upgrade ${space.name} ($${upgradeCost}).`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        socket.emit("error", { message: `Not enough money. Need $${upgradeCost} but have $${mpPlayer.balance}.` });
+        return;
+      }
+
+      // Upgrade it
+      mpPlayer.balance -= upgradeCost;
+      const newLevel = currentLevel + 1;
+      mpPlayer.houseLevels[mpPlayer.position] = newLevel;
+      const levelName = newLevel === 4 ? "Hotel 🏨" : `House Lv.${newLevel} 🏠`;
+      mpLog(state, `🏗️ ${mpPlayer.username} built ${levelName} on ${space.name} for $${upgradeCost}.`);
+
+      // After upgrade, auto-advance
+      if (mpPlayer.doublesCount > 0 && !mpPlayer.inJail) {
+        state.turnPhase = "roll";
+        mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+      } else {
+        mpPlayer.doublesCount = 0;
+        const nextPlayerId = getNextActivePlayer(state, player.id);
+        if (!nextPlayerId) {
+          const winner = state.players.find((p) => p.playerId === player.id);
+          room.status = "finished";
+          state.winner = player.id;
+          state.turnPhase = "end";
+          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(roomId).emit("mp_game_over", {
+            winnerId: player.id,
+            winnerName: winner?.username || "Unknown",
+            gameState: { ...state },
+          });
+        } else {
+          state.currentTurnPlayerId = nextPlayerId;
+          state.turnPhase = "roll";
+          state.lastDice = null;
+          const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
+          mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        }
       }
     });
 
@@ -662,6 +1341,12 @@ export function registerSocketHandlers(io: GameIO): void {
         const p2Id = room.players[1].id;
         bsStates.set(roomId, createInitialBSState(p1Id, p2Id));
         broadcastBSGameState(roomId, io);
+      } else if (room.gameType === "monopoly") {
+        const gameState = createInitialMonopolyState(
+          room.players.map((p) => ({ id: p.id, username: p.username }))
+        );
+        mpStates.set(roomId, gameState);
+        io.to(roomId).emit("mp_game_started", { room, gameState });
       }
 
       console.log(`🔄 Game restarted in room ${roomId}`);
@@ -691,6 +1376,7 @@ export function registerSocketHandlers(io: GameIO): void {
         caroStates.delete(id);
         wcStates.delete(id);
         bsStates.delete(id);
+        mpStates.delete(id);
         clearWCTimer(id);
         console.log(`🧹 Cleaned up stale room: ${id}`);
       }
@@ -761,6 +1447,52 @@ function handleLeaveRoom(
     }
   }
 
+  // Handle Monopoly disconnect — graceful: release properties, pass turn, continue game
+  if (room.gameType === "monopoly" && room.status === "playing") {
+    const state = mpStates.get(roomId);
+    const leavingPlayer = room.players.find((p) => p.socketId === socket.id);
+
+    if (state && leavingPlayer) {
+      const mpPlayer = state.players.find((p) => p.playerId === leavingPlayer.id);
+      if (mpPlayer) {
+        // Mark as inactive and release all properties
+        mpPlayer.isActive = false;
+        mpPlayer.ownedProperties = [];
+        mpPlayer.doublesCount = 0;
+        mpLog(state, `🚪 ${mpPlayer.username} disconnected. Their properties are now available!`);
+
+        // If it was their turn, pass to next player
+        if (state.currentTurnPlayerId === leavingPlayer.id) {
+          const nextPlayerId = getNextActivePlayer(state, leavingPlayer.id);
+          if (nextPlayerId) {
+            state.currentTurnPlayerId = nextPlayerId;
+            state.turnPhase = "roll";
+            state.lastDice = null;
+            const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
+            mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+          }
+        }
+
+        // Check if only 1 active player remains → they win
+        const winnerId = checkMonopolyWinner(state);
+        if (winnerId) {
+          const winner = state.players.find((p) => p.playerId === winnerId);
+          room.status = "finished";
+          state.winner = winnerId;
+          mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(roomId).emit("mp_game_over", {
+            winnerId,
+            winnerName: winner?.username || "Unknown",
+            gameState: { ...state },
+          });
+        } else {
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        }
+      }
+    }
+  }
+
   room.players = room.players.filter((p) => p.socketId !== socket.id);
   console.log(
     `👤 ${socket.data.username || socket.id} left room ${roomId} (${room.players.length} remaining)`
@@ -771,9 +1503,13 @@ function handleLeaveRoom(
     caroStates.delete(roomId);
     wcStates.delete(roomId);
     bsStates.delete(roomId);
+    mpStates.delete(roomId);
     clearWCTimer(roomId);
   } else {
-    room.status = "finished";
+    // For non-monopoly games, mark as finished. For monopoly, the game continues.
+    if (room.gameType !== "monopoly" || room.status !== "playing") {
+      room.status = "finished";
+    }
     socket.to(roomId).emit("player_left", { playerId: socket.id, room });
   }
 }
