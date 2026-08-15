@@ -278,16 +278,100 @@ function DiceDisplay({
   );
 }
 
+// ── Animated Balance Display Component with Floating Delta Pill ────
+
+function AnimatedBalanceDisplay({
+  balance,
+  isMoving,
+  className = '',
+}: {
+  balance: number;
+  isMoving?: boolean;
+  className?: string;
+}) {
+  const [displayedBalance, setDisplayedBalance] = useState(balance);
+  const [delta, setDelta] = useState<{ id: number; amount: number } | null>(null);
+  const prevBalanceRef = useRef(balance);
+
+  useEffect(() => {
+    // If player is currently hopping across the board, defer delta animation until landing
+    if (isMoving) return;
+
+    if (prevBalanceRef.current !== balance) {
+      const diff = balance - prevBalanceRef.current;
+      prevBalanceRef.current = balance;
+      setDisplayedBalance(balance);
+
+      if (diff !== 0) {
+        setDelta({ id: Date.now(), amount: diff });
+        const timer = setTimeout(() => {
+          setDelta(null);
+        }, 2200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [balance, isMoving]);
+
+  const isGain = delta && delta.amount > 0;
+  const isLoss = delta && delta.amount < 0;
+
+  return (
+    <div className="relative inline-flex items-center">
+      <motion.span
+        key={displayedBalance}
+        initial={{ scale: delta ? 1.25 : 1 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 18 }}
+        className={`font-mono font-black transition-colors ${
+          isGain
+            ? 'text-emerald-500 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+            : isLoss
+            ? 'text-rose-500 dark:text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+            : 'text-emerald-600 dark:text-emerald-400'
+        } ${className}`}
+      >
+        ${displayedBalance.toLocaleString()}
+      </motion.span>
+
+      {/* Floating Animated Delta Badge */}
+      <AnimatePresence>
+        {delta && (
+          <motion.span
+            key={delta.id}
+            initial={{ opacity: 0, y: isGain ? 4 : -4, scale: 0.6 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+              y: isGain ? [0, -16, -22, -28] : [0, 14, 20, 26],
+              scale: [0.8, 1.15, 1, 0.9],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2.1, times: [0, 0.2, 0.75, 1] }}
+            className={`absolute left-full ml-1.5 px-1.5 py-0.2 rounded-md text-[10px] sm:text-xs font-mono font-black shadow-lg z-30 pointer-events-none whitespace-nowrap border ${
+              isGain
+                ? 'bg-emerald-500 text-white border-emerald-300 ring-2 ring-emerald-400/40'
+                : 'bg-rose-500 text-white border-rose-300 ring-2 ring-rose-400/40'
+            }`}
+          >
+            {isGain ? `+${delta.amount.toLocaleString()}` : `-${Math.abs(delta.amount).toLocaleString()}`}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Compact Player Card (Right Panel) ────────────────────
 
 function CompactPlayerCard({
   player,
   isCurrentTurn,
   isSelf,
+  isMoving,
 }: {
   player: MonopolyPlayerState;
   isCurrentTurn: boolean;
   isSelf: boolean;
+  isMoving?: boolean;
 }) {
   const token = TOKEN_STYLES[player.tokenColor] || TOKEN_STYLES.red;
 
@@ -320,9 +404,11 @@ function CompactPlayerCard({
           )}
         </div>
         <div className="flex items-center gap-2.5 mt-0.5">
-          <span className="text-xs sm:text-sm font-mono font-black text-emerald-600 dark:text-emerald-400">
-            ${player.balance.toLocaleString()}
-          </span>
+          <AnimatedBalanceDisplay
+            balance={player.balance}
+            isMoving={isMoving}
+            className="text-xs sm:text-sm"
+          />
           <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
             🏢 {player.ownedProperties.length}
           </span>
@@ -491,9 +577,6 @@ export function MonopolyBoard({
           <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
             <span>📜</span> Game History
           </h3>
-          <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-950/60 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700/50">
-            {eventLog.length} logs
-          </span>
         </div>
         
         {/* Log Content - Scrolled internally without touching window scroll */}
@@ -729,6 +812,7 @@ export function MonopolyBoard({
                 player={p}
                 isCurrentTurn={currentTurnPlayerId === p.playerId}
                 isSelf={p.playerId === playerId}
+                isMoving={isAnimatingMove && movingPlayerId === p.playerId}
               />
             ))}
           </div>
