@@ -143,13 +143,22 @@ export interface MonopolyEventLog {
   timestamp: number;
 }
 
+export interface MonopolyPendingDebt {
+  amount: number;
+  creditorId: string | null;
+  creditorName: string;
+  spaceName: string;
+  type: "rent" | "tax" | "fine" | "bail";
+}
+
 export interface MonopolyGameState {
   players: MonopolyPlayerState[];
   currentTurnPlayerId: string;
-  turnPhase: "roll" | "action" | "end";
+  turnPhase: "roll" | "action" | "debt" | "end";
   lastDice: [number, number] | null;
   eventLog: MonopolyEventLog[];
   winner: string | null;
+  pendingDebt?: MonopolyPendingDebt | null;
 }
 
 
@@ -186,6 +195,9 @@ export interface ClientToServerEvents {
   mp_end_turn: (data: { roomId: string }) => void;
   mp_start_game: (data: { roomId: string }) => void;
   mp_upgrade_property: (data: { roomId: string }) => void;
+  mp_sell_property: (data: { roomId: string; spaceIndex: number }) => void;
+  mp_pay_debt: (data: { roomId: string }) => void;
+  mp_declare_bankruptcy: (data: { roomId: string }) => void;
 }
 
 /** Events the server can emit to clients */

@@ -206,6 +206,21 @@ export function useMonopoly(username: string) {
     setUpgradeOffer(null);
   }, []);
 
+  const sellProperty = useCallback((spaceIndex: number) => {
+    if (!roomIdRef.current) return;
+    socketRef.current?.emit('mp_sell_property', { roomId: roomIdRef.current, spaceIndex });
+  }, []);
+
+  const payDebt = useCallback(() => {
+    if (!roomIdRef.current) return;
+    socketRef.current?.emit('mp_pay_debt', { roomId: roomIdRef.current });
+  }, []);
+
+  const declareBankruptcy = useCallback(() => {
+    if (!roomIdRef.current) return;
+    socketRef.current?.emit('mp_declare_bankruptcy', { roomId: roomIdRef.current });
+  }, []);
+
   const restart = useCallback(() => {
     if (!roomIdRef.current) return;
     socketRef.current?.emit('restart_game', { roomId: roomIdRef.current });
@@ -232,6 +247,9 @@ export function useMonopoly(username: string) {
     rollDice,
     buyProperty,
     upgradeProperty,
+    sellProperty,
+    payDebt,
+    declareBankruptcy,
     endTurn,
     restart,
   };

@@ -16,6 +16,7 @@ import {
   HOUSE_LEVEL_ICONS,
   HOUSE_LEVEL_LABELS,
   getUpgradeCost,
+  getSaleValue,
 } from './boardData';
 
 // ── Business Tour 32-Space Layout (9×9 Grid) ─────────────────────
@@ -37,6 +38,9 @@ interface MonopolyBoardProps {
   onRollDice?: () => void;
   onBuyProperty?: () => void;
   onUpgradeProperty?: () => void;
+  onSellProperty?: (spaceIndex: number) => void;
+  onPayDebt?: () => void;
+  onDeclareBankruptcy?: () => void;
   onEndTurn?: () => void;
   onLeaveRoom?: () => void;
   onRematch?: () => void;
@@ -357,6 +361,9 @@ export function MonopolyBoard({
   onRollDice,
   onBuyProperty,
   onUpgradeProperty,
+  onSellProperty,
+  onPayDebt,
+  onDeclareBankruptcy,
   onEndTurn,
   onLeaveRoom,
   onRematch,
@@ -611,8 +618,25 @@ export function MonopolyBoard({
                 </div>
               )}
 
+              {/* Debt Alert in Center HUD */}
+              {!winner && !isAnimatingMove && turnPhase === 'debt' && gameState?.pendingDebt && (
+                <div className="text-center z-10 bg-rose-950/90 border border-rose-500/60 px-4 py-2 rounded-2xl shadow-xl max-w-[290px] animate-pulse">
+                  <div className="text-xs font-black text-rose-300 uppercase tracking-wide flex items-center justify-center gap-1">
+                    <span>⚠️</span> DEBT PAYMENT REQUIRED
+                  </div>
+                  <div className="text-xs sm:text-sm font-black text-white mt-0.5">
+                    Owe ${gameState.pendingDebt.amount.toLocaleString()} for {gameState.pendingDebt.spaceName}
+                  </div>
+                  <div className="text-[11px] font-medium text-rose-200 mt-0.5">
+                    {myPlayer && myPlayer.balance >= gameState.pendingDebt.amount
+                      ? '✅ You have enough cash to pay debt!'
+                      : `⚠️ Need $${Math.max(0, gameState.pendingDebt.amount - (myPlayer?.balance ?? 0)).toLocaleString()} more. Sell properties!`}
+                  </div>
+                </div>
+              )}
+
               {/* Current position info */}
-              {!winner && !isAnimatingMove && isMyTurn && currentSpace && turnPhase !== 'roll' && (
+              {!winner && !isAnimatingMove && turnPhase !== 'debt' && isMyTurn && currentSpace && turnPhase !== 'roll' && (
                 <div className="text-center z-10 bg-black/40 dark:bg-slate-900/70 px-4 py-1.5 rounded-xl border border-white/20 dark:border-amber-400/20">
                   <span className="text-xs text-slate-200 dark:text-slate-300 font-medium">You landed on</span>
                   <div className="text-sm sm:text-base font-black text-amber-300">{currentSpace.name}</div>
@@ -730,7 +754,48 @@ export function MonopolyBoard({
               </div>
             )}
 
-            {!winner && !isAnimatingMove && isMyTurn && gameState && (() => {
+            {/* Debt Settlement Panel */}
+            {!winner && !isAnimatingMove && turnPhase === 'debt' && gameState?.pendingDebt && isMyTurn && (
+              <div className="space-y-2.5 p-3 rounded-2xl border-2 border-rose-400/60 bg-rose-50/90 dark:bg-rose-950/40">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-rose-700 dark:text-rose-300">Debt Due</span>
+                  <span className="text-xs font-mono font-black text-rose-700 dark:text-rose-300">${gameState.pendingDebt.amount.toLocaleString()}</span>
+                </div>
+                <div className="text-xs text-slate-700 dark:text-slate-200 font-medium">
+                  For <span className="font-black">{gameState.pendingDebt.spaceName}</span> ({gameState.pendingDebt.type})
+                </div>
+                <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                  Your Balance: <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">${myPlayer?.balance.toLocaleString()}</span>
+                </div>
+
+                {myPlayer && myPlayer.balance >= gameState.pendingDebt.amount ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={onPayDebt}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg cursor-pointer tracking-wide"
+                  >
+                    💵 PAY DEBT (${gameState.pendingDebt.amount.toLocaleString()})
+                  </motion.button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 p-2 rounded-lg border border-amber-300/50 dark:border-amber-800/40">
+                      Short by ${((gameState.pendingDebt.amount) - (myPlayer?.balance ?? 0)).toLocaleString()}. Click "Sell" below!
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={onDeclareBankruptcy}
+                      className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow transition-colors cursor-pointer"
+                    >
+                      💀 CONCEDE & BANKRUPT
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!winner && !isAnimatingMove && isMyTurn && turnPhase !== 'debt' && gameState && (() => {
               const propertyPrice = buyOffer?.price ?? currentSpace?.price ?? 0;
               const canAffordBuy = myPlayer && propertyPrice > 0 ? myPlayer.balance >= propertyPrice : false;
               const canAffordUpgrade = myPlayer && upgradeOffer ? myPlayer.balance >= upgradeOffer.upgradeCost : false;
@@ -850,28 +915,47 @@ export function MonopolyBoard({
             )}
           </div>
 
-          {/* My Properties */}
+          {/* My Properties with 80% Sell Action */}
           {myPlayer && myPlayer.ownedProperties.length > 0 && (
             <div className="pt-1">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-0.5 mb-1.5">
-                🏰 My Properties ({myPlayer.ownedProperties.length})
-              </h4>
-              <div className="grid grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
+              <div className="flex items-center justify-between mb-1.5 px-0.5">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  🏰 My Properties ({myPlayer.ownedProperties.length})
+                </h4>
+              </div>
+              <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-0.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
                 {myPlayer.ownedProperties.map((idx) => {
                   const space = MONOPOLY_BOARD[idx];
                   const colorStyle = space?.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
                   const level = myPlayer.houseLevels[idx] ?? 0;
+                  const saleValue = space?.price ? getSaleValue(space.price, level) : 0;
+
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700/30 bg-slate-50 dark:bg-slate-800/30 text-[10px] sm:text-xs"
+                      className="flex items-center justify-between p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs"
                     >
-                      {colorStyle && (
-                        <div className={`w-2.5 h-2.5 rounded-sm ${colorStyle.bg} flex-shrink-0`} />
-                      )}
-                      <span className="truncate text-slate-700 dark:text-slate-200 font-bold">{space?.name}</span>
-                      {level > 0 && (
-                        <span className="text-[9px] flex-shrink-0">{HOUSE_LEVEL_ICONS[level]}</span>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
+                        {colorStyle && (
+                          <div className={`w-2.5 h-2.5 rounded-sm ${colorStyle.bg} flex-shrink-0`} />
+                        )}
+                        <span className="truncate text-slate-800 dark:text-slate-100 font-bold">{space?.name}</span>
+                        {level > 0 && (
+                          <span className="text-[9px] flex-shrink-0">{HOUSE_LEVEL_ICONS[level]}</span>
+                        )}
+                      </div>
+
+                      {/* Sell button at 80% price */}
+                      {isMyTurn && onSellProperty && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => onSellProperty(idx)}
+                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900/80 text-amber-800 dark:text-amber-300 font-black rounded-lg text-[10px] sm:text-xs border border-amber-300 dark:border-amber-700/60 flex-shrink-0 cursor-pointer shadow-xs"
+                          title={`Sell ${space?.name} for $${saleValue} (80% value)`}
+                        >
+                          Sell +${saleValue}
+                        </motion.button>
                       )}
                     </div>
                   );

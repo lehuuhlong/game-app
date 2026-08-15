@@ -16,7 +16,7 @@ import type {
   MonopolyGameState,
   MonopolyTokenColor,
 } from "./types";
-import { MONOPOLY_BOARD } from "./src/data/monopoly-board";
+import { MONOPOLY_BOARD, getSaleValue } from "./src/data/monopoly-board";
 
 type GameIO = SocketIOServer<
   ClientToServerEvents,
@@ -398,16 +398,37 @@ function resolveSpace(
   // Tax
   if (space.type === "tax") {
     const taxAmount = TAX_AMOUNTS[player.position] ?? 0;
-    player.balance -= taxAmount;
-    mpLog(state, `💰 ${player.username} paid $${taxAmount} in ${space.name}.`);
-    if (player.balance <= 0) {
-      player.balance = 0;
-      player.isActive = false;
-      // Release all properties
-      player.ownedProperties = [];
-      mpLog(state, `💀 ${player.username} went bankrupt!`);
+    if (player.balance < taxAmount) {
+      const totalAssetValue = player.ownedProperties.reduce((sum, idx) => {
+        const sp = MONOPOLY_BOARD[idx];
+        const hl = player.houseLevels[idx] ?? 0;
+        return sum + getSaleValue(sp?.price ?? 0, hl);
+      }, 0);
+
+      if (player.balance + totalAssetValue >= taxAmount) {
+        state.turnPhase = "debt";
+        state.pendingDebt = {
+          amount: taxAmount,
+          creditorId: null,
+          creditorName: "Bank",
+          spaceName: space.name,
+          type: "tax",
+        };
+        mpLog(state, `⚠️ ${player.username} owes $${taxAmount} in ${space.name} (has $${player.balance}). Sell properties to pay!`);
+        return true;
+      } else {
+        player.balance = 0;
+        player.isActive = false;
+        player.ownedProperties = [];
+        player.houseLevels = {};
+        mpLog(state, `💀 ${player.username} cannot afford $${taxAmount} tax and went bankrupt!`);
+        return false;
+      }
+    } else {
+      player.balance -= taxAmount;
+      mpLog(state, `💰 ${player.username} paid $${taxAmount} in ${space.name}.`);
+      return false;
     }
-    return false;
   }
 
   // Chance / Community Chest — simplified: random $$ event
@@ -425,14 +446,42 @@ function resolveSpace(
       { message: "Life insurance matures — collect $100", amount: 100 },
     ];
     const event = events[Math.floor(Math.random() * events.length)];
-    player.balance += event.amount;
     const icon = space.type === "chance" ? "❓" : "🏦";
     mpLog(state, `${icon} ${player.username}: ${event.message}`);
-    if (player.balance <= 0) {
-      player.balance = 0;
-      player.isActive = false;
-      player.ownedProperties = [];
-      mpLog(state, `💀 ${player.username} went bankrupt!`);
+
+    if (event.amount < 0) {
+      const penalty = Math.abs(event.amount);
+      if (player.balance < penalty) {
+        const totalAssetValue = player.ownedProperties.reduce((sum, idx) => {
+          const sp = MONOPOLY_BOARD[idx];
+          const hl = player.houseLevels[idx] ?? 0;
+          return sum + getSaleValue(sp?.price ?? 0, hl);
+        }, 0);
+
+        if (player.balance + totalAssetValue >= penalty) {
+          state.turnPhase = "debt";
+          state.pendingDebt = {
+            amount: penalty,
+            creditorId: null,
+            creditorName: "Bank",
+            spaceName: space.name,
+            type: "fine",
+          };
+          mpLog(state, `⚠️ ${player.username} owes $${penalty} for fine (has $${player.balance}). Sell properties to pay!`);
+          return true;
+        } else {
+          player.balance = 0;
+          player.isActive = false;
+          player.ownedProperties = [];
+          player.houseLevels = {};
+          mpLog(state, `💀 ${player.username} went bankrupt!`);
+          return false;
+        }
+      } else {
+        player.balance -= penalty;
+      }
+    } else {
+      player.balance += event.amount;
     }
     return false;
   }
@@ -447,19 +496,43 @@ function resolveSpace(
     if (owner && owner.playerId !== player.playerId) {
       // Pay rent to owner
       const rent = calculateRent(player.position, state, diceTotal);
-      player.balance -= rent;
-      owner.balance += rent;
       const houseLevel = owner.houseLevels[player.position] ?? 0;
       const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
-      mpLog(state, `🏠 ${player.username} paid $${rent} rent${levelStr} to ${owner.username} for ${space.name}.`);
-      if (player.balance <= 0) {
-        player.balance = 0;
-        player.isActive = false;
-        player.ownedProperties = [];
-        player.houseLevels = {};
-        mpLog(state, `💀 ${player.username} went bankrupt!`);
+
+      if (player.balance < rent) {
+        const totalAssetValue = player.ownedProperties.reduce((sum, idx) => {
+          const sp = MONOPOLY_BOARD[idx];
+          const hl = player.houseLevels[idx] ?? 0;
+          return sum + getSaleValue(sp?.price ?? 0, hl);
+        }, 0);
+
+        if (player.balance + totalAssetValue >= rent) {
+          state.turnPhase = "debt";
+          state.pendingDebt = {
+            amount: rent,
+            creditorId: owner.playerId,
+            creditorName: owner.username,
+            spaceName: space.name,
+            type: "rent",
+          };
+          mpLog(state, `⚠️ ${player.username} owes $${rent} rent${levelStr} to ${owner.username} for ${space.name} (has $${player.balance}). Sell properties to pay!`);
+          return true;
+        } else {
+          // Bankrupt even after total liquidation
+          owner.balance += player.balance;
+          player.balance = 0;
+          player.isActive = false;
+          player.ownedProperties = [];
+          player.houseLevels = {};
+          mpLog(state, `💀 ${player.username} cannot pay $${rent} rent and went bankrupt!`);
+          return false;
+        }
+      } else {
+        player.balance -= rent;
+        owner.balance += rent;
+        mpLog(state, `🏠 ${player.username} paid $${rent} rent${levelStr} to ${owner.username} for ${space.name}.`);
+        return false;
       }
-      return false;
     }
 
     if (owner && owner.playerId === player.playerId) {
@@ -945,6 +1018,116 @@ export function registerSocketHandlers(io: GameIO): void {
       } else {
         advanceMonopolyTurn(state, player.id, room, io, roomId);
       }
+    });
+
+    // ── Sell Property (Voluntary or during debt at 80% value) ──
+    socket.on("mp_sell_property", ({ roomId, spaceIndex }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.status !== "playing") return;
+      const state = mpStates.get(roomId);
+      if (!state) return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      // Must be player's turn or resolving debt
+      if (player.id !== state.currentTurnPlayerId) {
+        socket.emit("error", { message: "Can only sell properties on your turn." });
+        return;
+      }
+
+      if (!mpPlayer.ownedProperties.includes(spaceIndex)) {
+        socket.emit("error", { message: "You do not own this property." });
+        return;
+      }
+
+      const space = MONOPOLY_BOARD[spaceIndex];
+      if (!space || !space.price) {
+        socket.emit("error", { message: "Invalid property to sell." });
+        return;
+      }
+
+      const houseLevel = mpPlayer.houseLevels[spaceIndex] ?? 0;
+      const saleValue = getSaleValue(space.price, houseLevel);
+
+      // Perform sale: credit 80% price back to player
+      mpPlayer.balance += saleValue;
+      mpPlayer.ownedProperties = mpPlayer.ownedProperties.filter((idx) => idx !== spaceIndex);
+      delete mpPlayer.houseLevels[spaceIndex];
+
+      const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
+      mpLog(state, `🏷️ ${mpPlayer.username} sold ${space.name}${levelStr} for $${saleValue}.`);
+
+      io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+    });
+
+    // ── Pay Debt (Once balance >= debt amount) ──
+    socket.on("mp_pay_debt", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.status !== "playing") return;
+      const state = mpStates.get(roomId);
+      if (!state || state.turnPhase !== "debt" || !state.pendingDebt) return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player || player.id !== state.currentTurnPlayerId) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      const debt = state.pendingDebt;
+      if (mpPlayer.balance < debt.amount) {
+        socket.emit("error", { message: `Not enough money to pay debt. Need $${debt.amount}, have $${mpPlayer.balance}. Sell more properties!` });
+        return;
+      }
+
+      // Pay the debt
+      mpPlayer.balance -= debt.amount;
+      if (debt.creditorId) {
+        const creditor = state.players.find((p) => p.playerId === debt.creditorId);
+        if (creditor) {
+          creditor.balance += debt.amount;
+        }
+      }
+
+      mpLog(state, `💵 ${mpPlayer.username} paid $${debt.amount} ${debt.type} for ${debt.spaceName}.`);
+      state.pendingDebt = null;
+
+      // Pass or continue turn
+      advanceMonopolyTurn(state, player.id, room, io, roomId);
+    });
+
+    // ── Declare Bankruptcy (Concede debt when unable/unwilling to pay) ──
+    socket.on("mp_declare_bankruptcy", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.status !== "playing") return;
+      const state = mpStates.get(roomId);
+      if (!state || state.turnPhase !== "debt" || !state.pendingDebt) return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player || player.id !== state.currentTurnPlayerId) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      const debt = state.pendingDebt;
+      if (debt.creditorId) {
+        const creditor = state.players.find((p) => p.playerId === debt.creditorId);
+        if (creditor) {
+          creditor.balance += mpPlayer.balance;
+        }
+      }
+
+      mpPlayer.balance = 0;
+      mpPlayer.isActive = false;
+      mpPlayer.ownedProperties = [];
+      mpPlayer.houseLevels = {};
+      mpLog(state, `💀 ${mpPlayer.username} declared bankruptcy!`);
+      state.pendingDebt = null;
+
+      advanceMonopolyTurn(state, player.id, room, io, roomId);
     });
 
     // ══════════════════════════════════════════════════════════════

@@ -296,3 +296,14 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
     rentScale: [175, 500, 1100, 1300, 1500],
   },
 ];
+
+export function getUpgradeCost(price: number): number {
+  return Math.floor(price * 0.5);
+}
+
+export function getSaleValue(price: number, houseLevel: number = 0): number {
+  const baseValue = Math.floor(price * 0.8);
+  const houseValue = Math.floor(houseLevel * (price * 0.5) * 0.8);
+  return baseValue + houseValue;
+}
+

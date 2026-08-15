@@ -41,6 +41,9 @@ export function GameMonopoly() {
     rollDice,
     buyProperty,
     upgradeProperty,
+    sellProperty,
+    payDebt,
+    declareBankruptcy,
     endTurn,
     restart,
     joinError: hookJoinError,
@@ -301,6 +304,9 @@ export function GameMonopoly() {
                 onRollDice={rollDice}
                 onBuyProperty={buyProperty}
                 onUpgradeProperty={upgradeProperty}
+                onSellProperty={sellProperty}
+                onPayDebt={payDebt}
+                onDeclareBankruptcy={declareBankruptcy}
                 onEndTurn={endTurn}
                 onLeaveRoom={handleLeaveRoom}
                 onRematch={handleRematch}

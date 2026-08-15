@@ -151,3 +151,13 @@ export const HOUSE_LEVEL_LABELS: Record<number, string> = {
 export function getUpgradeCost(price: number): number {
   return Math.floor(price * 0.5);
 }
+
+/**
+ * Property resale value: 80% of base purchase price + 80% of any built houses.
+ */
+export function getSaleValue(price: number, houseLevel: number = 0): number {
+  const baseValue = Math.floor(price * 0.8);
+  const houseValue = Math.floor(houseLevel * (price * 0.5) * 0.8);
+  return baseValue + houseValue;
+}
+
