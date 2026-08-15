@@ -60,13 +60,17 @@ function getHouseLevel(players: MonopolyPlayerState[], spaceIndex: number): numb
 
 function PlayerTokens({
   players,
+  displayedPositions,
+  movingPlayerId,
   spaceIndex,
 }: {
   players: MonopolyPlayerState[];
+  displayedPositions: Record<string, number>;
+  movingPlayerId: string | null;
   spaceIndex: number;
 }) {
   const playersHere = players.filter(
-    (p) => p.isActive && p.position === spaceIndex
+    (p) => p.isActive && (displayedPositions[p.playerId] ?? p.position) === spaceIndex
   );
   if (playersHere.length === 0) return null;
 
@@ -74,12 +78,33 @@ function PlayerTokens({
     <div className="flex flex-wrap items-center justify-center gap-0.5 z-10">
       {playersHere.map((p) => {
         const style = TOKEN_STYLES[p.tokenColor] || TOKEN_STYLES.red;
+        const isHopping = movingPlayerId === p.playerId;
+
         return (
           <motion.div
             key={p.playerId}
             layoutId={`token-${p.playerId}`}
+            animate={
+              isHopping
+                ? {
+                    scale: [1, 1.45, 1],
+                    y: [0, -10, 0],
+                  }
+                : { scale: 1, y: 0 }
+            }
+            transition={
+              isHopping
+                ? {
+                    duration: 0.18,
+                    ease: 'easeInOut',
+                  }
+                : {
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 22,
+                  }
+            }
             className={`flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full ${style.bg} ring-2 ring-white shadow-md text-[10px] sm:text-xs font-bold`}
-            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
             title={`${p.username} (${style.avatar})`}
           >
             <span className="drop-shadow-sm">{style.avatar}</span>
@@ -95,12 +120,16 @@ function PlayerTokens({
 function BoardCell({
   space,
   players,
+  displayedPositions,
+  movingPlayerId,
   ownerColor,
   houseLevel,
   isCorner,
 }: {
   space: MonopolyBoardSpace;
   players: MonopolyPlayerState[];
+  displayedPositions: Record<string, number>;
+  movingPlayerId: string | null;
   ownerColor?: string | null;
   houseLevel: number;
   isCorner?: boolean;
@@ -168,15 +197,40 @@ function BoardCell({
       </div>
 
       {/* Player Tokens */}
-      <PlayerTokens players={players} spaceIndex={space.index} />
+      <PlayerTokens
+        players={players}
+        displayedPositions={displayedPositions}
+        movingPlayerId={movingPlayerId}
+        spaceIndex={space.index}
+      />
     </div>
   );
 }
 
-// ── Dice Display Component ──────────────────────────────────────
+// ── Dice Display Component with Rolling Animation ─────────────────
 
-function DiceDisplay({ dice }: { dice: [number, number] | null }) {
-  if (!dice) return null;
+function DiceDisplay({
+  dice,
+  isRolling,
+}: {
+  dice: [number, number] | null;
+  isRolling: boolean;
+}) {
+  const [randomDice, setRandomDice] = useState<[number, number]>([1, 1]);
+
+  useEffect(() => {
+    if (!isRolling) return;
+    const interval = setInterval(() => {
+      setRandomDice([
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+      ]);
+    }, 70);
+    return () => clearInterval(interval);
+  }, [isRolling]);
+
+  const activeDice = isRolling ? randomDice : dice;
+  if (!activeDice) return null;
 
   const dotPositions: Record<number, string[]> = {
     1: ['top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600 w-3 h-3'],
@@ -188,14 +242,25 @@ function DiceDisplay({ dice }: { dice: [number, number] | null }) {
   };
 
   return (
-    <div className="flex items-center gap-2.5">
-      {dice.map((value, i) => (
+    <div className="flex items-center gap-3">
+      {activeDice.map((value, i) => (
         <motion.div
           key={i}
-          initial={{ scale: 0.3, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ duration: 0.4, type: 'spring', stiffness: 200 }}
-          className="relative w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-white to-slate-100 rounded-xl shadow-lg border border-slate-300 dark:border-slate-200"
+          animate={
+            isRolling
+              ? {
+                  rotate: [0, 90, 180, 270, 360],
+                  scale: [0.9, 1.2, 0.9],
+                  y: [0, -14, 0],
+                }
+              : { rotate: 0, scale: 1, y: 0 }
+          }
+          transition={
+            isRolling
+              ? { repeat: Infinity, duration: 0.28, ease: 'linear' }
+              : { type: 'spring', stiffness: 350, damping: 20 }
+          }
+          className="relative w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-white to-slate-100 rounded-xl shadow-xl border-2 border-slate-300 dark:border-slate-100 flex-shrink-0 select-none"
         >
           {dotPositions[value]?.map((dotClass, j) => (
             <div
@@ -309,6 +374,82 @@ export function MonopolyBoard({
 
   const isMyTurn = currentTurnPlayerId === playerId;
 
+  // ── Step-by-Step Movement & Dice Animation States ────────────────
+  const [displayedPositions, setDisplayedPositions] = useState<Record<string, number>>({});
+  const [isRollingDice, setIsRollingDice] = useState(false);
+  const [movingPlayerId, setMovingPlayerId] = useState<string | null>(null);
+  const [isAnimatingMove, setIsAnimatingMove] = useState(false);
+
+  const moveTimersRef = useRef<NodeJS.Timeout[]>([]);
+
+  const clearTimers = () => {
+    moveTimersRef.current.forEach((t) => clearTimeout(t));
+    moveTimersRef.current = [];
+  };
+
+  useEffect(() => {
+    return () => clearTimers();
+  }, []);
+
+  // Synchronize server player positions with smooth sequential hopping animation
+  useEffect(() => {
+    if (!gameState || players.length === 0) return;
+
+    players.forEach((p) => {
+      const currentPos = displayedPositions[p.playerId];
+      const targetPos = p.position;
+
+      // Initial mount / setup
+      if (currentPos === undefined) {
+        setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: targetPos }));
+        return;
+      }
+
+      // If player position changed on server and not currently mid-animation
+      if (currentPos !== targetPos && !isAnimatingMove) {
+        clearTimers();
+        setIsAnimatingMove(true);
+        setIsRollingDice(true);
+        setMovingPlayerId(p.playerId);
+
+        // Phase 1: Dice rolling animation for 600ms
+        const diceTimer = setTimeout(() => {
+          setIsRollingDice(false);
+
+          // Phase 2: Step-by-step hopping
+          const stepsToMove = (targetPos - currentPos + 32) % 32;
+
+          // Special direct warp (e.g. Go to jail / Lost Island)
+          if (stepsToMove === 0 || (p.inJail && targetPos === 8)) {
+            setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: targetPos }));
+            setIsAnimatingMove(false);
+            setMovingPlayerId(null);
+            return;
+          }
+
+          // Sequential 1-by-1 cell hopping
+          const STEP_INTERVAL_MS = 200;
+          for (let step = 1; step <= stepsToMove; step++) {
+            const stepTimer = setTimeout(() => {
+              const nextPos = (currentPos + step) % 32;
+              setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: nextPos }));
+
+              if (step === stepsToMove) {
+                // Landed on final space!
+                setIsAnimatingMove(false);
+                setMovingPlayerId(null);
+              }
+            }, step * STEP_INTERVAL_MS);
+
+            moveTimersRef.current.push(stepTimer);
+          }
+        }, 600);
+
+        moveTimersRef.current.push(diceTimer);
+      }
+    });
+  }, [players, gameState?.lastDice]);
+
   const getOwnerColor = useCallback(
     (spaceIndex: number): string | null => {
       for (const p of players) {
@@ -330,7 +471,8 @@ export function MonopolyBoard({
 
   // My player data
   const myPlayer = players.find((p) => p.playerId === playerId);
-  const currentSpace = myPlayer ? MONOPOLY_BOARD[myPlayer.position] : null;
+  const myRenderedPos = myPlayer ? (displayedPositions[myPlayer.playerId] ?? myPlayer.position) : 0;
+  const currentSpace = myPlayer ? MONOPOLY_BOARD[myRenderedPos] : null;
 
   return (
     <div className="w-full max-w-[1440px] mx-auto h-[min(84vh,740px)] flex gap-3 px-2 sm:px-3 py-1 items-stretch justify-center select-none">
@@ -379,6 +521,8 @@ export function MonopolyBoard({
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
+                  displayedPositions={displayedPositions}
+                  movingPlayerId={movingPlayerId}
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
                   isCorner={idx === 16 || idx === 24}
@@ -392,6 +536,8 @@ export function MonopolyBoard({
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
+                  displayedPositions={displayedPositions}
+                  movingPlayerId={movingPlayerId}
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
                 />
@@ -404,6 +550,8 @@ export function MonopolyBoard({
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
+                  displayedPositions={displayedPositions}
+                  movingPlayerId={movingPlayerId}
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
                 />
@@ -416,6 +564,8 @@ export function MonopolyBoard({
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
+                  displayedPositions={displayedPositions}
+                  movingPlayerId={movingPlayerId}
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
                   isCorner={idx === 8 || idx === 0}
@@ -439,7 +589,7 @@ export function MonopolyBoard({
               </div>
 
               {/* Dice Display */}
-              <DiceDisplay dice={lastDice} />
+              <DiceDisplay dice={lastDice} isRolling={isRollingDice} />
 
               {/* Winner Display */}
               {winner && (
@@ -452,8 +602,17 @@ export function MonopolyBoard({
                 </motion.div>
               )}
 
+              {/* Moving status indicator */}
+              {isAnimatingMove && (
+                <div className="text-center z-10 bg-amber-400/20 dark:bg-amber-400/10 px-4 py-1.5 rounded-full border border-amber-300/50 dark:border-amber-400/30 animate-pulse">
+                  <span className="text-xs font-black text-amber-200">
+                    {isRollingDice ? '🎲 Rolling dice...' : '🏃 Hopping spaces...'}
+                  </span>
+                </div>
+              )}
+
               {/* Current position info */}
-              {!winner && isMyTurn && currentSpace && turnPhase !== 'roll' && (
+              {!winner && !isAnimatingMove && isMyTurn && currentSpace && turnPhase !== 'roll' && (
                 <div className="text-center z-10 bg-black/40 dark:bg-slate-900/70 px-4 py-1.5 rounded-xl border border-white/20 dark:border-amber-400/20">
                   <span className="text-xs text-slate-200 dark:text-slate-300 font-medium">You landed on</span>
                   <div className="text-sm sm:text-base font-black text-amber-300">{currentSpace.name}</div>
@@ -461,7 +620,7 @@ export function MonopolyBoard({
               )}
 
               {/* Waiting message for non-active player */}
-              {!winner && !isMyTurn && gameState && (
+              {!winner && !isAnimatingMove && !isMyTurn && gameState && (
                 <div className="text-xs sm:text-sm font-bold text-amber-100 dark:text-amber-200/90 animate-pulse bg-black/40 dark:bg-slate-900/70 px-4 py-2 rounded-full border border-amber-300/30 dark:border-amber-400/20">
                   ⏳ Waiting for {players.find((p) => p.playerId === currentTurnPlayerId)?.username}...
                 </div>
@@ -471,7 +630,8 @@ export function MonopolyBoard({
               <div className="grid grid-cols-2 gap-2 w-full max-w-[320px] z-10">
                 {players.map((p) => {
                   const token = TOKEN_STYLES[p.tokenColor] || TOKEN_STYLES.red;
-                  const space = MONOPOLY_BOARD[p.position];
+                  const currentRenderedPos = displayedPositions[p.playerId] ?? p.position;
+                  const space = MONOPOLY_BOARD[currentRenderedPos];
                   return (
                     <div
                       key={p.playerId}
@@ -558,7 +718,19 @@ export function MonopolyBoard({
               🎮 Actions
             </h4>
 
-            {!winner && isMyTurn && gameState && (() => {
+            {/* If moving or rolling, show movement indicator in Actions panel */}
+            {isAnimatingMove && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-center space-y-1">
+                <div className="text-sm font-black text-amber-700 dark:text-amber-300 animate-pulse">
+                  {isRollingDice ? '🎲 Rolling dice...' : '🏃 Moving...'}
+                </div>
+                <div className="text-[11px] text-amber-600/80 dark:text-amber-400/70">
+                  Please wait for character to land
+                </div>
+              </div>
+            )}
+
+            {!winner && !isAnimatingMove && isMyTurn && gameState && (() => {
               const propertyPrice = buyOffer?.price ?? currentSpace?.price ?? 0;
               const canAffordBuy = myPlayer && propertyPrice > 0 ? myPlayer.balance >= propertyPrice : false;
               const canAffordUpgrade = myPlayer && upgradeOffer ? myPlayer.balance >= upgradeOffer.upgradeCost : false;
@@ -684,7 +856,7 @@ export function MonopolyBoard({
               <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-0.5 mb-1.5">
                 🏰 My Properties ({myPlayer.ownedProperties.length})
               </h4>
-              <div className="grid grid-cols-2 gap-1.5 max-h-[120px] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-1.5 max-h-[200px] overflow-y-auto">
                 {myPlayer.ownedProperties.map((idx) => {
                   const space = MONOPOLY_BOARD[idx];
                   const colorStyle = space?.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
