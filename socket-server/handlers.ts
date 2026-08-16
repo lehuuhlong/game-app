@@ -256,7 +256,7 @@ function getNextActivePlayer(
 }
 
 /**
- * Calculate rent for a space, considering railroads (doubles per owned)
+ * Calculate rent for a space, considering beaches (doubles per owned)
  * and utilities (4× or 10× dice roll).
  */
 function calculateRent(
@@ -273,12 +273,12 @@ function calculateRent(
   );
   if (!owner) return 0;
 
-  if (space.type === "railroad") {
-    // $25 base, doubles for each railroad owned
-    const railroadIndices = MONOPOLY_BOARD
-      .filter((s) => s.type === "railroad")
+  if (space.type === "beach") {
+    // $25 base, doubles for each beach resort owned
+    const beachIndices = MONOPOLY_BOARD
+      .filter((s) => s.type === "beach")
       .map((s) => s.index);
-    const ownedCount = railroadIndices.filter((i) =>
+    const ownedCount = beachIndices.filter((i) =>
       owner.ownedProperties.includes(i)
     ).length;
     return 25 * Math.pow(2, ownedCount - 1);
@@ -487,8 +487,8 @@ function resolveSpace(
     return false;
   }
 
-  // Purchasable space (property, railroad, utility)
-  if (space.type === "property" || space.type === "railroad" || space.type === "utility") {
+  // Purchasable space (property, beach, utility)
+  if (space.type === "property" || space.type === "beach" || space.type === "utility") {
     // Check if owned by anyone
     const owner = state.players.find((p) =>
       p.isActive && p.ownedProperties.includes(player.position)

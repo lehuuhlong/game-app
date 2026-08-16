@@ -18,7 +18,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 1, name: "Granada", type: "property", colorGroup: "brown", price: 60, baseRent: 2, rentScale: [10, 30, 90, 160, 250] },
   { index: 2, name: "Seville", type: "property", colorGroup: "brown", price: 60, baseRent: 4, rentScale: [20, 60, 180, 320, 450] },
   { index: 3, name: "Madrid", type: "property", colorGroup: "brown", price: 60, baseRent: 4, rentScale: [20, 60, 180, 320, 450] },
-  { index: 4, name: "Bali", type: "railroad", colorGroup: "railroad", price: 200, baseRent: 25 },
+  { index: 4, name: "Bali", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 5, name: "Hong Kong", type: "property", colorGroup: "light_blue", price: 100, baseRent: 6, rentScale: [30, 90, 270, 400, 550] },
   { index: 6, name: "Beijing", type: "property", colorGroup: "light_blue", price: 100, baseRent: 6, rentScale: [30, 90, 270, 400, 550] },
   { index: 7, name: "Shanghai", type: "property", colorGroup: "light_blue", price: 120, baseRent: 8, rentScale: [40, 100, 300, 450, 600] },
@@ -30,13 +30,13 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 11, name: "Home", type: "property", colorGroup: "pink", price: 160, baseRent: 12, rentScale: [60, 180, 500, 700, 900] },
   { index: 12, name: "Chance", type: "chance", colorGroup: null, price: null, baseRent: null },
   { index: 13, name: "Hamburg", type: "property", colorGroup: "orange", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
-  { index: 14, name: "Cyprus", type: "railroad", colorGroup: "railroad", price: 200, baseRent: 25 },
+  { index: 14, name: "Cyprus", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 15, name: "Berlin", type: "property", colorGroup: "orange", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
 
   // ── Top row (16-24) ─────────────────────────────────────────────
   { index: 16, name: "World Championships", type: "free_parking", colorGroup: null, price: null, baseRent: null },
   { index: 17, name: "London", type: "property", colorGroup: "red", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
-  { index: 18, name: "Dubai", type: "railroad", colorGroup: "railroad", price: 200, baseRent: 25 },
+  { index: 18, name: "Dubai", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 19, name: "Sydney", type: "property", colorGroup: "red", price: 220, baseRent: 18, rentScale: [90, 250, 700, 875, 1050] },
   { index: 20, name: "Chance", type: "chance", colorGroup: null, price: null, baseRent: null },
   { index: 21, name: "Chicago", type: "property", colorGroup: "yellow", price: 220, baseRent: 18, rentScale: [90, 250, 700, 875, 1050] },
@@ -45,7 +45,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
 
   // ── Right column (24-31) ────────────────────────────────────────
   { index: 24, name: "World Tour", type: "go_to_jail", colorGroup: null, price: null, baseRent: null },
-  { index: 25, name: "Nice", type: "railroad", colorGroup: "railroad", price: 200, baseRent: 25 },
+  { index: 25, name: "Nice", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 26, name: "Lyon", type: "property", colorGroup: "green", price: 260, baseRent: 22, rentScale: [110, 330, 800, 975, 1150] },
   { index: 27, name: "Paris", type: "property", colorGroup: "green", price: 280, baseRent: 24, rentScale: [120, 360, 850, 1025, 1200] },
   { index: 28, name: "Chance", type: "chance", colorGroup: null, price: null, baseRent: null },
@@ -55,19 +55,27 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
 ];
 
 /**
- * Vibrant Business Tour color palettes for property groups.
+ * Vibrant Business Tour color palettes for property groups with soft background tones.
  */
-export const COLOR_GROUP_STYLES: Record<string, { bg: string; text: string; border: string; glow: string; barGradient: string }> = {
-  brown:      { bg: "bg-amber-900", text: "text-amber-200", border: "border-amber-700", glow: "shadow-amber-900/40", barGradient: "from-amber-800 to-amber-950" },
-  light_blue: { bg: "bg-sky-500", text: "text-sky-100", border: "border-sky-400", glow: "shadow-sky-500/40", barGradient: "from-sky-400 to-cyan-600" },
-  pink:       { bg: "bg-pink-500", text: "text-pink-100", border: "border-pink-400", glow: "shadow-pink-500/40", barGradient: "from-pink-400 to-rose-600" },
-  orange:     { bg: "bg-orange-500", text: "text-orange-100", border: "border-orange-400", glow: "shadow-orange-500/40", barGradient: "from-amber-500 to-orange-600" },
-  red:        { bg: "bg-red-600", text: "text-red-100", border: "border-red-500", glow: "shadow-red-600/40", barGradient: "from-rose-500 to-red-700" },
-  yellow:     { bg: "bg-yellow-400", text: "text-slate-950 font-bold", border: "border-yellow-300", glow: "shadow-yellow-400/40", barGradient: "from-yellow-300 to-amber-500" },
-  green:      { bg: "bg-emerald-600", text: "text-emerald-100", border: "border-emerald-500", glow: "shadow-emerald-600/40", barGradient: "from-emerald-400 to-teal-700" },
-  dark_blue:  { bg: "bg-indigo-700", text: "text-indigo-100", border: "border-indigo-500", glow: "shadow-indigo-700/40", barGradient: "from-blue-600 to-indigo-800" },
-  railroad:   { bg: "bg-slate-700", text: "text-slate-200", border: "border-slate-600", glow: "shadow-slate-700/40", barGradient: "from-slate-600 to-slate-800" },
-  utility:    { bg: "bg-teal-700", text: "text-teal-100", border: "border-teal-600", glow: "shadow-teal-700/40", barGradient: "from-teal-600 to-cyan-800" },
+export const COLOR_GROUP_STYLES: Record<string, {
+  bg: string;
+  softBg: string;
+  darkSoftBg: string;
+  text: string;
+  border: string;
+  glow: string;
+  barGradient: string;
+}> = {
+  brown:      { bg: "bg-amber-800", softBg: "bg-amber-100/70", darkSoftBg: "dark:bg-amber-950/40", text: "text-amber-900 dark:text-amber-100", border: "border-amber-300 dark:border-amber-800/60", glow: "shadow-amber-900/30", barGradient: "from-amber-700 to-amber-900" },
+  light_blue: { bg: "bg-sky-500", softBg: "bg-sky-100/70", darkSoftBg: "dark:bg-sky-950/40", text: "text-sky-900 dark:text-sky-100", border: "border-sky-300 dark:border-sky-800/60", glow: "shadow-sky-500/30", barGradient: "from-sky-400 to-cyan-500" },
+  pink:       { bg: "bg-pink-500", softBg: "bg-pink-100/70", darkSoftBg: "dark:bg-pink-950/40", text: "text-pink-900 dark:text-pink-100", border: "border-pink-300 dark:border-pink-800/60", glow: "shadow-pink-500/30", barGradient: "from-pink-400 to-rose-500" },
+  orange:     { bg: "bg-orange-500", softBg: "bg-orange-100/70", darkSoftBg: "dark:bg-orange-950/40", text: "text-orange-900 dark:text-orange-100", border: "border-orange-300 dark:border-orange-800/60", glow: "shadow-orange-500/30", barGradient: "from-amber-500 to-orange-500" },
+  red:        { bg: "bg-red-500", softBg: "bg-rose-100/70", darkSoftBg: "dark:bg-rose-950/40", text: "text-rose-900 dark:text-rose-100", border: "border-rose-300 dark:border-rose-800/60", glow: "shadow-red-500/30", barGradient: "from-rose-500 to-red-600" },
+  yellow:     { bg: "bg-amber-400", softBg: "bg-yellow-100/70", darkSoftBg: "dark:bg-yellow-950/40", text: "text-yellow-950 dark:text-yellow-100", border: "border-yellow-300 dark:border-yellow-800/60", glow: "shadow-yellow-400/30", barGradient: "from-yellow-300 to-amber-400" },
+  green:      { bg: "bg-emerald-500", softBg: "bg-emerald-100/70", darkSoftBg: "dark:bg-emerald-950/40", text: "text-emerald-900 dark:text-emerald-100", border: "border-emerald-300 dark:border-emerald-800/60", glow: "shadow-emerald-500/30", barGradient: "from-emerald-400 to-teal-600" },
+  dark_blue:  { bg: "bg-blue-600", softBg: "bg-blue-100/70", darkSoftBg: "dark:bg-blue-950/40", text: "text-blue-900 dark:text-blue-100", border: "border-blue-300 dark:border-blue-800/60", glow: "shadow-blue-600/30", barGradient: "from-blue-500 to-indigo-600" },
+  beach:      { bg: "bg-cyan-600", softBg: "bg-cyan-100/75", darkSoftBg: "dark:bg-cyan-950/40", text: "text-cyan-950 dark:text-cyan-100", border: "border-cyan-300 dark:border-cyan-800/60", glow: "shadow-cyan-600/30", barGradient: "from-cyan-400 to-teal-500" },
+  utility:    { bg: "bg-teal-600", softBg: "bg-teal-100/70", darkSoftBg: "dark:bg-teal-950/40", text: "text-teal-900 dark:text-teal-100", border: "border-teal-300 dark:border-teal-800/60", glow: "shadow-teal-600/30", barGradient: "from-teal-500 to-cyan-700" },
 };
 
 export const COLOR_GROUP_CSS: Record<string, string> = {
@@ -79,7 +87,7 @@ export const COLOR_GROUP_CSS: Record<string, string> = {
   yellow:     "bg-yellow-400",
   green:      "bg-emerald-600",
   dark_blue:  "bg-indigo-700",
-  railroad:   "bg-slate-700",
+  beach:      "bg-cyan-600",
   utility:    "bg-teal-700",
 };
 
@@ -122,7 +130,7 @@ export const SPACE_ICONS: Record<string, string> = {
   chance:          "☸️",
   community_chest: "🎴",
   tax:             "💸",
-  railroad:        "🚄",
+  beach:           "🏖️",
   utility:         "⚡",
 };
 

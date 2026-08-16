@@ -40,8 +40,8 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   {
     index: 4,
     name: 'Bali',
-    type: 'railroad',
-    colorGroup: 'railroad',
+    type: 'beach',
+    colorGroup: 'beach',
     price: 200,
     baseRent: 25,
   },
@@ -129,8 +129,8 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   {
     index: 14,
     name: 'Cyprus',
-    type: 'railroad',
-    colorGroup: 'railroad',
+    type: 'beach',
+    colorGroup: 'beach',
     price: 200,
     baseRent: 25,
   },
@@ -165,8 +165,8 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   {
     index: 18,
     name: 'Dubai',
-    type: 'railroad',
-    colorGroup: 'railroad',
+    type: 'beach',
+    colorGroup: 'beach',
     price: 200,
     baseRent: 25,
   },
@@ -227,8 +227,8 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   {
     index: 25,
     name: 'Nice',
-    type: 'railroad',
-    colorGroup: 'railroad',
+    type: 'beach',
+    colorGroup: 'beach',
     price: 200,
     baseRent: 25,
   },

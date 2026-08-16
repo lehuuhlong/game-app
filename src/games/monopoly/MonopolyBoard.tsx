@@ -77,10 +77,10 @@ function calculateSpaceRent(
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   if (!owner) return null; // Unowned property -> DO NOT display rent or price
 
-  if (space.type === 'railroad') {
-    const railroadCount = owner.ownedProperties.filter((idx) => MONOPOLY_BOARD[idx]?.type === 'railroad').length;
-    const base = space.baseRent ?? 50;
-    return base * Math.pow(2, Math.max(0, railroadCount - 1));
+  if (space.type === 'beach') {
+    const beachCount = owner.ownedProperties.filter((idx) => MONOPOLY_BOARD[idx]?.type === 'beach').length;
+    const base = space.baseRent ?? 25;
+    return base * Math.pow(2, Math.max(0, beachCount - 1));
   }
   if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
     return space.rentScale[houseLevel - 1];
@@ -144,7 +144,26 @@ function PlayerTokens({
   );
 }
 
-// ── Board Cell Component ──────────────────────────────────────────
+// ── Helper: Format rent display (e.g. $40 or 55K) ─────────────────
+
+function formatRentDisplay(rent: number): string {
+  if (rent >= 1000) {
+    const k = rent / 1000;
+    return `${k % 1 === 0 ? k : k.toFixed(1)}K`;
+  }
+  return `$${rent}`;
+}
+
+// ── House 3D Model Icons on Plot ──────────────────────────────────
+
+const HOUSE_PLOT_ICONS: Record<number, string> = {
+  1: '🏡',
+  2: '🏡🏡',
+  3: '🏘️',
+  4: '🏨',
+};
+
+// ── Board Cell Component (2-Subbox Layout) ─────────────────────────
 
 function BoardCell({
   space,
@@ -168,74 +187,121 @@ function BoardCell({
   const icon = SPACE_ICONS[space.type];
   const currentRent = calculateSpaceRent(space, houseLevel, players);
 
-  return (
-    <div
-      className={`
-        relative flex flex-col justify-between p-0.5 sm:p-1 w-full h-full border border-slate-300 dark:border-slate-700/60
-        bg-white/90 dark:bg-slate-900/90 transition-colors select-none overflow-hidden
-        ${isCorner ? 'bg-amber-50/70 dark:bg-slate-800/80 font-black' : ''}
-      `}
-    >
-      {/* Property Color Bar */}
-      {colorStyle && (
-        <div
-          className={`h-1.5 sm:h-2 md:h-2.5 w-full bg-gradient-to-r ${colorStyle.barGradient} rounded-xs flex-shrink-0 relative overflow-hidden`}
-        >
-          {/* House Icons inside color bar */}
-          {houseLevel > 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-[7px] sm:text-[8px] md:text-[9px] leading-none text-white drop-shadow-xs">
-              {HOUSE_LEVEL_ICONS[houseLevel]}
-            </div>
-          )}
-        </div>
-      )}
+  // ── Corner & Special (Chance / Tax) 100% Full Tile Layout ────────
+  if (isCorner || space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
+    const isTax = space.type === 'tax';
 
-      {/* Owner Badge Indicator */}
-      {ownerStyle && (
-        <div
-          className={`absolute top-0.5 right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
-          title={`Owner: ${ownerStyle.emoji}`}
-        />
-      )}
-
-      {/* Space Content */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0 py-0.5">
-        {/* Special Icon */}
-        {icon && (
-          <span className={`${isCorner ? 'text-base sm:text-lg md:text-xl' : 'text-xs sm:text-sm md:text-base'} leading-none mb-0.5`}>
+    return (
+      <div
+        className={`
+          relative flex flex-col justify-between p-1 w-full h-full border select-none overflow-hidden font-black rounded-xs
+          ${isCorner
+            ? 'border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95'
+            : isTax
+            ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'
+            : 'border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/70 dark:from-purple-950/50 dark:to-slate-900/90'
+          }
+        `}
+      >
+        {/* Special Icon & Name */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
+          <span className={`${isCorner ? 'text-base sm:text-xl md:text-2xl' : 'text-sm sm:text-base md:text-lg'} leading-none mb-0.5 drop-shadow-xs`}>
             {icon}
           </span>
+          <span
+            className={`
+              uppercase tracking-tight leading-tight line-clamp-2
+              ${isCorner
+                ? 'text-[8.5px] sm:text-[10px] md:text-[11.5px] font-black text-amber-800 dark:text-amber-300'
+                : isTax
+                ? 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-rose-800 dark:text-rose-300'
+                : 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-purple-800 dark:text-purple-300'
+              }
+            `}
+          >
+            {space.name}
+          </span>
+          {isTax && (
+            <span className="text-[7.5px] sm:text-[8.5px] font-mono font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+              $200
+            </span>
+          )}
+        </div>
+
+        {/* Player Tokens */}
+        <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
+          <PlayerTokens
+            players={players}
+            displayedPositions={displayedPositions}
+            movingPlayerId={movingPlayerId}
+            spaceIndex={space.index}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Standard 2-Subbox Property Cell Layout ───────────────────────
+  return (
+    <div className="relative flex flex-col w-full h-full border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden rounded-xs">
+      
+      {/* ── Sub-box 1: Land Plot (Phần Nền Đất 75% chiều cao) ── */}
+      <div
+        className={`
+          relative h-[75%] w-full flex flex-col justify-between p-0.5 sm:p-1 overflow-hidden transition-colors
+          ${colorStyle ? `${colorStyle.softBg} ${colorStyle.darkSoftBg}` : 'bg-slate-100/70 dark:bg-slate-800/40'}
+        `}
+      >
+        {/* Owner Token Badge (Top-Right) */}
+        {ownerStyle && (
+          <div
+            className={`absolute top-0.5 right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
+            title={`Owner: ${ownerStyle.emoji}`}
+          />
         )}
 
-        {/* Space Name */}
+        {/* City / Space Name (Phía trên phần nền đất) */}
         <span
           className={`
-            leading-tight line-clamp-2 uppercase tracking-tight
-            ${isCorner
-              ? 'text-[9px] sm:text-[10.5px] md:text-xs font-black text-amber-700 dark:text-amber-300'
-              : 'text-[8px] sm:text-[9.5px] md:text-[11px] font-black text-slate-800 dark:text-slate-100'
-            }
+            text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black uppercase tracking-tight text-center truncate px-0.5 leading-none
+            ${colorStyle ? colorStyle.text : 'text-slate-800 dark:text-slate-100'}
           `}
+          title={space.name}
         >
           {space.name}
         </span>
 
-        {/* Rent Display (Only when owned) */}
-        {currentRent !== null && (
-          <span className="text-[7px] sm:text-[8.5px] md:text-[9.5px] font-mono font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1 py-0.2 rounded border border-amber-300/40 mt-0.5">
-            ${currentRent}
-          </span>
-        )}
+        {/* Plot Content: 3D Houses / Special Icons */}
+        <div className="flex-1 flex items-center justify-center min-h-0 py-0.5">
+          {houseLevel > 0 ? (
+            <span className="text-[10px] sm:text-xs md:text-sm leading-none drop-shadow-xs">
+              {HOUSE_PLOT_ICONS[houseLevel] || '🏡'}
+            </span>
+          ) : icon ? (
+            <span className="text-[11px] sm:text-sm md:text-base leading-none opacity-85">
+              {icon}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Player Tokens (Di chuyển vào phần nền đất phía trên) */}
+        <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
+          <PlayerTokens
+            players={players}
+            displayedPositions={displayedPositions}
+            movingPlayerId={movingPlayerId}
+            spaceIndex={space.index}
+          />
+        </div>
       </div>
 
-      {/* Player Tokens on this space */}
-      <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
-        <PlayerTokens
-          players={players}
-          displayedPositions={displayedPositions}
-          movingPlayerId={movingPlayerId}
-          spaceIndex={space.index}
-        />
+      {/* ── Sub-box 2: Road Track / Vỉa hè (25% chiều cao) ────────── */}
+      <div className="h-[25%] w-full bg-white dark:bg-slate-900 border-t border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
+        {currentRent !== null ? (
+          <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+            {formatRentDisplay(currentRent)}
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -317,7 +383,7 @@ function DiceDisplay({
 
 function AnimatedBalanceDisplay({
   balance,
-  isMoving,
+  isMoving = false,
   className = '',
 }: {
   balance: number;
@@ -328,6 +394,7 @@ function AnimatedBalanceDisplay({
   const [delta, setDelta] = useState<{ id: number; amount: number } | null>(null);
   const prevBalanceRef = useRef(balance);
 
+  // Trigger popup when balance changes (if player is moving, waits until move completes)
   useEffect(() => {
     if (isMoving) return;
 
@@ -338,7 +405,7 @@ function AnimatedBalanceDisplay({
 
       if (diff !== 0) {
         setDelta({ id: Date.now(), amount: diff });
-        const timer = setTimeout(() => setDelta(null), 2200);
+        const timer = setTimeout(() => setDelta(null), 2500);
         return () => clearTimeout(timer);
       }
     }
@@ -348,12 +415,39 @@ function AnimatedBalanceDisplay({
     <div className="relative inline-flex items-center">
       <motion.span
         key={displayedBalance}
-        initial={{ scale: delta ? 1.25 : 1 }}
+        initial={{ scale: delta ? 1.35 : 1 }}
         animate={{ scale: 1 }}
-        className={`font-mono font-black ${className}`}
+        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+        className={`font-mono font-black transition-colors duration-500 ${
+          delta
+            ? delta.amount > 0
+              ? 'text-emerald-500 dark:text-emerald-400'
+              : 'text-rose-500 dark:text-rose-400'
+            : ''
+        } ${className}`}
       >
         ${displayedBalance.toLocaleString()}
       </motion.span>
+
+      {/* Floating Delta Animation (+ / - Bubble) */}
+      <AnimatePresence>
+        {delta && (
+          <motion.div
+            key={delta.id}
+            initial={{ opacity: 0, y: 0, scale: 0.6 }}
+            animate={{ opacity: 1, y: -22, scale: 1.15 }}
+            exit={{ opacity: 0, y: -34, scale: 0.8 }}
+            transition={{ duration: 1.4, ease: 'easeOut' }}
+            className={`absolute -top-3 left-full ml-1 px-1.5 py-0.5 rounded-md text-[11px] sm:text-xs font-mono font-black shadow-lg pointer-events-none z-30 flex items-center gap-0.5 whitespace-nowrap ${
+              delta.amount > 0
+                ? 'bg-emerald-500 text-slate-950 border border-emerald-300 ring-2 ring-emerald-400/40'
+                : 'bg-rose-500 text-white border border-rose-300 ring-2 ring-rose-400/40'
+            }`}
+          >
+            {delta.amount > 0 ? `+` : `−`}${Math.abs(delta.amount).toLocaleString()}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -596,6 +690,7 @@ export function MonopolyBoard({
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [movingPlayerId, setMovingPlayerId] = useState<string | null>(null);
   const [isAnimatingMove, setIsAnimatingMove] = useState(false);
+  const [hasMovementSettled, setHasMovementSettled] = useState(true);
 
   const moveTimersRef = useRef<NodeJS.Timeout[]>([]);
 
@@ -626,6 +721,7 @@ export function MonopolyBoard({
       if (currentPos !== targetPos && !isAnimatingMove) {
         clearTimers();
         setIsAnimatingMove(true);
+        setHasMovementSettled(false);
         setIsRollingDice(true);
         setMovingPlayerId(p.playerId);
 
@@ -639,8 +735,12 @@ export function MonopolyBoard({
           // Special direct warp (e.g. Go to jail / Lost Island)
           if (stepsToMove === 0 || (p.inJail && targetPos === 8)) {
             setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: targetPos }));
-            setIsAnimatingMove(false);
-            setMovingPlayerId(null);
+            const settleTimer = setTimeout(() => {
+              setIsAnimatingMove(false);
+              setMovingPlayerId(null);
+              setHasMovementSettled(true);
+            }, 300);
+            moveTimersRef.current.push(settleTimer);
             return;
           }
 
@@ -652,9 +752,13 @@ export function MonopolyBoard({
               setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: nextPos }));
 
               if (step === stepsToMove) {
-                // Landed on final space!
-                setIsAnimatingMove(false);
-                setMovingPlayerId(null);
+                // Landed on final space! Wait a short moment for visual confirmation before opening modals
+                const settleTimer = setTimeout(() => {
+                  setIsAnimatingMove(false);
+                  setMovingPlayerId(null);
+                  setHasMovementSettled(true);
+                }, 350);
+                moveTimersRef.current.push(settleTimer);
               }
             }, step * STEP_INTERVAL_MS);
 
@@ -684,12 +788,32 @@ export function MonopolyBoard({
   const myRenderedPos = myPlayer ? (displayedPositions[myPlayer.playerId] ?? myPlayer.position) : 0;
   const currentSpace = myPlayer ? MONOPOLY_BOARD[myRenderedPos] : null;
 
+  // Determine if any player is actively moving, rolling, or has not reached target tile
+  const isAnyMoving =
+    isAnimatingMove ||
+    isRollingDice ||
+    !hasMovementSettled ||
+    players.some(
+      (p) =>
+        displayedPositions[p.playerId] !== undefined &&
+        displayedPositions[p.playerId] !== p.position
+    );
+
+  // Actions/Modals can only show once movement has 100% completed and settled
+  const canShowActions =
+    !winner &&
+    !isAnyMoving &&
+    hasMovementSettled &&
+    isMyTurn &&
+    Boolean(myPlayer) &&
+    (myPlayer ? displayedPositions[myPlayer.playerId] === myPlayer.position : false);
+
   return (
     <div className="w-full max-w-[1300px] mx-auto h-[min(90vh,860px)] flex gap-4 px-2 py-0.5 items-stretch justify-center select-none">
       
       {/* ── BUILD HOUSE MODAL OVERLAY ─────────────────────────── */}
       <AnimatePresence>
-        {!winner && !isAnimatingMove && turnPhase === 'action' && upgradeOffer && isMyTurn && myPlayer && (
+        {canShowActions && turnPhase === 'action' && upgradeOffer && myPlayer && (
           <BuildHouseModal
             offer={upgradeOffer}
             playerBalance={myPlayer.balance}
@@ -795,7 +919,7 @@ export function MonopolyBoard({
               )}
 
               {/* Moving status indicator */}
-              {isAnimatingMove && (
+              {isAnyMoving && (
                 <div className="text-center z-10 bg-amber-400/20 dark:bg-amber-400/10 px-4 py-1.5 rounded-full border border-amber-300/50 dark:border-amber-400/30 animate-pulse">
                   <span className="text-xs font-black text-amber-200">
                     {isRollingDice ? '🎲 Rolling dice...' : '🏃 Hopping spaces...'}
@@ -806,7 +930,7 @@ export function MonopolyBoard({
               {/* ── CENTER BOARD ACTION CONTROLS ───────────────── */}
 
               {/* 1. ROLL DICE BUTTON (In Center Box) */}
-              {!winner && !isAnimatingMove && turnPhase === 'roll' && isMyTurn && (
+              {!winner && !isAnyMoving && turnPhase === 'roll' && isMyTurn && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -818,7 +942,7 @@ export function MonopolyBoard({
               )}
 
               {/* 2. BUY PROPERTY CARD (In Center Box) */}
-              {!winner && !isAnimatingMove && turnPhase === 'action' && buyOffer && isMyTurn && (
+              {canShowActions && turnPhase === 'action' && buyOffer && (
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -859,7 +983,7 @@ export function MonopolyBoard({
               )}
 
               {/* 3. DEBT SETTLEMENT CARD (In Center Box) */}
-              {!winner && !isAnimatingMove && turnPhase === 'debt' && gameState?.pendingDebt && isMyTurn && (
+              {canShowActions && turnPhase === 'debt' && gameState?.pendingDebt && (
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -902,7 +1026,7 @@ export function MonopolyBoard({
               )}
 
               {/* Waiting message for opponent */}
-              {!winner && !isAnimatingMove && !isMyTurn && gameState && (
+              {!winner && !isAnyMoving && !isMyTurn && gameState && (
                 <div className="text-xs sm:text-sm font-bold text-amber-100 dark:text-amber-200/90 animate-pulse bg-black/40 dark:bg-slate-900/70 px-4 py-2 rounded-full border border-amber-300/30 dark:border-amber-400/20 z-10">
                   ⏳ Waiting for {players.find((p) => p.playerId === currentTurnPlayerId)?.username}...
                 </div>
@@ -987,7 +1111,10 @@ export function MonopolyBoard({
                 player={p}
                 isCurrentTurn={currentTurnPlayerId === p.playerId}
                 isSelf={p.playerId === playerId}
-                isMoving={isAnimatingMove && movingPlayerId === p.playerId}
+                isMoving={
+                  (isAnimatingMove && movingPlayerId === p.playerId) ||
+                  (displayedPositions[p.playerId] !== undefined && displayedPositions[p.playerId] !== p.position)
+                }
               />
             ))}
           </div>
