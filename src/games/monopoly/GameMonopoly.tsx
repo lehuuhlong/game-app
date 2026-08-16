@@ -35,6 +35,7 @@ export function GameMonopoly() {
     buyOffer,
     upgradeOffer,
     winner,
+    monopolyCelebration,
     joinRoom: hookJoinRoom,
     leaveRoom,
     startGame,
@@ -46,6 +47,7 @@ export function GameMonopoly() {
     declareBankruptcy,
     endTurn,
     restart,
+    dismissMonopolyCelebration,
     joinError: hookJoinError,
   } = useMonopoly(user?.username || '');
 
@@ -313,6 +315,8 @@ export function GameMonopoly() {
                 isFinished={screen === 'finished'}
                 buyOffer={buyOffer}
                 upgradeOffer={upgradeOffer}
+                monopolyCelebration={monopolyCelebration}
+                onDismissCelebration={dismissMonopolyCelebration}
               />
             </motion.div>
           )}

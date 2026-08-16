@@ -245,6 +245,7 @@ export interface ServerToClientEvents {
   mp_game_started: (data: { room: Room; gameState: MonopolyGameState }) => void;
   mp_game_update: (data: { gameState: MonopolyGameState }) => void;
   mp_dice_rolled: (data: { playerId: string; username: string; dice: [number, number]; diceTotal: number; isDoubles: boolean }) => void;
+  mp_monopoly_completed: (data: { playerId: string; username: string; tokenColor: MonopolyTokenColor; colorGroup: string; propertyNames: string[] }) => void;
   mp_offer_buy: (data: { spaceIndex: number; spaceName: string; price: number }) => void;
   mp_offer_upgrade: (data: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number; maxLevel: number; costs: number[] }) => void;
   mp_game_over: (data: { winnerId: string; winnerName: string; gameState: MonopolyGameState }) => void;

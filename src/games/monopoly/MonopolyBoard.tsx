@@ -6,6 +6,7 @@ import type {
   MonopolyGameState,
   MonopolyPlayerState,
   MonopolyBoardSpace,
+  MonopolyTokenColor,
   Room,
 } from '@/types/socket';
 import {
@@ -54,6 +55,41 @@ interface MonopolyBoardProps {
     maxLevel: number;
     costs: number[];
   } | null;
+  monopolyCelebration?: {
+    playerId: string;
+    username: string;
+    tokenColor: MonopolyTokenColor;
+    colorGroup: string;
+    propertyNames: string[];
+  } | null;
+  onDismissCelebration?: () => void;
+}
+
+// ── Color Group Display Order for My Properties ───────────────────
+
+const COLOR_GROUP_ORDER: Record<string, number> = {
+  brown: 1,
+  light_blue: 2,
+  pink: 3,
+  orange: 4,
+  red: 5,
+  yellow: 6,
+  green: 7,
+  dark_blue: 8,
+  beach: 9,
+  utility: 10,
+};
+
+// ── Helper: Check if an owner completed a color monopoly group ────
+
+function isColorGroupMonopolized(
+  colorGroup?: string | null,
+  owner?: MonopolyPlayerState | null
+): boolean {
+  if (!colorGroup || !owner) return false;
+  const groupSpaces = MONOPOLY_BOARD.filter((s) => s.colorGroup === colorGroup);
+  if (groupSpaces.length === 0) return false;
+  return groupSpaces.every((s) => owner.ownedProperties.includes(s.index));
 }
 
 // ── Utility: Get house level for a space ──────────────────────────
@@ -72,7 +108,7 @@ function getHouseLevel(players: MonopolyPlayerState[], spaceIndex: number): numb
   return 0;
 }
 
-// ── Utility: Calculate current rent for a space ───────────────────
+// ── Utility: Calculate current rent for a space (with 1.5x Monopoly bonus) ──
 
 function calculateSpaceRent(
   space: MonopolyBoardSpace,
@@ -82,15 +118,23 @@ function calculateSpaceRent(
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   if (!owner) return null; // Unowned property -> DO NOT display rent or price
 
+  let rent = 0;
   if (space.type === 'beach') {
     const beachCount = owner.ownedProperties.filter((idx) => MONOPOLY_BOARD[idx]?.type === 'beach').length;
     const base = space.baseRent ?? 25;
-    return base * Math.pow(2, Math.max(0, beachCount - 1));
+    rent = base * Math.pow(2, Math.max(0, beachCount - 1));
+  } else if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
+    rent = space.rentScale[houseLevel - 1];
+  } else {
+    rent = space.baseRent ?? 0;
   }
-  if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
-    return space.rentScale[houseLevel - 1];
+
+  // Full color group monopoly rule: Rent is increased by 1.5×
+  if (space.colorGroup && isColorGroupMonopolized(space.colorGroup, owner)) {
+    return Math.round(rent * 1.5);
   }
-  return space.baseRent ?? null;
+
+  return rent;
 }
 
 // ── Player Token on Board ─────────────────────────────────────────
@@ -308,6 +352,8 @@ function BoardCell({
   const orientation = getSpaceOrientation(space.index);
 
   const isRotatedSide = orientation === 'left' || orientation === 'right';
+  const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
+  const isMonopolized = space.colorGroup ? isColorGroupMonopolized(space.colorGroup, owner) : false;
 
   // ── 4 Main Corner Tiles (START, Lost Island, World Cup, World Tour) ──
   if (isCorner) {
@@ -422,7 +468,7 @@ function BoardCell({
   // ── Horizontal Side Cells (Left & Right Columns - 14w x 10h Ratio) ─
   if (isRotatedSide) {
     return (
-      <div className="relative w-full h-full flex flex-row border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden">
+      <div className={`relative w-full h-full flex flex-row border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden`}>
         {/* ── Sub-box 1: Land Plot (75% Width) ──────────────────────── */}
         <div
           className={`
@@ -476,9 +522,16 @@ function BoardCell({
         {/* ── Sub-box 2: Road Track / Pavement (25% Width) ──────────── */}
         <div className="w-[25%] h-full bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
           {currentRent !== null ? (
-            <span className="text-[8px] sm:text-[9.5px] md:text-[11px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center [writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
-              {formatRentDisplay(currentRent)}
-            </span>
+            <div className="flex items-center justify-center gap-0.5 [writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
+              <span className="text-[8px] sm:text-[9.5px] md:text-[14px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
+                {formatRentDisplay(currentRent)}
+              </span>
+              {isMonopolized && (
+                <span className="text-[7px] sm:text-[8px] font-black text-amber-600 dark:text-amber-400 leading-none" title="Monopoly Set 1.5× Rent Active">
+                  👑
+                </span>
+              )}
+            </div>
           ) : null}
         </div>
       </div>
@@ -487,7 +540,7 @@ function BoardCell({
 
   // ── Vertical Top & Bottom Rows (10w x 14h Ratio) ─────────────────
   return (
-    <div className="relative w-full h-full flex flex-col border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden">
+    <div className={`relative w-full h-full flex flex-col border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden`}>
       {/* ── Sub-box 1: Land Plot (75% Height) ──────────────────────── */}
       <div
         className={`
@@ -539,11 +592,112 @@ function BoardCell({
       {/* ── Sub-box 2: Road Track / Pavement (25% Height) ─────────── */}
       <div className="h-[25%] w-full bg-white dark:bg-slate-900 border-t border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
         {currentRent !== null ? (
-          <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
-            {formatRentDisplay(currentRent)}
-          </span>
+          <div className="flex items-center justify-center gap-1 text-center leading-none">
+            <span className="text-[8.5px] sm:text-[10px] md:text-[14px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
+              {formatRentDisplay(currentRent)}
+            </span>
+            {isMonopolized && (
+              <span className="text-[7.5px] sm:text-[9px] font-black text-amber-600 dark:text-amber-400 animate-pulse flex-shrink-0" title="Monopoly Set 1.5× Rent Active">
+                👑
+              </span>
+            )}
+          </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+// ── Monopoly Set Celebration Floating Modal ───────────────────────
+
+function MonopolySetCelebrationModal({
+  celebration,
+  onDismiss,
+}: {
+  celebration: {
+    playerId: string;
+    username: string;
+    tokenColor: MonopolyTokenColor;
+    colorGroup: string;
+    propertyNames: string[];
+  } | null;
+  onDismiss?: () => void;
+}) {
+  useEffect(() => {
+    if (!celebration) return;
+    const timer = setTimeout(() => {
+      onDismiss?.();
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [celebration, onDismiss]);
+
+  if (!celebration) return null;
+
+  const colorStyle = COLOR_GROUP_STYLES[celebration.colorGroup] || COLOR_GROUP_STYLES.brown;
+  const tokenStyle = TOKEN_STYLES[celebration.tokenColor] || TOKEN_STYLES.red;
+  const groupTitle = celebration.colorGroup.replace('_', ' ').toUpperCase();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-md animate-in fade-in duration-300 select-none pointer-events-auto">
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0, y: 30 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: -20 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        onClick={onDismiss}
+        className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-400 rounded-3xl p-5 shadow-2xl shadow-amber-500/30 text-center overflow-hidden cursor-pointer"
+      >
+        {/* Glow halo in background */}
+        <div className={`absolute -top-12 left-1/2 -translate-x-1/2 w-52 h-52 rounded-full ${colorStyle.bg} opacity-30 blur-3xl pointer-events-none`} />
+
+        {/* Floating Crown / Stars */}
+        <div className="relative flex items-center justify-center gap-2 mb-2">
+          <span className="text-3xl sm:text-4xl animate-bounce">👑</span>
+          <span className="text-2xl sm:text-3xl animate-pulse">✨</span>
+          <span className="text-3xl sm:text-4xl animate-bounce">🏰</span>
+        </div>
+
+        {/* Header */}
+        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-300 drop-shadow-sm">
+          MONOPOLY COMPLETED!
+        </h3>
+
+        {/* Player Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 my-2.5 rounded-full bg-slate-800/90 border border-slate-700 shadow-inner">
+          <span className="text-base">{tokenStyle.avatar}</span>
+          <span className="text-xs sm:text-sm font-black text-slate-100">
+            {celebration.username}
+          </span>
+          <span className="text-[10px] uppercase font-bold text-amber-400">
+            OWNER
+          </span>
+        </div>
+
+        <p className="text-xs sm:text-sm text-slate-300 font-medium mb-3">
+          Has acquired the complete <span className="font-black text-amber-300">{groupTitle}</span> set!
+        </p>
+
+        {/* Property Chips */}
+        <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3.5">
+          {celebration.propertyNames.map((name, i) => (
+            <span
+              key={i}
+              className={`px-3 py-1 rounded-xl text-xs font-black ${colorStyle.bg} text-white shadow-xs`}
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+
+        {/* 1.5x Penalty Multiplier Callout */}
+        <div className="p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/40 text-amber-300 text-xs sm:text-sm font-black shadow-md">
+          ⚡ 1.5× RENT PENALTY ACTIVATED ON THIS SET! ⚡
+        </div>
+
+        <p className="text-[10px] text-slate-400 mt-3 italic">
+          Tap anywhere to continue
+        </p>
+      </motion.div>
     </div>
   );
 }
@@ -940,6 +1094,8 @@ export function MonopolyBoard({
   isFinished,
   buyOffer,
   upgradeOffer,
+  monopolyCelebration,
+  onDismissCelebration,
 }: MonopolyBoardProps) {
   const players = gameState?.players ?? [];
   const currentTurnPlayerId = gameState?.currentTurnPlayerId;
@@ -1098,6 +1254,16 @@ export function MonopolyBoard({
   return (
     <div className="w-full max-w-[1300px] mx-auto h-[min(90vh,860px)] flex gap-4 px-2 py-0.5 items-stretch justify-center select-none">
       
+      {/* ── MONOPOLY SET CELEBRATION MODAL OVERLAY ───────────── */}
+      <AnimatePresence>
+        {monopolyCelebration && (
+          <MonopolySetCelebrationModal
+            celebration={monopolyCelebration}
+            onDismiss={onDismissCelebration}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── BUILD HOUSE MODAL OVERLAY ─────────────────────────── */}
       <AnimatePresence>
         {canShowActions && turnPhase === 'action' && upgradeOffer && myPlayer && (
@@ -1418,42 +1584,83 @@ export function MonopolyBoard({
                 </h4>
               </div>
               <div className="space-y-2 max-h-[340px] overflow-y-auto pr-0.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-                {myPlayer.ownedProperties.map((idx) => {
-                  const space = MONOPOLY_BOARD[idx];
-                  const colorStyle = space?.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
-                  const level = myPlayer.houseLevels[idx] ?? 0;
-                  const saleValue = space?.price ? getSaleValue(space.price, level) : 0;
+                {myPlayer.ownedProperties
+                  .slice()
+                  .sort((a, b) => {
+                    const spaceA = MONOPOLY_BOARD[a];
+                    const spaceB = MONOPOLY_BOARD[b];
 
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-2 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs"
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-                        {colorStyle && (
-                          <div className={`w-3 h-3 rounded-md ${colorStyle.bg} flex-shrink-0`} />
-                        )}
-                        <span className="truncate text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm">{space?.name}</span>
-                        {level > 0 && (
-                          <span className="text-[10px] flex-shrink-0">{HOUSE_LEVEL_ICONS[level]}</span>
+                    // 1. Sort by color group order
+                    const groupA = spaceA?.colorGroup ? (COLOR_GROUP_ORDER[spaceA.colorGroup] ?? 99) : 99;
+                    const groupB = spaceB?.colorGroup ? (COLOR_GROUP_ORDER[spaceB.colorGroup] ?? 99) : 99;
+                    if (groupA !== groupB) {
+                      return groupA - groupB;
+                    }
+
+                    // 2. Sort by price descending (highest price first within color group)
+                    const priceA = spaceA?.price ?? 0;
+                    const priceB = spaceB?.price ?? 0;
+                    if (priceA !== priceB) {
+                      return priceB - priceA;
+                    }
+
+                    return a - b;
+                  })
+                  .map((idx) => {
+                    const space = MONOPOLY_BOARD[idx];
+                    const colorStyle = space?.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
+                    const level = myPlayer.houseLevels[idx] ?? 0;
+                    const saleValue = space?.price ? getSaleValue(space.price, level) : 0;
+                    const isMonopolized = space?.colorGroup ? isColorGroupMonopolized(space.colorGroup, myPlayer) : false;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-center justify-between p-2 rounded-2xl border ${
+                          isMonopolized
+                            ? 'border-amber-400/80 bg-amber-50/60 dark:bg-amber-950/30'
+                            : 'border-slate-200 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/50'
+                        } hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                          {colorStyle && (
+                            <div className={`w-3 h-3 rounded-md ${colorStyle.bg} flex-shrink-0 shadow-xs`} />
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="truncate text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm">{space?.name}</span>
+                              {level > 0 && (
+                                <span className="text-[10px] flex-shrink-0">{HOUSE_LEVEL_ICONS[level]}</span>
+                              )}
+                              {isMonopolized && (
+                                <span className="text-[8px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-300 dark:border-amber-600/60 flex-shrink-0">
+                                  👑
+                                </span>
+                              )}
+                            </div>
+                            {space?.price ? (
+                              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                                Val: ${space.price}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* Sell button at 80% price */}
+                        {isMyTurn && onSellProperty && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => onSellProperty(idx)}
+                            className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/70 dark:hover:bg-amber-900/90 text-amber-800 dark:text-amber-300 font-black rounded-xl text-xs border border-amber-300 dark:border-amber-700/60 flex-shrink-0 cursor-pointer shadow-xs"
+                            title={`Sell ${space?.name} for $${saleValue} (80% value)`}
+                          >
+                            Sell +${saleValue}
+                          </motion.button>
                         )}
                       </div>
-
-                      {/* Sell button at 80% price */}
-                      {isMyTurn && onSellProperty && (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => onSellProperty(idx)}
-                          className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/70 dark:hover:bg-amber-900/90 text-amber-800 dark:text-amber-300 font-black rounded-xl text-xs border border-amber-300 dark:border-amber-700/60 flex-shrink-0 cursor-pointer shadow-xs"
-                          title={`Sell ${space?.name} for $${saleValue} (80% value)`}
-                        >
-                          Sell +${saleValue}
-                        </motion.button>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
           )}

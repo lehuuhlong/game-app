@@ -55,7 +55,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
 ];
 
 /**
- * Vibrant Business Tour color palettes for property groups with soft background tones.
+ * Vibrant Business Tour & Monopoly 3D Color Palettes with rich multi-stop gradients.
  */
 export const COLOR_GROUP_STYLES: Record<string, {
   bg: string;
@@ -66,57 +66,110 @@ export const COLOR_GROUP_STYLES: Record<string, {
   glow: string;
   barGradient: string;
 }> = {
-  brown:      { bg: "bg-amber-800", softBg: "bg-amber-100/70", darkSoftBg: "dark:bg-amber-950/40", text: "text-amber-900 dark:text-amber-100", border: "border-amber-300 dark:border-amber-800/60", glow: "shadow-amber-900/30", barGradient: "from-amber-700 to-amber-900" },
-  light_blue: { bg: "bg-sky-500", softBg: "bg-sky-100/70", darkSoftBg: "dark:bg-sky-950/40", text: "text-sky-900 dark:text-sky-100", border: "border-sky-300 dark:border-sky-800/60", glow: "shadow-sky-500/30", barGradient: "from-sky-400 to-cyan-500" },
-  pink:       { bg: "bg-pink-500", softBg: "bg-pink-100/70", darkSoftBg: "dark:bg-pink-950/40", text: "text-pink-900 dark:text-pink-100", border: "border-pink-300 dark:border-pink-800/60", glow: "shadow-pink-500/30", barGradient: "from-pink-400 to-rose-500" },
-  orange:     { bg: "bg-orange-500", softBg: "bg-orange-100/70", darkSoftBg: "dark:bg-orange-950/40", text: "text-orange-900 dark:text-orange-100", border: "border-orange-300 dark:border-orange-800/60", glow: "shadow-orange-500/30", barGradient: "from-amber-500 to-orange-500" },
-  red:        { bg: "bg-red-500", softBg: "bg-rose-100/70", darkSoftBg: "dark:bg-rose-950/40", text: "text-rose-900 dark:text-rose-100", border: "border-rose-300 dark:border-rose-800/60", glow: "shadow-red-500/30", barGradient: "from-rose-500 to-red-600" },
-  yellow:     { bg: "bg-amber-400", softBg: "bg-yellow-100/70", darkSoftBg: "dark:bg-yellow-950/40", text: "text-yellow-950 dark:text-yellow-100", border: "border-yellow-300 dark:border-yellow-800/60", glow: "shadow-yellow-400/30", barGradient: "from-yellow-300 to-amber-400" },
-  green:      { bg: "bg-emerald-500", softBg: "bg-emerald-100/70", darkSoftBg: "dark:bg-emerald-950/40", text: "text-emerald-900 dark:text-emerald-100", border: "border-emerald-300 dark:border-emerald-800/60", glow: "shadow-emerald-500/30", barGradient: "from-emerald-400 to-teal-600" },
-  dark_blue:  { bg: "bg-blue-600", softBg: "bg-blue-100/70", darkSoftBg: "dark:bg-blue-950/40", text: "text-blue-900 dark:text-blue-100", border: "border-blue-300 dark:border-blue-800/60", glow: "shadow-blue-600/30", barGradient: "from-blue-500 to-indigo-600" },
-  beach:      { bg: "bg-cyan-600", softBg: "bg-gradient-to-br from-amber-100/90 via-cyan-100/80 to-sky-200/90", darkSoftBg: "dark:from-amber-950/40 dark:via-cyan-950/40 dark:to-sky-950/60", text: "text-teal-950 dark:text-cyan-200 font-black", border: "border-cyan-300 dark:border-cyan-800/60", glow: "shadow-cyan-600/30", barGradient: "from-cyan-400 to-teal-500" },
-  utility:    { bg: "bg-teal-600", softBg: "bg-teal-100/70", darkSoftBg: "dark:bg-teal-950/40", text: "text-teal-900 dark:text-teal-100", border: "border-teal-300 dark:border-teal-800/60", glow: "shadow-teal-600/30", barGradient: "from-teal-500 to-cyan-700" },
-};
-
-export const COLOR_GROUP_CSS: Record<string, string> = {
-  brown:      "bg-amber-900",
-  light_blue: "bg-sky-500",
-  pink:       "bg-pink-500",
-  orange:     "bg-orange-500",
-  red:        "bg-red-600",
-  yellow:     "bg-yellow-400",
-  green:      "bg-emerald-600",
-  dark_blue:  "bg-indigo-700",
-  beach:      "bg-cyan-600",
-  utility:    "bg-teal-700",
+  brown: {
+    bg: "bg-amber-800",
+    barGradient: "from-amber-600 via-amber-700 to-amber-900",
+    softBg: "bg-gradient-to-br from-amber-100/95 via-amber-200/60 to-orange-100/90",
+    darkSoftBg: "dark:from-amber-950/85 dark:via-amber-900/50 dark:to-stone-950/90",
+    text: "text-amber-950 dark:text-amber-100 font-black",
+    border: "border-amber-400 dark:border-amber-700/70",
+    glow: "shadow-amber-900/30",
+  },
+  light_blue: {
+    bg: "bg-sky-500",
+    barGradient: "from-sky-400 via-sky-500 to-cyan-600",
+    softBg: "bg-gradient-to-br from-sky-100/95 via-cyan-100/65 to-blue-100/90",
+    darkSoftBg: "dark:from-sky-950/85 dark:via-cyan-950/50 dark:to-slate-950/90",
+    text: "text-sky-950 dark:text-sky-100 font-black",
+    border: "border-sky-400 dark:border-sky-700/70",
+    glow: "shadow-sky-500/30",
+  },
+  pink: {
+    bg: "bg-pink-500",
+    barGradient: "from-pink-400 via-pink-500 to-rose-600",
+    softBg: "bg-gradient-to-br from-pink-100/95 via-rose-100/65 to-fuchsia-100/90",
+    darkSoftBg: "dark:from-pink-950/85 dark:via-rose-950/50 dark:to-slate-950/90",
+    text: "text-pink-950 dark:text-pink-100 font-black",
+    border: "border-pink-400 dark:border-pink-700/70",
+    glow: "shadow-pink-500/30",
+  },
+  orange: {
+    bg: "bg-orange-500",
+    barGradient: "from-amber-400 via-orange-500 to-orange-600",
+    softBg: "bg-gradient-to-br from-orange-100/95 via-amber-100/65 to-yellow-100/90",
+    darkSoftBg: "dark:from-orange-950/85 dark:via-amber-950/50 dark:to-slate-950/90",
+    text: "text-orange-950 dark:text-orange-100 font-black",
+    border: "border-orange-400 dark:border-orange-700/70",
+    glow: "shadow-orange-500/30",
+  },
+  red: {
+    bg: "bg-rose-600",
+    barGradient: "from-rose-500 via-red-600 to-rose-700",
+    softBg: "bg-gradient-to-br from-rose-100/95 via-red-100/65 to-orange-100/90",
+    darkSoftBg: "dark:from-rose-950/85 dark:via-red-950/50 dark:to-slate-950/90",
+    text: "text-rose-950 dark:text-rose-100 font-black",
+    border: "border-rose-400 dark:border-rose-700/70",
+    glow: "shadow-rose-500/30",
+  },
+  yellow: {
+    bg: "bg-amber-400",
+    barGradient: "from-yellow-300 via-amber-400 to-yellow-500",
+    softBg: "bg-gradient-to-br from-yellow-100/95 via-amber-100/65 to-orange-100/90",
+    darkSoftBg: "dark:from-yellow-950/85 dark:via-amber-950/50 dark:to-slate-950/90",
+    text: "text-yellow-950 dark:text-yellow-100 font-black",
+    border: "border-yellow-400 dark:border-yellow-700/70",
+    glow: "shadow-yellow-400/30",
+  },
+  green: {
+    bg: "bg-emerald-600",
+    barGradient: "from-emerald-400 via-emerald-500 to-teal-600",
+    softBg: "bg-gradient-to-br from-emerald-100/95 via-teal-100/65 to-green-100/90",
+    darkSoftBg: "dark:from-emerald-950/85 dark:via-teal-950/50 dark:to-slate-950/90",
+    text: "text-emerald-950 dark:text-emerald-100 font-black",
+    border: "border-emerald-400 dark:border-emerald-700/70",
+    glow: "shadow-emerald-500/30",
+  },
+  dark_blue: {
+    bg: "bg-indigo-600",
+    barGradient: "from-blue-500 via-indigo-600 to-indigo-800",
+    softBg: "bg-gradient-to-br from-indigo-100/95 via-blue-100/65 to-violet-100/90",
+    darkSoftBg: "dark:from-indigo-950/85 dark:via-blue-950/50 dark:to-slate-950/90",
+    text: "text-indigo-950 dark:text-indigo-100 font-black",
+    border: "border-indigo-400 dark:border-indigo-700/70",
+    glow: "shadow-indigo-600/30",
+  },
+  beach: {
+    bg: "bg-cyan-600",
+    barGradient: "from-amber-300 via-cyan-400 to-teal-500",
+    softBg: "bg-gradient-to-br from-amber-100/95 via-cyan-100/80 to-sky-200/90",
+    darkSoftBg: "dark:from-amber-950/60 dark:via-cyan-950/50 dark:to-sky-950/70",
+    text: "text-teal-950 dark:text-cyan-100 font-black",
+    border: "border-cyan-400 dark:border-cyan-700/70",
+    glow: "shadow-cyan-600/30",
+  },
+  utility: {
+    bg: "bg-teal-600",
+    barGradient: "from-teal-400 via-teal-500 to-cyan-600",
+    softBg: "bg-gradient-to-br from-teal-100/95 via-emerald-100/65 to-cyan-100/90",
+    darkSoftBg: "dark:from-teal-950/85 dark:via-emerald-950/50 dark:to-slate-950/90",
+    text: "text-teal-950 dark:text-teal-100 font-black",
+    border: "border-teal-400 dark:border-teal-700/70",
+    glow: "shadow-teal-600/30",
+  },
 };
 
 /**
  * Business Tour Character Tokens & Positions in 4 Corners:
- *  - Player 1 (Top-Left): 🤠 Pink / Magenta
- *  - Player 2 (Top-Right): 👑 Yellow / Gold
- *  - Player 3 (Bottom-Left): 🐲 Dragon / Green
- *  - Player 4 (Bottom-Right): 🐼 Panda / Blue
+ *  - Player 1 (Top-Left): 🤠 Red / Cowboy
+ *  - Player 2 (Top-Right): 👑 Yellow / King
+ *  - Player 3 (Bottom-Left): 🐲 Green / Dragon
+ *  - Player 4 (Bottom-Right): 🐼 Blue / Panda
  */
 export const TOKEN_STYLES: Record<string, { bg: string; ring: string; glow: string; badgeBg: string; text: string; emoji: string; avatar: string }> = {
   red:    { bg: "bg-rose-500", ring: "ring-rose-400", glow: "shadow-rose-500/50", badgeBg: "bg-rose-500/20 text-rose-300 border-rose-500/30", text: "text-rose-400", emoji: "🔴", avatar: "🤠" },
   blue:   { bg: "bg-sky-500", ring: "ring-sky-400", glow: "shadow-sky-500/50", badgeBg: "bg-sky-500/20 text-sky-300 border-sky-500/30", text: "text-sky-400", emoji: "🔵", avatar: "🐼" },
   green:  { bg: "bg-emerald-500", ring: "ring-emerald-400", glow: "shadow-emerald-500/50", badgeBg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30", text: "text-emerald-400", emoji: "🟢", avatar: "🐲" },
   yellow: { bg: "bg-amber-400", ring: "ring-amber-300", glow: "shadow-amber-400/50", badgeBg: "bg-amber-400/20 text-amber-300 border-amber-400/30", text: "text-amber-400", emoji: "🟡", avatar: "👑" },
-};
-
-export const TOKEN_COLORS: Record<string, string> = {
-  red:    "bg-rose-500",
-  blue:   "bg-sky-500",
-  green:  "bg-emerald-500",
-  yellow: "bg-amber-400",
-};
-
-export const TOKEN_RING_COLORS: Record<string, string> = {
-  red:    "ring-rose-400",
-  blue:   "ring-sky-400",
-  green:  "ring-emerald-400",
-  yellow: "ring-amber-300",
 };
 
 /**

@@ -6,6 +6,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   MonopolyGameState,
+  MonopolyTokenColor,
   Room,
 } from '@/types/socket';
 
@@ -35,6 +36,13 @@ export function useMonopoly(username: string) {
     costs: number[];
   } | null>(null);
   const [winner, setWinner] = useState<{ id: string; name: string } | null>(null);
+  const [monopolyCelebration, setMonopolyCelebration] = useState<{
+    playerId: string;
+    username: string;
+    tokenColor: MonopolyTokenColor;
+    colorGroup: string;
+    propertyNames: string[];
+  } | null>(null);
 
   /** Callback fired when room_joined is confirmed by server */
   const onJoinSuccessRef = useRef<(() => void) | null>(null);
@@ -60,6 +68,7 @@ export function useMonopoly(username: string) {
       .off('mp_game_started')
       .off('mp_game_update')
       .off('mp_dice_rolled')
+      .off('mp_monopoly_completed')
       .off('mp_offer_buy')
       .off('mp_offer_upgrade')
       .off('mp_game_over')
@@ -91,10 +100,15 @@ export function useMonopoly(username: string) {
       setBuyOffer(null);
       setUpgradeOffer(null);
       setWinner(null);
+      setMonopolyCelebration(null);
     });
 
     socket.on('mp_dice_rolled', ({ dice }) => {
       setGameState((prev) => (prev ? { ...prev, lastDice: dice } : prev));
+    });
+
+    socket.on('mp_monopoly_completed', (data) => {
+      setMonopolyCelebration(data);
     });
 
     socket.on('mp_game_update', ({ gameState }) => {
@@ -236,6 +250,10 @@ export function useMonopoly(username: string) {
     setWinner(null);
   }, []);
 
+  const dismissMonopolyCelebration = useCallback(() => {
+    setMonopolyCelebration(null);
+  }, []);
+
   return {
     // State
     room,
@@ -246,6 +264,7 @@ export function useMonopoly(username: string) {
     buyOffer,
     upgradeOffer,
     winner,
+    monopolyCelebration,
 
     // Actions
     joinRoom,
@@ -259,5 +278,6 @@ export function useMonopoly(username: string) {
     declareBankruptcy,
     endTurn,
     restart,
+    dismissMonopolyCelebration,
   };
 }

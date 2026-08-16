@@ -14,6 +14,7 @@ import type {
   BattleshipGameState,
   ShipType,
   MonopolyGameState,
+  MonopolyPlayerState,
   MonopolyTokenColor,
 } from "./types";
 import { MONOPOLY_BOARD, getSaleValue } from "./src/data/monopoly-board";
@@ -257,8 +258,55 @@ function getNextActivePlayer(
 }
 
 /**
- * Calculate rent for a space, considering beaches (doubles per owned)
- * and utilities (4× or 10× dice roll).
+ * Check if a player owns all properties in a color group (Monopoly).
+ */
+function isColorGroupMonopolized(colorGroup: string, owner: MonopolyPlayerState): boolean {
+  if (!colorGroup || !owner) return false;
+  const groupSpaces = MONOPOLY_BOARD.filter((s) => s.colorGroup === colorGroup);
+  if (groupSpaces.length === 0) return false;
+  return groupSpaces.every((s) => owner.ownedProperties.includes(s.index));
+}
+
+/**
+ * Check if the latest purchase completed a full color monopoly and notify all clients.
+ */
+function checkAndNotifyMonopolyCompleted(
+  state: MonopolyGameState,
+  mpPlayer: MonopolyPlayerState,
+  spaceIndex: number,
+  io: GameIO,
+  roomId: string
+): void {
+  const space = MONOPOLY_BOARD[spaceIndex];
+  if (!space || !space.colorGroup) return;
+
+  const colorGroup = space.colorGroup;
+  const groupSpaces = MONOPOLY_BOARD.filter((s) => s.colorGroup === colorGroup);
+  if (groupSpaces.length === 0) return;
+
+  const isComplete = groupSpaces.every((s) => mpPlayer.ownedProperties.includes(s.index));
+  if (isComplete) {
+    const groupName = colorGroup.replace("_", " ").toUpperCase();
+    const propNames = groupSpaces.map((s) => s.name);
+
+    mpLog(
+      state,
+      `👑🌟 MONOPOLY! ${mpPlayer.username} completed the ${groupName} Color Set! Rent on all properties increased 1.5×! 🌟👑`
+    );
+
+    io.to(roomId).emit("mp_monopoly_completed", {
+      playerId: mpPlayer.playerId,
+      username: mpPlayer.username,
+      tokenColor: mpPlayer.tokenColor,
+      colorGroup,
+      propertyNames: propNames,
+    });
+  }
+}
+
+/**
+ * Calculate rent for a space, considering beaches (doubles per owned),
+ * utilities (4× or 10× dice roll), house levels, and 1.5× full color monopoly bonus.
  */
 function calculateRent(
   spaceIndex: number,
@@ -274,6 +322,8 @@ function calculateRent(
   );
   if (!owner) return 0;
 
+  let baseRentAmount = 0;
+
   if (space.type === "beach") {
     // $25 base, doubles for each beach resort owned
     const beachIndices = MONOPOLY_BOARD
@@ -282,10 +332,8 @@ function calculateRent(
     const ownedCount = beachIndices.filter((i) =>
       owner.ownedProperties.includes(i)
     ).length;
-    return 25 * Math.pow(2, ownedCount - 1);
-  }
-
-  if (space.type === "utility") {
+    baseRentAmount = 25 * Math.pow(2, Math.max(0, ownedCount - 1));
+  } else if (space.type === "utility") {
     // 4× or 10× dice roll
     const utilityIndices = MONOPOLY_BOARD
       .filter((s) => s.type === "utility")
@@ -293,17 +341,23 @@ function calculateRent(
     const ownedCount = utilityIndices.filter((i) =>
       owner.ownedProperties.includes(i)
     ).length;
-    return diceTotal * (ownedCount >= 2 ? 10 : 4);
+    baseRentAmount = diceTotal * (ownedCount >= 2 ? 10 : 4);
+  } else {
+    // Regular property — check house level for scaled rent
+    const houseLevel = owner.houseLevels[spaceIndex] ?? 0;
+    if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
+      baseRentAmount = space.rentScale[houseLevel - 1];
+    } else {
+      baseRentAmount = space.baseRent ?? 0;
+    }
   }
 
-  // Regular property — check house level for scaled rent
-  const houseLevel = owner.houseLevels[spaceIndex] ?? 0;
-  if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
-    return space.rentScale[houseLevel - 1];
+  // Full color group monopoly rule: Rent is increased by 1.5×
+  if (space.colorGroup && isColorGroupMonopolized(space.colorGroup, owner)) {
+    return Math.round(baseRentAmount * 1.5);
   }
 
-  // Base rent (no houses)
-  return space.baseRent ?? 0;
+  return baseRentAmount;
 }
 
 /** Tax amounts for tax spaces. */
@@ -318,7 +372,7 @@ function mpLog(state: MonopolyGameState, message: string): void {
   state.eventLog.push({ message, timestamp: Date.now() });
   if (state.eventLog.length > 50) {
     state.eventLog = state.eventLog.slice(-50);
-  }
+  } 
 }
 
 /**
@@ -1043,6 +1097,9 @@ export function registerSocketHandlers(io: GameIO): void {
       mpPlayer.visitCounts[mpPlayer.position] = 1;
       mpLog(state, `🏠 ${mpPlayer.username} bought ${space.name} for $${space.price}.`);
 
+      // Check if this purchase completed a full color monopoly
+      checkAndNotifyMonopolyCompleted(state, mpPlayer, mpPlayer.position, io, roomId);
+
       // If doubles were rolled, allow rolling again
       if (mpPlayer.doublesCount > 0 && !mpPlayer.inJail) {
         state.turnPhase = "roll";
@@ -1158,6 +1215,9 @@ export function registerSocketHandlers(io: GameIO): void {
       const levelName = requestedLevel === 4 ? "Hotel 🏨" : `House Lv.${requestedLevel} 🏠`;
       const actionText = isOwnProperty ? `upgraded to ${levelName}` : `bought and built ${levelName}`;
       mpLog(state, `🏗️ ${mpPlayer.username} ${actionText} on ${space.name} for $${totalCost}.`);
+
+      // Check if this purchase completed a full color monopoly
+      checkAndNotifyMonopolyCompleted(state, mpPlayer, mpPlayer.position, io, roomId);
 
       // After upgrade, auto-advance
       if (mpPlayer.doublesCount > 0 && !mpPlayer.inJail) {
