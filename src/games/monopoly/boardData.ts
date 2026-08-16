@@ -34,7 +34,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 15, name: "Berlin", type: "property", colorGroup: "orange", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
 
   // ── Top row (16-24) ─────────────────────────────────────────────
-  { index: 16, name: "World Championships", type: "free_parking", colorGroup: null, price: null, baseRent: null },
+  { index: 16, name: "World Cup", type: "free_parking", colorGroup: null, price: null, baseRent: null },
   { index: 17, name: "London", type: "property", colorGroup: "red", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
   { index: 18, name: "Dubai", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 19, name: "Sydney", type: "property", colorGroup: "red", price: 220, baseRent: 18, rentScale: [90, 250, 700, 875, 1050] },

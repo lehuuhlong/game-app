@@ -147,7 +147,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   // ── Top row (16-24) ─────────────────────────────────────────────
   {
     index: 16,
-    name: 'World Championships',
+    name: 'World Cup',
     type: 'free_parking',
     colorGroup: null,
     price: null,

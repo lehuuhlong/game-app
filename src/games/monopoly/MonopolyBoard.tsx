@@ -165,6 +165,18 @@ const HOUSE_PLOT_ICONS: Record<number, string> = {
 
 // ── Board Cell Component (2-Subbox Layout) ─────────────────────────
 
+// ── Helper: Space Orientation (bottom, left, top, right) ─────────
+
+function getSpaceOrientation(index: number): 'bottom' | 'left' | 'top' | 'right' {
+  if (index >= 1 && index <= 7) return 'bottom';
+  if (index >= 9 && index <= 15) return 'left';
+  if (index >= 17 && index <= 23) return 'top';
+  if (index >= 25 && index <= 31) return 'right';
+  return 'bottom';
+}
+
+// ── Board Cell Component (Directional 2-Subbox Layout) ────────────
+
 function BoardCell({
   space,
   players,
@@ -186,73 +198,174 @@ function BoardCell({
   const ownerStyle = ownerColor ? TOKEN_STYLES[ownerColor] : null;
   const icon = SPACE_ICONS[space.type];
   const currentRent = calculateSpaceRent(space, houseLevel, players);
+  const orientation = getSpaceOrientation(space.index);
+
+  const isRotatedSide = orientation === 'left' || orientation === 'right';
 
   // ── Corner & Special (Chance / Tax) 100% Full Tile Layout ────────
   if (isCorner || space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
     const isTax = space.type === 'tax';
+    const bgClasses = isCorner
+      ? 'border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95'
+      : isTax
+      ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'
+      : 'border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/70 dark:from-purple-950/50 dark:to-slate-900/90';
+
+    // Xoay ngang 90 độ cho Chance & Tax ở cột trái và cột phải
+    if (isRotatedSide && !isCorner) {
+      return (
+        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-around p-1 ${bgClasses}`}>
+          {/* Space Name (Xoay ngang 90 độ) */}
+          <div className="flex items-center justify-center min-w-0">
+            <span
+              className={`
+                uppercase tracking-tight leading-none -rotate-90 whitespace-nowrap
+                ${isTax
+                  ? 'text-[7.5px] sm:text-[9px] md:text-[10px] font-black text-rose-800 dark:text-rose-300'
+                  : 'text-[7.5px] sm:text-[9px] md:text-[10px] font-black text-purple-800 dark:text-purple-300'
+                }
+              `}
+            >
+              {space.name}
+            </span>
+          </div>
+
+          {/* Icon (Xoay ngang 90 độ) */}
+          <div className="flex items-center justify-center">
+            <span className="text-base sm:text-lg md:text-xl leading-none drop-shadow-xs -rotate-90">
+              {icon}
+            </span>
+          </div>
+
+          {/* Player Tokens (Xoay ngang 90 độ) */}
+          <div className="flex items-center justify-center -rotate-90 min-h-[14px] sm:min-h-[18px]">
+            <PlayerTokens
+              players={players}
+              displayedPositions={displayedPositions}
+              movingPlayerId={movingPlayerId}
+              spaceIndex={space.index}
+            />
+          </div>
+        </div>
+      );
+    }
 
     return (
-      <div
-        className={`
-          relative flex flex-col justify-between p-1 w-full h-full border select-none overflow-hidden font-black rounded-xs
-          ${isCorner
-            ? 'border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95'
-            : isTax
-            ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'
-            : 'border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/70 dark:from-purple-950/50 dark:to-slate-900/90'
-          }
-        `}
-      >
-        {/* Special Icon & Name */}
-        <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
-          <span className={`${isCorner ? 'text-base sm:text-xl md:text-2xl' : 'text-sm sm:text-base md:text-lg'} leading-none mb-0.5 drop-shadow-xs`}>
-            {icon}
-          </span>
-          <span
-            className={`
-              uppercase tracking-tight leading-tight line-clamp-2
-              ${isCorner
-                ? 'text-[8.5px] sm:text-[10px] md:text-[11.5px] font-black text-amber-800 dark:text-amber-300'
-                : isTax
-                ? 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-rose-800 dark:text-rose-300'
-                : 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-purple-800 dark:text-purple-300'
-              }
-            `}
-          >
-            {space.name}
-          </span>
-          {isTax && (
-            <span className="text-[7.5px] sm:text-[8.5px] font-mono font-bold text-rose-600 dark:text-rose-400 mt-0.5">
-              $200
+      <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-center ${bgClasses}`}>
+        <div className="w-full h-full flex flex-col justify-between p-1">
+          {/* Special Icon & Name */}
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
+            <span className={`${isCorner ? 'text-base sm:text-xl md:text-2xl' : 'text-sm sm:text-base md:text-lg'} leading-none mb-0.5 drop-shadow-xs`}>
+              {icon}
             </span>
-          )}
-        </div>
+            <span
+              className={`
+                uppercase tracking-tight leading-tight line-clamp-2
+                ${isCorner
+                  ? 'text-[8.5px] sm:text-[10px] md:text-[11.5px] font-black text-amber-800 dark:text-amber-300'
+                  : isTax
+                  ? 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-rose-800 dark:text-rose-300'
+                  : 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-purple-800 dark:text-purple-300'
+                }
+              `}
+            >
+              {space.name}
+            </span>
+          </div>
 
-        {/* Player Tokens */}
-        <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
-          <PlayerTokens
-            players={players}
-            displayedPositions={displayedPositions}
-            movingPlayerId={movingPlayerId}
-            spaceIndex={space.index}
-          />
+          {/* Player Tokens */}
+          <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
+            <PlayerTokens
+              players={players}
+              displayedPositions={displayedPositions}
+              movingPlayerId={movingPlayerId}
+              spaceIndex={space.index}
+            />
+          </div>
         </div>
       </div>
     );
   }
 
-  // ── Standard 2-Subbox Property Cell Layout ───────────────────────
+  // ── Horizontal Side Cells (Left & Right Sides - Rộng 20 x Cao 10) ──
+  if (isRotatedSide) {
+    return (
+      <div className="relative w-full h-full flex flex-row border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden">
+        {/* ── Sub-box 1: Land Plot (75% Chiều Rộng) ────────── */}
+        <div
+          className={`
+            relative w-[75%] h-full flex flex-row items-center justify-around p-0.5 overflow-hidden transition-colors
+            ${colorStyle ? `${colorStyle.softBg} ${colorStyle.darkSoftBg}` : 'bg-slate-100/70 dark:bg-slate-800/40'}
+          `}
+        >
+          {/* Owner Token Badge */}
+          {ownerStyle && (
+            <div
+              className={`absolute top-0.5 left-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
+              title={`Owner: ${ownerStyle.emoji}`}
+            />
+          )}
+
+          {/* City / Space Name (Xoay ngang 90 độ) */}
+          <div className="flex items-center justify-center min-w-0">
+            <span
+              className={`
+                text-[7.5px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-tight text-center leading-none -rotate-90 whitespace-nowrap
+                ${colorStyle ? colorStyle.text : 'text-slate-800 dark:text-slate-100'}
+              `}
+              title={space.name}
+            >
+              {space.name}
+            </span>
+          </div>
+
+          {/* Plot Content: 3D Houses / Special Icons (Xoay ngang 90 độ) */}
+          <div className="flex items-center justify-center">
+            {houseLevel > 0 ? (
+              <span className="text-[10px] sm:text-xs md:text-sm leading-none drop-shadow-xs -rotate-90">
+                {HOUSE_PLOT_ICONS[houseLevel] || '🏡'}
+              </span>
+            ) : icon ? (
+              <span className="text-[11px] sm:text-sm md:text-base leading-none opacity-85 -rotate-90">
+                {icon}
+              </span>
+            ) : null}
+          </div>
+
+          {/* Player Tokens (Inside Land Plot - Xoay 90 độ) */}
+          <div className="flex items-center justify-center -rotate-90 min-h-[14px] sm:min-h-[18px]">
+            <PlayerTokens
+              players={players}
+              displayedPositions={displayedPositions}
+              movingPlayerId={movingPlayerId}
+              spaceIndex={space.index}
+            />
+          </div>
+        </div>
+
+        {/* ── Sub-box 2: Road Track / Vỉa hè (25% Chiều Rộng) ─────── */}
+        <div className="w-[25%] h-full bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
+          {currentRent !== null ? (
+            <span className="text-[8px] sm:text-[9.5px] md:text-[11px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center -rotate-90 whitespace-nowrap">
+              {formatRentDisplay(currentRent)}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Vertical Top & Bottom Rows (Rộng 10 x Cao 20) ─────────────────
   return (
-    <div className="relative flex flex-col w-full h-full border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden rounded-xs">
-      
-      {/* ── Sub-box 1: Land Plot (Phần Nền Đất 75% chiều cao) ── */}
+    <div className="relative w-full h-full flex flex-col border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden">
+      {/* ── Sub-box 1: Land Plot (75% Chiều Cao) ───────────── */}
       <div
         className={`
           relative h-[75%] w-full flex flex-col justify-between p-0.5 sm:p-1 overflow-hidden transition-colors
           ${colorStyle ? `${colorStyle.softBg} ${colorStyle.darkSoftBg}` : 'bg-slate-100/70 dark:bg-slate-800/40'}
         `}
       >
-        {/* Owner Token Badge (Top-Right) */}
+        {/* Owner Token Badge */}
         {ownerStyle && (
           <div
             className={`absolute top-0.5 right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
@@ -260,7 +373,7 @@ function BoardCell({
           />
         )}
 
-        {/* City / Space Name (Phía trên phần nền đất) */}
+        {/* City / Space Name */}
         <span
           className={`
             text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black uppercase tracking-tight text-center truncate px-0.5 leading-none
@@ -284,7 +397,7 @@ function BoardCell({
           ) : null}
         </div>
 
-        {/* Player Tokens (Di chuyển vào phần nền đất phía trên) */}
+        {/* Player Tokens (Inside Land Plot) */}
         <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
           <PlayerTokens
             players={players}
@@ -295,10 +408,10 @@ function BoardCell({
         </div>
       </div>
 
-      {/* ── Sub-box 2: Road Track / Vỉa hè (25% chiều cao) ────────── */}
+      {/* ── Sub-box 2: Road Track / Vỉa hè (25% Chiều Cao) ────────── */}
       <div className="h-[25%] w-full bg-white dark:bg-slate-900 border-t border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
         {currentRent !== null ? (
-          <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+          <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
             {formatRentDisplay(currentRent)}
           </span>
         ) : null}
@@ -830,13 +943,13 @@ export function MonopolyBoard({
           <div
             className="grid w-full h-full rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-950"
             style={{
-              gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
-              gridTemplateRows: 'repeat(9, minmax(0, 1fr))',
+              gridTemplateColumns: '1.4fr repeat(7, minmax(0, 1fr)) 1.4fr',
+              gridTemplateRows: '1.4fr repeat(7, minmax(0, 1fr)) 1.4fr',
             }}
           >
             {/* Top Row (16-24) */}
             {TOP_ROW.map((idx, col) => (
-              <div key={`top-${idx}`} style={{ gridRow: 1, gridColumn: col + 1 }}>
+              <div key={`top-${idx}`} className="w-full h-full" style={{ gridRow: 1, gridColumn: col + 1 }}>
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
@@ -851,7 +964,7 @@ export function MonopolyBoard({
 
             {/* Left Column (15-9, bottom to top) */}
             {LEFT_COL.slice().reverse().map((idx, row) => (
-              <div key={`left-${idx}`} style={{ gridRow: row + 2, gridColumn: 1 }}>
+              <div key={`left-${idx}`} className="w-full h-full" style={{ gridRow: row + 2, gridColumn: 1 }}>
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
@@ -865,7 +978,7 @@ export function MonopolyBoard({
 
             {/* Right Column (25-31) */}
             {RIGHT_COL.map((idx, row) => (
-              <div key={`right-${idx}`} style={{ gridRow: row + 2, gridColumn: 9 }}>
+              <div key={`right-${idx}`} className="w-full h-full" style={{ gridRow: row + 2, gridColumn: 9 }}>
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
@@ -879,7 +992,7 @@ export function MonopolyBoard({
 
             {/* Bottom Row (8-0) */}
             {BOTTOM_ROW.map((idx, col) => (
-              <div key={`bottom-${idx}`} style={{ gridRow: 9, gridColumn: col + 1 }}>
+              <div key={`bottom-${idx}`} className="w-full h-full" style={{ gridRow: 9, gridColumn: col + 1 }}>
                 <BoardCell
                   space={MONOPOLY_BOARD[idx]}
                   players={players}
