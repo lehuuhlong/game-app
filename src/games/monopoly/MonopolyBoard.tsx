@@ -107,7 +107,7 @@ function PlayerTokens({
   if (playersHere.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-0.5 z-10">
+    <div className="flex flex-wrap items-center justify-center gap-0.5 z-20">
       {playersHere.map((p) => {
         const style = TOKEN_STYLES[p.tokenColor] || TOKEN_STYLES.red;
         const isHopping = movingPlayerId === p.playerId;
@@ -119,20 +119,20 @@ function PlayerTokens({
             animate={
               isHopping
                 ? {
-                    scale: [1, 1.45, 1],
-                    y: [0, -10, 0],
+                    scale: [1, 1.4, 1],
+                    y: [0, -12, 0],
                   }
                 : { scale: 1, y: 0 }
             }
             transition={
               isHopping
                 ? { duration: 0.18, ease: 'easeInOut' }
-                : { type: 'spring', stiffness: 400, damping: 25 }
+                : { type: 'spring', stiffness: 450, damping: 28 }
             }
             className={`
               w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full ${style.bg} ${style.glow}
-              flex items-center justify-center shadow-md border border-white/80 dark:border-slate-900
-              text-[10px] sm:text-xs md:text-sm select-none
+              flex items-center justify-center shadow-md border border-white/90 dark:border-slate-900
+              text-[10px] sm:text-xs md:text-sm select-none z-20
             `}
             title={p.username}
           >
@@ -365,7 +365,7 @@ function BoardCell({
           </div>
 
           {/* Player Tokens (Right side) */}
-          <div className="w-4 h-full flex items-center justify-center flex-shrink-0 -rotate-90 min-h-[14px] sm:min-h-[18px]">
+          <div className="w-4 h-full flex items-center justify-center flex-shrink-0 min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
               displayedPositions={displayedPositions}
@@ -458,7 +458,7 @@ function BoardCell({
           </div>
 
           {/* Player Tokens (Inside Land Plot - Right side near Road Slab) */}
-          <div className="w-4 h-full flex items-center justify-center flex-shrink-0 -rotate-90 min-h-[14px] sm:min-h-[18px]">
+          <div className="w-4 h-full flex items-center justify-center flex-shrink-0 min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
               displayedPositions={displayedPositions}
@@ -962,16 +962,16 @@ export function MonopolyBoard({
     return () => clearTimers();
   }, []);
 
-  const prevDiceRef = useRef<string | null>(null);
+  const prevRollCountRef = useRef<number>(0);
 
   // Synchronize server player positions with smooth sequential hopping animation
   useEffect(() => {
     if (!gameState || players.length === 0) return;
 
-    const diceKey = gameState.lastDice ? `${gameState.lastDice[0]}-${gameState.lastDice[1]}-${gameState.eventLog?.length || 0}` : null;
-    const isNewDiceRoll = diceKey !== null && diceKey !== prevDiceRef.current;
+    const currentRollCount = gameState.rollCount ?? 0;
+    const isNewDiceRoll = currentRollCount > 0 && currentRollCount !== prevRollCountRef.current;
     if (isNewDiceRoll) {
-      prevDiceRef.current = diceKey;
+      prevRollCountRef.current = currentRollCount;
     }
 
     let hasPositionChange = false;
@@ -1051,7 +1051,7 @@ export function MonopolyBoard({
       }, 600);
       moveTimersRef.current.push(diceTimer);
     }
-  }, [players, gameState?.lastDice, gameState?.eventLog?.length]);
+  }, [players, gameState?.lastDice, gameState?.rollCount]);
 
   const getOwnerColor = useCallback(
     (spaceIndex: number): string | null => {

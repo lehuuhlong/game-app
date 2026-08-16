@@ -59,6 +59,7 @@ export function useMonopoly(username: string) {
       .off('player_left')
       .off('mp_game_started')
       .off('mp_game_update')
+      .off('mp_dice_rolled')
       .off('mp_offer_buy')
       .off('mp_offer_upgrade')
       .off('mp_game_over')
@@ -90,6 +91,10 @@ export function useMonopoly(username: string) {
       setBuyOffer(null);
       setUpgradeOffer(null);
       setWinner(null);
+    });
+
+    socket.on('mp_dice_rolled', ({ dice }) => {
+      setGameState((prev) => (prev ? { ...prev, lastDice: dice } : prev));
     });
 
     socket.on('mp_game_update', ({ gameState }) => {

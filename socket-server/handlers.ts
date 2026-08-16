@@ -231,6 +231,7 @@ function createInitialMonopolyState(
     currentTurnPlayerId: players[0].id,
     turnPhase: "roll",
     lastDice: null,
+    rollCount: 0,
     eventLog: [
       { message: "🎩 Monopoly game started! Good luck!", timestamp: Date.now() },
       { message: `🎲 ${players[0].username}'s turn — roll the dice!`, timestamp: Date.now() },
@@ -365,7 +366,6 @@ function advanceMonopolyTurn(
 
   state.currentTurnPlayerId = nextPlayerId;
   state.turnPhase = "roll";
-  state.lastDice = null;
 
   const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
   mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
@@ -771,7 +771,16 @@ export function registerSocketHandlers(io: GameIO): void {
       const isDoubles = die1 === die2;
 
       state.lastDice = [die1, die2];
+      state.rollCount = (state.rollCount || 0) + 1;
       mpLog(state, `🎲 ${mpPlayer.username} rolled ${die1} + ${die2} = ${diceTotal}${isDoubles ? " (Doubles!)" : ""}`);
+
+      io.to(roomId).emit("mp_dice_rolled", {
+        playerId: player.id,
+        username: mpPlayer.username,
+        dice: [die1, die2],
+        diceTotal,
+        isDoubles,
+      });
 
       // ── Jail logic ──────────────────────────────────────────────
       if (mpPlayer.inJail) {
@@ -1726,7 +1735,6 @@ function handleLeaveRoom(
           if (nextPlayerId) {
             state.currentTurnPlayerId = nextPlayerId;
             state.turnPhase = "roll";
-            state.lastDice = null;
             const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
             mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
           }
