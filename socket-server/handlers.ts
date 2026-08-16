@@ -253,6 +253,19 @@ function getNextActivePlayer(
   if (activePlayers.length <= 1) return null;
 
   const currentIndex = activePlayers.findIndex((p) => p.playerId === currentPlayerId);
+  if (currentIndex === -1) {
+    // If currentPlayerId was just marked inactive, find the next active player in original order
+    const allIndex = state.players.findIndex((p) => p.playerId === currentPlayerId);
+    if (allIndex !== -1) {
+      for (let i = 1; i <= state.players.length; i++) {
+        const nextP = state.players[(allIndex + i) % state.players.length];
+        if (nextP && nextP.isActive) {
+          return nextP.playerId;
+        }
+      }
+    }
+    return activePlayers[0].playerId;
+  }
   const nextIndex = (currentIndex + 1) % activePlayers.length;
   return activePlayers[nextIndex].playerId;
 }
@@ -286,6 +299,13 @@ function checkAndNotifyMonopolyCompleted(
 
   const isComplete = groupSpaces.every((s) => mpPlayer.ownedProperties.includes(s.index));
   if (isComplete) {
+    mpPlayer.celebratedMonopolies = mpPlayer.celebratedMonopolies || [];
+    // Only celebrate on the FIRST time the player completes this color set
+    if (mpPlayer.celebratedMonopolies.includes(colorGroup)) {
+      return;
+    }
+    mpPlayer.celebratedMonopolies.push(colorGroup);
+
     const groupName = colorGroup.replace("_", " ").toUpperCase();
     const propNames = groupSpaces.map((s) => s.name);
 
@@ -414,19 +434,41 @@ function advanceMonopolyTurn(
     player.doublesCount = 0;
   }
 
+  // 1. Check if only 1 active player remains -> that remaining player is the winner!
+  const activePlayers = state.players.filter((p) => p.isActive);
+  if (activePlayers.length <= 1) {
+    const winner = activePlayers[0];
+    if (winner) {
+      room.status = "finished";
+      state.winner = winner.playerId;
+      state.turnPhase = "end";
+      mpLog(state, `🏆 ${winner.username} wins the game!`);
+      io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+      io.to(roomId).emit("mp_game_over", {
+        winnerId: winner.playerId,
+        winnerName: winner.username,
+        gameState: { ...state },
+      });
+      return;
+    }
+  }
+
   const nextPlayerId = getNextActivePlayer(state, currentPlayerId);
   if (!nextPlayerId) {
-    const winner = state.players.find((p) => p.playerId === currentPlayerId);
-    room.status = "finished";
-    state.winner = currentPlayerId;
-    state.turnPhase = "end";
-    mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
-    io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-    io.to(roomId).emit("mp_game_over", {
-      winnerId: currentPlayerId,
-      winnerName: winner?.username || "Unknown",
-      gameState: { ...state },
-    });
+    const winnerId = checkMonopolyWinner(state);
+    if (winnerId) {
+      const winner = state.players.find((p) => p.playerId === winnerId);
+      room.status = "finished";
+      state.winner = winnerId;
+      state.turnPhase = "end";
+      mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
+      io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+      io.to(roomId).emit("mp_game_over", {
+        winnerId,
+        winnerName: winner?.username || "Unknown",
+        gameState: { ...state },
+      });
+    }
     return;
   }
 
@@ -1283,6 +1325,9 @@ export function registerSocketHandlers(io: GameIO): void {
       if (mpPlayer.visitCounts) {
         delete mpPlayer.visitCounts[spaceIndex];
       }
+      if (space.colorGroup && mpPlayer.celebratedMonopolies) {
+        mpPlayer.celebratedMonopolies = mpPlayer.celebratedMonopolies.filter((g) => g !== space.colorGroup);
+      }
 
       const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
       mpLog(state, `🏷️ ${mpPlayer.username} sold ${space.name}${levelStr} for $${saleValue}.`);
@@ -1942,6 +1987,7 @@ function handleLeaveRoom(
           const winner = state.players.find((p) => p.playerId === winnerId);
           room.status = "finished";
           state.winner = winnerId;
+          state.turnPhase = "end";
           mpLog(state, `🏆 ${winner?.username || "Unknown"} wins the game!`);
           io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
           io.to(roomId).emit("mp_game_over", {

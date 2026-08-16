@@ -744,6 +744,67 @@ function MonopolySetCelebrationModal({
   );
 }
 
+// ── Bankruptcy Notification Floating Modal (Displays ~2.5s before Winner) ────
+
+function BankruptcyModal({
+  player,
+}: {
+  player: {
+    playerId: string;
+    username: string;
+    tokenColor: MonopolyTokenColor;
+  } | null;
+}) {
+  if (!player) return null;
+  const token = TOKEN_STYLES[player.tokenColor] || TOKEN_STYLES.red;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300 select-none pointer-events-auto">
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0, y: 40 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: -30 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+        className="relative w-full max-w-sm sm:max-w-md bg-gradient-to-b from-slate-900 via-rose-950/90 to-slate-950 border-2 border-rose-500 rounded-3xl p-6 shadow-2xl shadow-rose-950/60 text-center overflow-hidden"
+      >
+        {/* Glow halo in background */}
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full bg-rose-600 opacity-30 blur-3xl pointer-events-none" />
+
+        {/* Skull & Shatter Icon */}
+        <div className="relative flex items-center justify-center gap-2 mb-3">
+          <span className="text-4xl sm:text-5xl animate-bounce">💀</span>
+          <span className="text-3xl sm:text-4xl animate-pulse">💸</span>
+          <span className="text-4xl sm:text-5xl animate-bounce">📉</span>
+        </div>
+
+        {/* Header */}
+        <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-red-300 to-amber-400 drop-shadow-md">
+          BANKRUPT!
+        </h3>
+
+        {/* Player Badge */}
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 my-3 rounded-full bg-slate-800/90 border border-rose-500/40 shadow-inner">
+          <span className="text-lg">{token.avatar}</span>
+          <span className="text-sm sm:text-base font-black text-rose-200">
+            {player.username}
+          </span>
+          <span className="text-[10px] uppercase font-bold text-rose-400 bg-rose-950 px-2 py-0.5 rounded-full border border-rose-800">
+            ELIMINATED
+          </span>
+        </div>
+
+        <p className="text-xs sm:text-sm text-slate-300 font-medium">
+          Ran out of funds to pay expenses and has gone bankrupt!
+        </p>
+
+        <div className="mt-4 inline-block px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] font-mono font-bold animate-pulse">
+          Declaring game outcome...
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ── Dice Display Component ────────────────────────────────────────
 
 function DiceDisplay({
@@ -916,16 +977,19 @@ function AnimatedBalanceDisplay({
 
 function CompactPlayerCard({
   player,
+  displayedBalance,
   isCurrentTurn,
   isSelf,
   isMoving,
 }: {
   player: MonopolyPlayerState;
+  displayedBalance?: number;
   isCurrentTurn: boolean;
   isSelf: boolean;
   isMoving?: boolean;
 }) {
   const token = TOKEN_STYLES[player.tokenColor] || TOKEN_STYLES.red;
+  const balanceToShow = displayedBalance !== undefined ? displayedBalance : player.balance;
 
   return (
     <div
@@ -957,7 +1021,7 @@ function CompactPlayerCard({
         </div>
         <div className="flex items-center gap-3 mt-1">
           <AnimatedBalanceDisplay
-            balance={player.balance}
+            balance={balanceToShow}
             isMoving={isMoving}
             className="text-xs sm:text-sm font-mono font-black"
           />
@@ -1150,10 +1214,26 @@ export function MonopolyBoard({
 
   // ── Step-by-Step Movement & Dice Animation States ────────────────
   const [displayedPositions, setDisplayedPositions] = useState<Record<string, number>>({});
+  const [displayedBalances, setDisplayedBalances] = useState<Record<string, number>>({});
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [movingPlayerId, setMovingPlayerId] = useState<string | null>(null);
   const [isAnimatingMove, setIsAnimatingMove] = useState(false);
   const [hasMovementSettled, setHasMovementSettled] = useState(true);
+
+  // ── Bankruptcy & Delayed Winner Transition States ────────────────
+  const [bankruptModalPlayer, setBankruptModalPlayer] = useState<{
+    playerId: string;
+    username: string;
+    tokenColor: MonopolyTokenColor;
+  } | null>(null);
+  const [isWinnerVisible, setIsWinnerVisible] = useState<boolean>(!gameState?.winner ? false : true);
+
+  const prevPlayersRef = useRef<MonopolyPlayerState[]>([]);
+  const pendingBankruptcyRef = useRef<{
+    playerId: string;
+    username: string;
+    tokenColor: MonopolyTokenColor;
+  } | null>(null);
 
   const moveTimersRef = useRef<NodeJS.Timeout[]>([]);
 
@@ -1168,9 +1248,25 @@ export function MonopolyBoard({
 
   const prevRollCountRef = useRef<number>(0);
 
-  // Synchronize server player positions with smooth sequential hopping animation
+  // Synchronize server player positions & balances with smooth sequential hopping animation
   useEffect(() => {
     if (!gameState || players.length === 0) return;
+
+    // Detect newly bankrupt player
+    if (prevPlayersRef.current.length > 0) {
+      const newlyBankrupt = players.find((p) => {
+        const prev = prevPlayersRef.current.find((oldP) => oldP.playerId === p.playerId);
+        return prev && prev.isActive && !p.isActive;
+      });
+      if (newlyBankrupt) {
+        pendingBankruptcyRef.current = {
+          playerId: newlyBankrupt.playerId,
+          username: newlyBankrupt.username,
+          tokenColor: newlyBankrupt.tokenColor,
+        };
+      }
+    }
+    prevPlayersRef.current = players;
 
     const currentRollCount = gameState.rollCount ?? 0;
     const isNewDiceRoll = currentRollCount > 0 && currentRollCount !== prevRollCountRef.current;
@@ -1187,6 +1283,7 @@ export function MonopolyBoard({
       // Initial mount / setup
       if (currentPos === undefined) {
         setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: targetPos }));
+        setDisplayedBalances((prev) => ({ ...prev, [p.playerId]: p.balance }));
         return;
       }
 
@@ -1221,6 +1318,36 @@ export function MonopolyBoard({
               setIsAnimatingMove(false);
               setMovingPlayerId(null);
               setHasMovementSettled(true);
+
+              // Sync all player balances once settled
+              setDisplayedBalances((prev) => {
+                const nextB: Record<string, number> = { ...prev };
+                players.forEach((pl) => {
+                  nextB[pl.playerId] = pl.balance;
+                });
+                return nextB;
+              });
+
+              // Check if any player just went bankrupt
+              if (pendingBankruptcyRef.current) {
+                const bPlayer = pendingBankruptcyRef.current;
+                pendingBankruptcyRef.current = null;
+                setBankruptModalPlayer(bPlayer);
+                setIsWinnerVisible(false);
+
+                const bankTimer = setTimeout(() => {
+                  setBankruptModalPlayer(null);
+                  if (winner) {
+                    setIsWinnerVisible(true);
+                  }
+                }, 2500);
+                moveTimersRef.current.push(bankTimer);
+              } else if (winner) {
+                const winTimer = setTimeout(() => {
+                  setIsWinnerVisible(true);
+                }, 400);
+                moveTimersRef.current.push(winTimer);
+              }
             }, 300);
             moveTimersRef.current.push(settleTimer);
             return;
@@ -1233,12 +1360,50 @@ export function MonopolyBoard({
               const nextPos = (currentPos + step) % 32;
               setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: nextPos }));
 
+              // Crossing START gives +300 on this exact step
+              if (nextPos === 0) {
+                setDisplayedBalances((prev) => ({
+                  ...prev,
+                  [p.playerId]: (prev[p.playerId] ?? p.balance) + 300,
+                }));
+              }
+
               if (step === stepsToMove) {
-                // Landed on final space! Wait a short moment for visual confirmation before opening modals
+                // Landed on final space! Wait a moment for visual settlement before opening action cards
                 const settleTimer = setTimeout(() => {
                   setIsAnimatingMove(false);
                   setMovingPlayerId(null);
                   setHasMovementSettled(true);
+
+                  // Sync all player balances upon landing
+                  setDisplayedBalances((prev) => {
+                    const nextB: Record<string, number> = { ...prev };
+                    players.forEach((pl) => {
+                      nextB[pl.playerId] = pl.balance;
+                    });
+                    return nextB;
+                  });
+
+                  // Check bankruptcy or winner
+                  if (pendingBankruptcyRef.current) {
+                    const bPlayer = pendingBankruptcyRef.current;
+                    pendingBankruptcyRef.current = null;
+                    setBankruptModalPlayer(bPlayer);
+                    setIsWinnerVisible(false);
+
+                    const bankTimer = setTimeout(() => {
+                      setBankruptModalPlayer(null);
+                      if (winner) {
+                        setIsWinnerVisible(true);
+                      }
+                    }, 2500);
+                    moveTimersRef.current.push(bankTimer);
+                  } else if (winner) {
+                    const winTimer = setTimeout(() => {
+                      setIsWinnerVisible(true);
+                    }, 400);
+                    moveTimersRef.current.push(winTimer);
+                  }
                 }, 350);
                 moveTimersRef.current.push(settleTimer);
               }
@@ -1261,7 +1426,39 @@ export function MonopolyBoard({
       }, 600);
       moveTimersRef.current.push(diceTimer);
     }
-  }, [players, gameState?.lastDice, gameState?.rollCount]);
+
+    // When not moving, keep balances and winner state synchronized
+    if (!hasPositionChange && !isAnimatingMove) {
+      setDisplayedBalances((prev) => {
+        let changed = false;
+        const nextB: Record<string, number> = { ...prev };
+        players.forEach((pl) => {
+          if (nextB[pl.playerId] !== pl.balance) {
+            nextB[pl.playerId] = pl.balance;
+            changed = true;
+          }
+        });
+        return changed ? nextB : prev;
+      });
+
+      if (pendingBankruptcyRef.current) {
+        const bPlayer = pendingBankruptcyRef.current;
+        pendingBankruptcyRef.current = null;
+        setBankruptModalPlayer(bPlayer);
+        setIsWinnerVisible(false);
+
+        const bankTimer = setTimeout(() => {
+          setBankruptModalPlayer(null);
+          if (winner) {
+            setIsWinnerVisible(true);
+          }
+        }, 2500);
+        moveTimersRef.current.push(bankTimer);
+      } else if (winner && !bankruptModalPlayer) {
+        setIsWinnerVisible(true);
+      }
+    }
+  }, [players, gameState?.lastDice, gameState?.rollCount, winner]);
 
   const getOwnerColor = useCallback(
     (spaceIndex: number): string | null => {
@@ -1294,6 +1491,8 @@ export function MonopolyBoard({
   // Check if World Tour phase is active for current user
   const isWorldTourActive =
     !winner &&
+    !isWinnerVisible &&
+    !bankruptModalPlayer &&
     !isAnyMoving &&
     hasMovementSettled &&
     isMyTurn &&
@@ -1303,6 +1502,8 @@ export function MonopolyBoard({
   // Actions/Modals can only show once movement has 100% completed and settled
   const canShowActions =
     !winner &&
+    !isWinnerVisible &&
+    !bankruptModalPlayer &&
     !isAnyMoving &&
     hasMovementSettled &&
     isMyTurn &&
@@ -1322,12 +1523,19 @@ export function MonopolyBoard({
         )}
       </AnimatePresence>
 
+      {/* ── BANKRUPTCY MODAL OVERLAY ──────────────────────────── */}
+      <AnimatePresence>
+        {bankruptModalPlayer && (
+          <BankruptcyModal player={bankruptModalPlayer} />
+        )}
+      </AnimatePresence>
+
       {/* ── BUILD HOUSE MODAL OVERLAY ─────────────────────────── */}
       <AnimatePresence>
         {canShowActions && turnPhase === 'action' && upgradeOffer && myPlayer && (
           <BuildHouseModal
             offer={upgradeOffer}
-            playerBalance={myPlayer.balance}
+            playerBalance={displayedBalances[myPlayer.playerId] ?? myPlayer.balance}
             onBuild={(targetLevel) => onUpgradeProperty?.(targetLevel)}
             onSkip={() => onEndTurn?.()}
           />
@@ -1431,11 +1639,12 @@ export function MonopolyBoard({
               <DiceDisplay dice={lastDice} isRolling={isRollingDice} />
 
               {/* Winner Display */}
-              {winner && (
+              {isWinnerVisible && winner && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl z-20"
+                  transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl z-20 border-2 border-amber-200 animate-bounce"
                 >
                   🏆 {players.find((p) => p.playerId === winner)?.username} WINS!
                 </motion.div>
@@ -1473,7 +1682,7 @@ export function MonopolyBoard({
               )}
 
               {/* 1. ROLL DICE BUTTON (In Center Box) */}
-              {!winner && !isAnyMoving && turnPhase === 'roll' && isMyTurn && !isWorldTourActive && (
+              {!winner && !bankruptModalPlayer && !isWinnerVisible && !isAnyMoving && turnPhase === 'roll' && isMyTurn && !isWorldTourActive && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -1499,7 +1708,7 @@ export function MonopolyBoard({
                     Price: ${buyOffer.price ? buyOffer.price.toLocaleString() : '0'}
                   </div>
                   <div className="flex gap-2 pt-1">
-                    {myPlayer && buyOffer.price != null && myPlayer.balance >= buyOffer.price ? (
+                    {myPlayer && buyOffer.price != null && (displayedBalances[myPlayer.playerId] ?? myPlayer.balance) >= buyOffer.price ? (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -1539,9 +1748,9 @@ export function MonopolyBoard({
                     Owe ${gameState.pendingDebt.amount ? gameState.pendingDebt.amount.toLocaleString() : '0'} for {gameState.pendingDebt.spaceName}
                   </div>
                   <div className="text-[11px] font-mono font-bold text-rose-200">
-                    Your Cash: ${myPlayer?.balance ? myPlayer.balance.toLocaleString() : '0'}
+                    Your Cash: ${(displayedBalances[myPlayer?.playerId ?? ''] ?? myPlayer?.balance ?? 0).toLocaleString()}
                   </div>
-                  {myPlayer && gameState.pendingDebt.amount != null && myPlayer.balance >= gameState.pendingDebt.amount ? (
+                  {myPlayer && gameState.pendingDebt.amount != null && (displayedBalances[myPlayer.playerId] ?? myPlayer.balance) >= gameState.pendingDebt.amount ? (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -1553,7 +1762,7 @@ export function MonopolyBoard({
                   ) : (
                     <div className="space-y-1.5">
                       <div className="text-[10px] text-amber-200 font-bold bg-amber-950/80 p-1.5 rounded-lg border border-amber-700/60">
-                        Need ${((gameState.pendingDebt.amount ?? 0) - (myPlayer?.balance ?? 0)).toLocaleString()} more! Sell properties on right panel.
+                        Need ${((gameState.pendingDebt.amount ?? 0) - (displayedBalances[myPlayer?.playerId ?? ''] ?? myPlayer?.balance ?? 0)).toLocaleString()} more! Sell properties on right panel.
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -1569,7 +1778,7 @@ export function MonopolyBoard({
               )}
 
               {/* Waiting message for opponent */}
-              {!winner && !isAnyMoving && !isMyTurn && gameState && (
+              {!winner && !bankruptModalPlayer && !isWinnerVisible && !isAnyMoving && !isMyTurn && gameState && (
                 <div className="text-xs sm:text-sm font-bold text-amber-100 dark:text-amber-200/90 animate-pulse bg-black/40 dark:bg-slate-900/70 px-4 py-2 rounded-full border border-amber-300/30 dark:border-amber-400/20 z-10">
                   ⏳ Waiting for {players.find((p) => p.playerId === currentTurnPlayerId)?.username}...
                 </div>
@@ -1652,6 +1861,7 @@ export function MonopolyBoard({
               <CompactPlayerCard
                 key={p.playerId}
                 player={p}
+                displayedBalance={displayedBalances[p.playerId]}
                 isCurrentTurn={currentTurnPlayerId === p.playerId}
                 isSelf={p.playerId === playerId}
                 isMoving={

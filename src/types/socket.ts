@@ -149,6 +149,7 @@ export interface MonopolyPlayerState {
   jailTurns: number;         // turns spent in jail
   isActive: boolean;         // false if disconnected/bankrupt
   doublesCount: number;      // consecutive doubles this turn
+  celebratedMonopolies?: string[]; // color groups already celebrated
 }
 
 export interface MonopolyEventLog {

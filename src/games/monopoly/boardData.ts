@@ -18,7 +18,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 1, name: "Granada", type: "property", colorGroup: "brown", price: 60, baseRent: 2, rentScale: [10, 30, 90, 160, 250] },
   { index: 2, name: "Seville", type: "property", colorGroup: "brown", price: 60, baseRent: 4, rentScale: [20, 60, 180, 320, 450] },
   { index: 3, name: "Madrid", type: "property", colorGroup: "brown", price: 60, baseRent: 4, rentScale: [20, 60, 180, 320, 450] },
-  { index: 4, name: "Bali", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
+  { index: 4, name: "Bali", type: "beach", colorGroup: "beach", price: 200, baseRent: 50 },
   { index: 5, name: "Hong Kong", type: "property", colorGroup: "light_blue", price: 100, baseRent: 6, rentScale: [30, 90, 270, 400, 550] },
   { index: 6, name: "Beijing", type: "property", colorGroup: "light_blue", price: 100, baseRent: 6, rentScale: [30, 90, 270, 400, 550] },
   { index: 7, name: "Shanghai", type: "property", colorGroup: "light_blue", price: 120, baseRent: 8, rentScale: [40, 100, 300, 450, 600] },
@@ -30,13 +30,13 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 11, name: "Home", type: "property", colorGroup: "pink", price: 160, baseRent: 12, rentScale: [60, 180, 500, 700, 900] },
   { index: 12, name: "Chance", type: "chance", colorGroup: null, price: null, baseRent: null },
   { index: 13, name: "Hamburg", type: "property", colorGroup: "orange", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
-  { index: 14, name: "Cyprus", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
+  { index: 14, name: "Cyprus", type: "beach", colorGroup: "beach", price: 200, baseRent: 50 },
   { index: 15, name: "Berlin", type: "property", colorGroup: "orange", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
 
   // ── Top row (16-24) ─────────────────────────────────────────────
   { index: 16, name: "World Cup", type: "world_cup", colorGroup: null, price: null, baseRent: null },
   { index: 17, name: "London", type: "property", colorGroup: "red", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
-  { index: 18, name: "Dubai", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
+  { index: 18, name: "Dubai", type: "beach", colorGroup: "beach", price: 200, baseRent: 50 },
   { index: 19, name: "Sydney", type: "property", colorGroup: "red", price: 220, baseRent: 18, rentScale: [90, 250, 700, 875, 1050] },
   { index: 20, name: "Chance", type: "chance", colorGroup: null, price: null, baseRent: null },
   { index: 21, name: "Chicago", type: "property", colorGroup: "yellow", price: 220, baseRent: 18, rentScale: [90, 250, 700, 875, 1050] },
@@ -45,7 +45,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
 
   // ── Right column (24-31) ────────────────────────────────────────
   { index: 24, name: "World Tour", type: "world_tour", colorGroup: null, price: null, baseRent: null },
-  { index: 25, name: "Nice", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
+  { index: 25, name: "Nice", type: "beach", colorGroup: "beach", price: 200, baseRent: 50 },
   { index: 26, name: "Lyon", type: "property", colorGroup: "green", price: 260, baseRent: 22, rentScale: [110, 330, 800, 975, 1150] },
   { index: 27, name: "Paris", type: "property", colorGroup: "green", price: 280, baseRent: 24, rentScale: [120, 360, 850, 1025, 1200] },
   { index: 28, name: "Chance", type: "chance", colorGroup: null, price: null, baseRent: null },

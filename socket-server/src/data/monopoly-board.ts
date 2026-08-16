@@ -43,7 +43,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
     type: 'beach',
     colorGroup: 'beach',
     price: 200,
-    baseRent: 25,
+    baseRent: 50,
   },
   {
     index: 5,
@@ -132,7 +132,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
     type: 'beach',
     colorGroup: 'beach',
     price: 200,
-    baseRent: 25,
+    baseRent: 50,
   },
   {
     index: 15,
@@ -168,7 +168,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
     type: 'beach',
     colorGroup: 'beach',
     price: 200,
-    baseRent: 25,
+    baseRent: 50,
   },
   {
     index: 19,
@@ -230,7 +230,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
     type: 'beach',
     colorGroup: 'beach',
     price: 200,
-    baseRent: 25,
+    baseRent: 50,
   },
   {
     index: 26,
