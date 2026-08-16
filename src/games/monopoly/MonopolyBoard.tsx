@@ -211,11 +211,11 @@ function BoardCell({
       ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'
       : 'border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/70 dark:from-purple-950/50 dark:to-slate-900/90';
 
-    // Xoay ngang 90 độ cho Chance & Tax ở cột trái và cột phải
+    // 90-degree sideways rotation for Chance & Tax on left and right columns
     if (isRotatedSide && !isCorner) {
       return (
         <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-around p-1 ${bgClasses}`}>
-          {/* Space Name (Xoay ngang 90 độ) */}
+          {/* Space Name (90-degree rotated) */}
           <div className="flex items-center justify-center min-w-0">
             <span
               className={`
@@ -230,14 +230,14 @@ function BoardCell({
             </span>
           </div>
 
-          {/* Icon (Xoay ngang 90 độ) */}
+          {/* Icon (90-degree rotated) */}
           <div className="flex items-center justify-center">
             <span className="text-base sm:text-lg md:text-xl leading-none drop-shadow-xs -rotate-90">
               {icon}
             </span>
           </div>
 
-          {/* Player Tokens (Xoay ngang 90 độ) */}
+          {/* Player Tokens (90-degree rotated) */}
           <div className="flex items-center justify-center -rotate-90 min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
@@ -287,11 +287,11 @@ function BoardCell({
     );
   }
 
-  // ── Horizontal Side Cells (Left & Right Sides - Rộng 20 x Cao 10) ──
+  // ── Horizontal Side Cells (Left & Right Columns - 14w x 10h Ratio) ─
   if (isRotatedSide) {
     return (
       <div className="relative w-full h-full flex flex-row border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden">
-        {/* ── Sub-box 1: Land Plot (75% Chiều Rộng) ────────── */}
+        {/* ── Sub-box 1: Land Plot (75% Width) ──────────────────────── */}
         <div
           className={`
             relative w-[75%] h-full flex flex-row items-center justify-around p-0.5 overflow-hidden transition-colors
@@ -306,7 +306,7 @@ function BoardCell({
             />
           )}
 
-          {/* City / Space Name (Xoay ngang 90 độ) */}
+          {/* City / Space Name (90-degree rotated) */}
           <div className="flex items-center justify-center min-w-0">
             <span
               className={`
@@ -319,7 +319,7 @@ function BoardCell({
             </span>
           </div>
 
-          {/* Plot Content: 3D Houses / Special Icons (Xoay ngang 90 độ) */}
+          {/* Plot Content: 3D Houses / Special Icons (90-degree rotated) */}
           <div className="flex items-center justify-center">
             {houseLevel > 0 ? (
               <span className="text-[10px] sm:text-xs md:text-sm leading-none drop-shadow-xs -rotate-90">
@@ -332,7 +332,7 @@ function BoardCell({
             ) : null}
           </div>
 
-          {/* Player Tokens (Inside Land Plot - Xoay 90 độ) */}
+          {/* Player Tokens (Inside Land Plot - 90-degree rotated) */}
           <div className="flex items-center justify-center -rotate-90 min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
@@ -343,7 +343,7 @@ function BoardCell({
           </div>
         </div>
 
-        {/* ── Sub-box 2: Road Track / Vỉa hè (25% Chiều Rộng) ─────── */}
+        {/* ── Sub-box 2: Road Track / Pavement (25% Width) ──────────── */}
         <div className="w-[25%] h-full bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
           {currentRent !== null ? (
             <span className="text-[8px] sm:text-[9.5px] md:text-[11px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center -rotate-90 whitespace-nowrap">
@@ -355,10 +355,10 @@ function BoardCell({
     );
   }
 
-  // ── Vertical Top & Bottom Rows (Rộng 10 x Cao 20) ─────────────────
+  // ── Vertical Top & Bottom Rows (10w x 14h Ratio) ─────────────────
   return (
     <div className="relative w-full h-full flex flex-col border border-slate-300 dark:border-slate-700/70 select-none overflow-hidden">
-      {/* ── Sub-box 1: Land Plot (75% Chiều Cao) ───────────── */}
+      {/* ── Sub-box 1: Land Plot (75% Height) ──────────────────────── */}
       <div
         className={`
           relative h-[75%] w-full flex flex-col justify-between p-0.5 sm:p-1 overflow-hidden transition-colors
@@ -408,7 +408,7 @@ function BoardCell({
         </div>
       </div>
 
-      {/* ── Sub-box 2: Road Track / Vỉa hè (25% Chiều Cao) ────────── */}
+      {/* ── Sub-box 2: Road Track / Pavement (25% Height) ─────────── */}
       <div className="h-[25%] w-full bg-white dark:bg-slate-900 border-t border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
         {currentRent !== null ? (
           <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
