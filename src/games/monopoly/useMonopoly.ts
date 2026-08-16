@@ -31,6 +31,8 @@ export function useMonopoly(username: string) {
     spaceName: string;
     currentLevel: number;
     upgradeCost: number;
+    maxLevel: number;
+    costs: number[];
   } | null>(null);
   const [winner, setWinner] = useState<{ id: string; name: string } | null>(null);
 
@@ -193,9 +195,9 @@ export function useMonopoly(username: string) {
     setBuyOffer(null);
   }, []);
 
-  const upgradeProperty = useCallback(() => {
+  const upgradeProperty = useCallback((targetLevel: number) => {
     if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_upgrade_property', { roomId: roomIdRef.current });
+    socketRef.current?.emit('mp_upgrade_property', { roomId: roomIdRef.current, targetLevel });
     setUpgradeOffer(null);
   }, []);
 

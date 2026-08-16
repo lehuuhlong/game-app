@@ -219,6 +219,7 @@ function createInitialMonopolyState(
     balance: MONOPOLY_STARTING_BALANCE,
     ownedProperties: [] as number[],
     houseLevels: {} as Record<number, number>,
+    visitCounts: {} as Record<number, number>,
     inJail: false,
     jailTurns: 0,
     isActive: true,
@@ -306,7 +307,7 @@ function calculateRent(
 
 /** Tax amounts for tax spaces. */
 const TAX_AMOUNTS: Record<number, number> = {
-  30: 400, // Tax
+  30: 200, // Tax
 };
 
 /**
@@ -415,7 +416,7 @@ function resolveSpace(
           type: "tax",
         };
         mpLog(state, `⚠️ ${player.username} owes $${taxAmount} in ${space.name} (has $${player.balance}). Sell properties to pay!`);
-        return true;
+        return false;
       } else {
         player.balance = 0;
         player.isActive = false;
@@ -468,7 +469,7 @@ function resolveSpace(
             type: "fine",
           };
           mpLog(state, `⚠️ ${player.username} owes $${penalty} for fine (has $${player.balance}). Sell properties to pay!`);
-          return true;
+          return false;
         } else {
           player.balance = 0;
           player.isActive = false;
@@ -516,7 +517,7 @@ function resolveSpace(
             type: "rent",
           };
           mpLog(state, `⚠️ ${player.username} owes $${rent} rent${levelStr} to ${owner.username} for ${space.name} (has $${player.balance}). Sell properties to pay!`);
-          return true;
+          return false;
         } else {
           // Bankrupt even after total liquidation
           owner.balance += player.balance;
@@ -838,24 +839,128 @@ export function registerSocketHandlers(io: GameIO): void {
         return;
       }
 
-      if (shouldOfferBuy) {
-        state.turnPhase = "action";
+      // Check if player was placed into debt resolution phase
+      if (state.pendingDebt || (state.turnPhase as string) === "debt") {
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
 
+      if (shouldOfferBuy) {
         const space = MONOPOLY_BOARD[mpPlayer.position];
-
-        // Check if this is own property → offer upgrade; else → offer buy
         const isOwnProperty = mpPlayer.ownedProperties.includes(mpPlayer.position);
+
         if (isOwnProperty && space.type === "property") {
+          // Track visit count for own property
+          mpPlayer.visitCounts = mpPlayer.visitCounts || {};
+          mpPlayer.visitCounts[mpPlayer.position] = (mpPlayer.visitCounts[mpPlayer.position] || 0) + 1;
+          const visitCount = mpPlayer.visitCounts[mpPlayer.position];
+
           const currentLevel = mpPlayer.houseLevels[mpPlayer.position] ?? 0;
-          const upgradeCost = Math.floor((space.price ?? 0) * 0.5);
+          const maxLevel = visitCount >= 2 ? 4 : 3;
+          const upgradeCostPerLevel = Math.floor((space.price ?? 0) * 0.5);
+
+          // If property is already at max allowed level for this visit, auto-skip
+          if (currentLevel >= maxLevel) {
+            if (isDoubles && !mpPlayer.inJail) {
+              state.turnPhase = "roll";
+              mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+              io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            } else {
+              advanceMonopolyTurn(state, player.id, room, io, roomId);
+            }
+            return;
+          }
+
+          // Check if player can afford at least 1 more level
+          const minCost = upgradeCostPerLevel;
+          if (mpPlayer.balance < minCost) {
+            mpLog(
+              state,
+              `⚠️ ${mpPlayer.username} landed on ${space.name} but cannot afford to build (needs $${minCost}, has $${mpPlayer.balance}). Turn skipped.`
+            );
+            if (isDoubles && !mpPlayer.inJail) {
+              state.turnPhase = "roll";
+              mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+              io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            } else {
+              advanceMonopolyTurn(state, player.id, room, io, roomId);
+            }
+            return;
+          }
+
+          // Player can afford building - calculate costs for levels 1..4
+          const costs = [1, 2, 3, 4].map((lvl) => {
+            if (lvl <= currentLevel) return 0;
+            return (lvl - currentLevel) * upgradeCostPerLevel;
+          });
+
+          state.turnPhase = "action";
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
           io.to(socket.id).emit("mp_offer_upgrade", {
             spaceIndex: mpPlayer.position,
             spaceName: space.name,
             currentLevel,
-            upgradeCost,
+            upgradeCost: upgradeCostPerLevel,
+            maxLevel,
+            costs,
+          });
+        } else if (space.type === "property") {
+          // Unowned property — can buy and build immediately Lv.1 to Lv.3 on 1st visit
+          const upgradeCostPerLevel = Math.floor((space.price ?? 0) * 0.5);
+          const minCost = (space.price ?? 0) + upgradeCostPerLevel; // Lv.1 minimum
+
+          if (mpPlayer.balance < (space.price ?? 0)) {
+            mpLog(
+              state,
+              `⚠️ ${mpPlayer.username} landed on ${space.name} but cannot afford to buy ($${space.price}). Turn skipped.`
+            );
+            if (isDoubles && !mpPlayer.inJail) {
+              state.turnPhase = "roll";
+              mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+              io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            } else {
+              advanceMonopolyTurn(state, player.id, room, io, roomId);
+            }
+            return;
+          }
+
+          // Costs for buying & building Lv.1, Lv.2, Lv.3 directly on first visit
+          const costs = [
+            (space.price ?? 0) + upgradeCostPerLevel,
+            (space.price ?? 0) + 2 * upgradeCostPerLevel,
+            (space.price ?? 0) + 3 * upgradeCostPerLevel,
+            0, // Lv.4 locked until 2nd visit
+          ];
+
+          state.turnPhase = "action";
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(socket.id).emit("mp_offer_upgrade", {
+            spaceIndex: mpPlayer.position,
+            spaceName: space.name,
+            currentLevel: 0,
+            upgradeCost: upgradeCostPerLevel,
+            maxLevel: 3,
+            costs,
           });
         } else {
+          // Railroad
+          if (mpPlayer.balance < (space.price ?? 0)) {
+            mpLog(
+              state,
+              `⚠️ ${mpPlayer.username} landed on ${space.name} but cannot afford to buy ($${space.price}). Turn skipped.`
+            );
+            if (isDoubles && !mpPlayer.inJail) {
+              state.turnPhase = "roll";
+              mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+              io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+            } else {
+              advanceMonopolyTurn(state, player.id, room, io, roomId);
+            }
+            return;
+          }
+
+          state.turnPhase = "action";
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
           io.to(socket.id).emit("mp_offer_buy", {
             spaceIndex: mpPlayer.position,
             spaceName: space.name,
@@ -916,6 +1021,8 @@ export function registerSocketHandlers(io: GameIO): void {
       mpPlayer.balance -= space.price;
       mpPlayer.ownedProperties.push(mpPlayer.position);
       mpPlayer.houseLevels[mpPlayer.position] = 0;
+      mpPlayer.visitCounts = mpPlayer.visitCounts || {};
+      mpPlayer.visitCounts[mpPlayer.position] = 1;
       mpLog(state, `🏠 ${mpPlayer.username} bought ${space.name} for $${space.price}.`);
 
       // If doubles were rolled, allow rolling again
@@ -960,8 +1067,8 @@ export function registerSocketHandlers(io: GameIO): void {
       advanceMonopolyTurn(state, player.id, room, io, roomId);
     });
 
-    // ── Monopoly: upgrade property (build house) ─────────────────
-    socket.on("mp_upgrade_property", ({ roomId }) => {
+    // ── Monopoly: upgrade property (build house/hotel) ───────────
+    socket.on("mp_upgrade_property", ({ roomId, targetLevel }) => {
       const room = rooms.get(roomId);
       const state = mpStates.get(roomId);
       if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
@@ -983,32 +1090,56 @@ export function registerSocketHandlers(io: GameIO): void {
         return;
       }
 
-      // Must own the property
-      if (!mpPlayer.ownedProperties.includes(mpPlayer.position)) {
-        socket.emit("error", { message: "You don't own this property." });
+      const isOwnProperty = mpPlayer.ownedProperties.includes(mpPlayer.position);
+      const isUnowned = !state.players.some((p) =>
+        p.isActive && p.ownedProperties.includes(mpPlayer.position)
+      );
+
+      if (!isOwnProperty && !isUnowned) {
+        socket.emit("error", { message: "This property is already owned by someone else." });
         return;
       }
 
-      const currentLevel = mpPlayer.houseLevels[mpPlayer.position] ?? 0;
-      if (currentLevel >= 4) {
-        socket.emit("error", { message: "Property is already at max level (Hotel)." });
+      const currentLevel = isOwnProperty ? (mpPlayer.houseLevels[mpPlayer.position] ?? 0) : 0;
+      const visitCount = isOwnProperty ? (mpPlayer.visitCounts?.[mpPlayer.position] ?? 1) : 1;
+      const maxLevel = visitCount >= 2 ? 4 : 3;
+
+      const requestedLevel = typeof targetLevel === "number" ? targetLevel : currentLevel + 1;
+
+      if (requestedLevel <= currentLevel || requestedLevel > maxLevel || requestedLevel > 4) {
+        socket.emit("error", { message: `Invalid build level. Maximum allowed is Level ${maxLevel}.` });
         return;
       }
 
-      const upgradeCost = Math.floor(space.price * 0.5);
-      if (mpPlayer.balance < upgradeCost) {
-        mpLog(state, `⚠️ ${mpPlayer.username} cannot afford to upgrade ${space.name} ($${upgradeCost}).`);
+      const upgradeCostPerLevel = Math.floor(space.price * 0.5);
+      let totalCost = 0;
+
+      if (isOwnProperty) {
+        const levelsToAdd = requestedLevel - currentLevel;
+        totalCost = levelsToAdd * upgradeCostPerLevel;
+      } else {
+        // Unowned first purchase + build
+        totalCost = space.price + requestedLevel * upgradeCostPerLevel;
+      }
+
+      if (mpPlayer.balance < totalCost) {
+        mpLog(state, `⚠️ ${mpPlayer.username} cannot afford to build Lv.${requestedLevel} on ${space.name} ($${totalCost}).`);
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
-        socket.emit("error", { message: `Not enough money. Need $${upgradeCost} but have $${mpPlayer.balance}.` });
+        socket.emit("error", { message: `Not enough money. Need $${totalCost} but have $${mpPlayer.balance}.` });
         return;
       }
 
       // Upgrade it
-      mpPlayer.balance -= upgradeCost;
-      const newLevel = currentLevel + 1;
-      mpPlayer.houseLevels[mpPlayer.position] = newLevel;
-      const levelName = newLevel === 4 ? "Hotel 🏨" : `House Lv.${newLevel} 🏠`;
-      mpLog(state, `🏗️ ${mpPlayer.username} built ${levelName} on ${space.name} for $${upgradeCost}.`);
+      mpPlayer.balance -= totalCost;
+      if (!isOwnProperty) {
+        mpPlayer.ownedProperties.push(mpPlayer.position);
+        mpPlayer.visitCounts = mpPlayer.visitCounts || {};
+        mpPlayer.visitCounts[mpPlayer.position] = 1;
+      }
+      mpPlayer.houseLevels[mpPlayer.position] = requestedLevel;
+      const levelName = requestedLevel === 4 ? "Hotel 🏨" : `House Lv.${requestedLevel} 🏠`;
+      const actionText = isOwnProperty ? `upgraded to ${levelName}` : `bought and built ${levelName}`;
+      mpLog(state, `🏗️ ${mpPlayer.username} ${actionText} on ${space.name} for $${totalCost}.`);
 
       // After upgrade, auto-advance
       if (mpPlayer.doublesCount > 0 && !mpPlayer.inJail) {
@@ -1057,6 +1188,9 @@ export function registerSocketHandlers(io: GameIO): void {
       mpPlayer.balance += saleValue;
       mpPlayer.ownedProperties = mpPlayer.ownedProperties.filter((idx) => idx !== spaceIndex);
       delete mpPlayer.houseLevels[spaceIndex];
+      if (mpPlayer.visitCounts) {
+        delete mpPlayer.visitCounts[spaceIndex];
+      }
 
       const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
       mpLog(state, `🏷️ ${mpPlayer.username} sold ${space.name}${levelStr} for $${saleValue}.`);

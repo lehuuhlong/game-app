@@ -126,6 +126,7 @@ export interface MonopolyPlayerState {
   balance: number;           // starts $1500
   ownedProperties: number[]; // space indices
   houseLevels: Record<number, number>; // spaceIndex → level (0-4)
+  visitCounts: Record<number, number>; // spaceIndex → number of times landed on own property
   inJail: boolean;
   jailTurns: number;         // turns spent in jail
   isActive: boolean;         // false if disconnected/bankrupt
@@ -187,7 +188,7 @@ export interface ClientToServerEvents {
   mp_buy_property: (data: { roomId: string }) => void;
   mp_end_turn: (data: { roomId: string }) => void;
   mp_start_game: (data: { roomId: string }) => void;
-  mp_upgrade_property: (data: { roomId: string }) => void;
+  mp_upgrade_property: (data: { roomId: string; targetLevel: number }) => void;
   mp_sell_property: (data: { roomId: string; spaceIndex: number }) => void;
   mp_pay_debt: (data: { roomId: string }) => void;
   mp_declare_bankruptcy: (data: { roomId: string }) => void;
@@ -243,7 +244,7 @@ export interface ServerToClientEvents {
   mp_game_started: (data: { room: Room; gameState: MonopolyGameState }) => void;
   mp_game_update: (data: { gameState: MonopolyGameState }) => void;
   mp_offer_buy: (data: { spaceIndex: number; spaceName: string; price: number }) => void;
-  mp_offer_upgrade: (data: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number }) => void;
+  mp_offer_upgrade: (data: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number; maxLevel: number; costs: number[] }) => void;
   mp_game_over: (data: { winnerId: string; winnerName: string; gameState: MonopolyGameState }) => void;
 }
 
