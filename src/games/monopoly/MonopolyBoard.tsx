@@ -65,6 +65,7 @@ interface MonopolyBoardProps {
   onDismissCelebration?: () => void;
   onWorldTourTravel?: (targetSpaceIndex: number) => void;
   onHostWorldCup?: (spaceIndex: number) => void;
+  onSelectChanceTarget?: (targetSpaceIndex: number) => void;
 }
 
 // ── World Tour Target Validation Helper ───────────────────────────
@@ -134,16 +135,22 @@ function calculateSpaceRent(
   space: MonopolyBoardSpace,
   houseLevel: number = 0,
   players: MonopolyPlayerState[] = [],
-  worldCupSpaceIndex?: number | null
+  worldCupSpaceIndex?: number | null,
+  blackoutSpaces?: number[]
 ): number | null {
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   if (!owner) return null; // Unowned property -> DO NOT display rent or price
 
+  // Blackout: Rent is $0
+  if (blackoutSpaces && blackoutSpaces.includes(space.index)) {
+    return 0;
+  }
+
   let rent = 0;
   if (space.type === 'beach') {
     const beachCount = owner.ownedProperties.filter((idx) => MONOPOLY_BOARD[idx]?.type === 'beach').length;
-    const base = space.baseRent ?? 25;
-    rent = base * Math.pow(2, Math.max(0, beachCount - 1));
+    const BEACH_RENT_SCALE = [50, 120, 250, 500];
+    rent = BEACH_RENT_SCALE[Math.min(beachCount, BEACH_RENT_SCALE.length) - 1] ?? 50;
   } else if (houseLevel > 0 && space.rentScale && space.rentScale.length >= houseLevel) {
     rent = space.rentScale[houseLevel - 1];
   } else {
@@ -371,6 +378,12 @@ function BoardCell({
   isWorldCupSelectionActive = false,
   isMyOwnedProperty = false,
   onHostWorldCup,
+  isShielded = false,
+  isBlackout = false,
+  isChanceTargetActive = false,
+  isValidChanceTarget = false,
+  onSelectChanceTarget,
+  blackoutSpaces = [],
 }: {
   space: MonopolyBoardSpace;
   players: MonopolyPlayerState[];
@@ -386,16 +399,25 @@ function BoardCell({
   isWorldCupSelectionActive?: boolean;
   isMyOwnedProperty?: boolean;
   onHostWorldCup?: (index: number) => void;
+  isShielded?: boolean;
+  isBlackout?: boolean;
+  isChanceTargetActive?: boolean;
+  isValidChanceTarget?: boolean;
+  onSelectChanceTarget?: (index: number) => void;
+  blackoutSpaces?: number[];
 }) {
   const colorStyle = space.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
   const ownerStyle = ownerColor ? TOKEN_STYLES[ownerColor] : null;
   const icon = SPACE_ICONS[space.type];
-  const currentRent = calculateSpaceRent(space, houseLevel, players, isWorldCupHost ? space.index : null);
+  const currentRent = calculateSpaceRent(space, houseLevel, players, isWorldCupHost ? space.index : null, blackoutSpaces);
   const orientation = getSpaceOrientation(space.index);
 
   const isRotatedSide = orientation === 'left' || orientation === 'right';
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   const isMonopolized = space.colorGroup ? isColorGroupMonopolized(space.colorGroup, owner) : false;
+
+  const isClickableChance = isChanceTargetActive && isValidChanceTarget;
+  const isDimmedChance = isChanceTargetActive && !isValidChanceTarget;
 
   const isClickableWorldTour = isWorldTourActive && isValidWorldTourTarget;
   const isDimmedWorldTour = isWorldTourActive && !isValidWorldTourTarget;
@@ -403,23 +425,29 @@ function BoardCell({
   const isClickableWorldCup = isWorldCupSelectionActive && isMyOwnedProperty;
   const isDimmedWorldCup = isWorldCupSelectionActive && !isMyOwnedProperty;
 
-  const cellHighlightClasses = isClickableWorldCup
+  const cellHighlightClasses = isClickableChance
+    ? 'ring-2 ring-purple-400 ring-offset-1 shadow-xl shadow-purple-500/60 cursor-pointer animate-pulse hover:ring-4 hover:scale-[1.03] z-20 transition-all'
+    : isClickableWorldCup
     ? 'ring-2 ring-amber-400 ring-offset-1 shadow-xl shadow-amber-500/60 cursor-pointer animate-pulse hover:ring-4 hover:scale-[1.03] z-20 transition-all'
     : isClickableWorldTour
     ? 'ring-2 ring-sky-400 ring-offset-1 shadow-lg shadow-sky-500/50 cursor-pointer animate-pulse hover:ring-4 hover:scale-[1.03] z-20 transition-all'
-    : isDimmedWorldCup || isDimmedWorldTour
+    : isDimmedChance || isDimmedWorldCup || isDimmedWorldTour
     ? 'opacity-35 grayscale-[50%] transition-opacity'
     : '';
 
   const handleClick = () => {
-    if (isClickableWorldCup) {
+    if (isClickableChance) {
+      onSelectChanceTarget?.(space.index);
+    } else if (isClickableWorldCup) {
       onHostWorldCup?.(space.index);
     } else if (isClickableWorldTour) {
       onSelectDestination?.(space.index);
     }
   };
 
-  const tooltipTitle = isClickableWorldCup
+  const tooltipTitle = isClickableChance
+    ? `Target ${space.name} 🎯`
+    : isClickableWorldCup
     ? `Host World Cup on ${space.name} 🏆`
     : isClickableWorldTour
     ? `Fly to ${space.name} ✈️`
@@ -569,6 +597,26 @@ function BoardCell({
             </div>
           )}
 
+          {/* Asset Shield Badge */}
+          {isShielded && (
+            <div
+              className="absolute top-0.5 right-0.5 z-20 flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-[7px] sm:text-[8px] p-0.5 rounded-full border border-emerald-100 shadow-md shadow-emerald-500/40"
+              title="Protected by Asset Shield 🛡️"
+            >
+              <span>🛡️</span>
+            </div>
+          )}
+
+          {/* Blackout Badge */}
+          {isBlackout && (
+            <div
+              className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
+              title="Blackout: Rent is $0!"
+            >
+              <span>⚡</span>
+            </div>
+          )}
+
           {/* City / Space Name (Perfect straight vertical line along outer edge) */}
           <div className="w-4 h-full flex items-center justify-center flex-shrink-0">
             <span
@@ -657,6 +705,26 @@ function BoardCell({
             title="World Cup Host City: 2× Rent Active!"
           >
             <span>🏆</span>
+          </div>
+        )}
+
+        {/* Asset Shield Badge */}
+        {isShielded && (
+          <div
+            className="absolute top-0.5 right-0.5 z-20 flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-[7px] sm:text-[8px] p-0.5 rounded-full border border-emerald-100 shadow-md shadow-emerald-500/40"
+            title="Protected by Asset Shield 🛡️"
+          >
+            <span>🛡️</span>
+          </div>
+        )}
+
+        {/* Blackout Badge */}
+        {isBlackout && (
+          <div
+            className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
+            title="Blackout: Rent is $0!"
+          >
+            <span>⚡</span>
           </div>
         )}
 
@@ -1268,6 +1336,7 @@ export function MonopolyBoard({
   onDismissCelebration,
   onWorldTourTravel,
   onHostWorldCup,
+  onSelectChanceTarget,
 }: MonopolyBoardProps) {
   const players = gameState?.players ?? [];
   const currentTurnPlayerId = gameState?.currentTurnPlayerId;
@@ -1293,6 +1362,8 @@ export function MonopolyBoard({
   } | null>(null);
   const [isWinnerVisible, setIsWinnerVisible] = useState<boolean>(!gameState?.winner ? false : true);
   const [startBonusPlayer, setStartBonusPlayer] = useState<string | null>(null);
+  const [chanceToast, setChanceToast] = useState<{ title: string; description: string; icon: string } | null>(null);
+  const lastChanceTimestampRef = useRef<number>(0);
 
   const prevPlayersRef = useRef<MonopolyPlayerState[]>([]);
   const pendingBankruptcyRef = useRef<{
@@ -1451,11 +1522,11 @@ export function MonopolyBoard({
               const nextPos = (currentPos + step) % 32;
               setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: nextPos }));
 
-              // Crossing START gives +300 on this exact step
+              // Crossing START gives +250 on this exact step
               if (nextPos === 0) {
                 setDisplayedBalances((prev) => ({
                   ...prev,
-                  [p.playerId]: (prev[p.playerId] ?? (p.balance - 300)) + 300,
+                  [p.playerId]: (prev[p.playerId] ?? (p.balance - 250)) + 250,
                 }));
                 setStartBonusPlayer(p.username);
                 const bonusTimer = setTimeout(() => setStartBonusPlayer(null), 2200);
@@ -1554,6 +1625,22 @@ export function MonopolyBoard({
     }
   }, [players, gameState?.lastDice, gameState?.rollCount, winner]);
 
+  // Listen to Chance Card Trigger Events and display Floating Toast Banner
+  useEffect(() => {
+    if (gameState?.lastChanceEvent && gameState.lastChanceEvent.timestamp !== lastChanceTimestampRef.current) {
+      lastChanceTimestampRef.current = gameState.lastChanceEvent.timestamp;
+      setChanceToast({
+        title: gameState.lastChanceEvent.title,
+        description: gameState.lastChanceEvent.description,
+        icon: gameState.lastChanceEvent.icon,
+      });
+      const timer = setTimeout(() => {
+        setChanceToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState?.lastChanceEvent]);
+
   const getOwnerColor = useCallback(
     (spaceIndex: number): string | null => {
       for (const p of players) {
@@ -1604,6 +1691,60 @@ export function MonopolyBoard({
     Boolean(myPlayer) &&
     turnPhase === 'world_cup' &&
     (myPlayer?.ownedProperties.length ?? 0) > 0;
+
+  // Check if Chance Target selection phase is active for current user
+  const isChanceTargetSelectionActive =
+    !winner &&
+    !isWinnerVisible &&
+    !bankruptModalPlayer &&
+    !isAnyMoving &&
+    hasMovementSettled &&
+    isMyTurn &&
+    Boolean(myPlayer) &&
+    turnPhase === 'chance_target' &&
+    Boolean(gameState?.pendingChanceTarget);
+
+  const pendingChanceTarget = gameState?.pendingChanceTarget;
+
+  const isSpaceValidChanceTarget = useCallback(
+    (spaceIndex: number): boolean => {
+      if (!isChanceTargetSelectionActive || !pendingChanceTarget) return false;
+      const space = MONOPOLY_BOARD[spaceIndex];
+      if (!space || (space.type !== 'property' && space.type !== 'beach')) return false;
+
+      const shielded = gameState?.shieldedSpaces || [];
+      const blackout = gameState?.blackoutSpaces || [];
+
+      if (pendingChanceTarget.type === 'shield') {
+        return Boolean(myPlayer?.ownedProperties?.includes(spaceIndex) && !shielded.includes(spaceIndex));
+      }
+
+      // Demolish, Blackout, Downgrade: Must be opponent unshielded property
+      const isOpponentProp = players.some(
+        (p) => p.isActive && p.playerId !== playerId && p.ownedProperties.includes(spaceIndex)
+      );
+      if (!isOpponentProp || shielded.includes(spaceIndex)) return false;
+
+      if (pendingChanceTarget.type === 'blackout') {
+        return !blackout.includes(spaceIndex);
+      }
+      if (pendingChanceTarget.type === 'downgrade') {
+        const owner = players.find((p) => p.isActive && p.ownedProperties.includes(spaceIndex));
+        return (owner?.houseLevels?.[spaceIndex] ?? 0) > 0;
+      }
+
+      return true; // demolish
+    },
+    [
+      isChanceTargetSelectionActive,
+      pendingChanceTarget,
+      gameState?.shieldedSpaces,
+      gameState?.blackoutSpaces,
+      myPlayer,
+      players,
+      playerId,
+    ]
+  );
 
   // Actions/Modals can only show once movement has 100% completed and settled
   const canShowActions =
@@ -1677,6 +1818,12 @@ export function MonopolyBoard({
                   isWorldCupSelectionActive={isWorldCupSelectionActive}
                   isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
                   onHostWorldCup={onHostWorldCup}
+                  isShielded={gameState?.shieldedSpaces?.includes(idx)}
+                  isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  isChanceTargetActive={isChanceTargetSelectionActive}
+                  isValidChanceTarget={isSpaceValidChanceTarget(idx)}
+                  onSelectChanceTarget={onSelectChanceTarget}
+                  blackoutSpaces={gameState?.blackoutSpaces}
                 />
               </div>
             ))}
@@ -1698,6 +1845,12 @@ export function MonopolyBoard({
                   isWorldCupSelectionActive={isWorldCupSelectionActive}
                   isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
                   onHostWorldCup={onHostWorldCup}
+                  isShielded={gameState?.shieldedSpaces?.includes(idx)}
+                  isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  isChanceTargetActive={isChanceTargetSelectionActive}
+                  isValidChanceTarget={isSpaceValidChanceTarget(idx)}
+                  onSelectChanceTarget={onSelectChanceTarget}
+                  blackoutSpaces={gameState?.blackoutSpaces}
                 />
               </div>
             ))}
@@ -1719,6 +1872,12 @@ export function MonopolyBoard({
                   isWorldCupSelectionActive={isWorldCupSelectionActive}
                   isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
                   onHostWorldCup={onHostWorldCup}
+                  isShielded={gameState?.shieldedSpaces?.includes(idx)}
+                  isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  isChanceTargetActive={isChanceTargetSelectionActive}
+                  isValidChanceTarget={isSpaceValidChanceTarget(idx)}
+                  onSelectChanceTarget={onSelectChanceTarget}
+                  blackoutSpaces={gameState?.blackoutSpaces}
                 />
               </div>
             ))}
@@ -1741,6 +1900,12 @@ export function MonopolyBoard({
                   isWorldCupSelectionActive={isWorldCupSelectionActive}
                   isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
                   onHostWorldCup={onHostWorldCup}
+                  isShielded={gameState?.shieldedSpaces?.includes(idx)}
+                  isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  isChanceTargetActive={isChanceTargetSelectionActive}
+                  isValidChanceTarget={isSpaceValidChanceTarget(idx)}
+                  onSelectChanceTarget={onSelectChanceTarget}
+                  blackoutSpaces={gameState?.blackoutSpaces}
                 />
               </div>
             ))}
@@ -1770,8 +1935,26 @@ export function MonopolyBoard({
                     className="z-30 px-4 py-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-slate-950 font-black rounded-full text-xs sm:text-sm shadow-2xl border-2 border-emerald-200 animate-bounce flex items-center gap-1.5 pointer-events-none"
                   >
                     <span>🚩</span>
-                    <span>{startBonusPlayer} passed START: +$300 Salary!</span>
+                    <span>{startBonusPlayer} passed START: +$250 Salary!</span>
                     <span>💰</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Chance Event Floating Toast Banner (Like Pass START) */}
+              <AnimatePresence>
+                {chanceToast && (
+                  <motion.div
+                    initial={{ scale: 0.5, y: 15, opacity: 0 }}
+                    animate={{ scale: 1.05, y: 0, opacity: 1 }}
+                    exit={{ scale: 0.8, y: -15, opacity: 0 }}
+                    className="z-30 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-black rounded-2xl text-xs sm:text-sm shadow-2xl border-2 border-purple-300 animate-bounce flex items-center gap-2.5 pointer-events-none text-center max-w-[320px]"
+                  >
+                    <span className="text-xl sm:text-2xl flex-shrink-0">{chanceToast.icon}</span>
+                    <div className="flex flex-col text-left leading-tight">
+                      <span className="text-amber-300 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider">{chanceToast.title}</span>
+                      <span className="text-white text-xs sm:text-sm font-black">{chanceToast.description}</span>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1812,6 +1995,34 @@ export function MonopolyBoard({
 
               {/* ── CENTER BOARD ACTION CONTROLS ───────────────── */}
 
+              {/* Chance Target Selection Banner (In Center Box) */}
+              {isChanceTargetSelectionActive && pendingChanceTarget && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="z-20 bg-slate-950/95 border-2 border-purple-400 p-3.5 rounded-2xl shadow-2xl text-center space-y-1.5 max-w-[300px] w-full select-none"
+                >
+                  <div className="flex items-center justify-center gap-1.5 text-purple-400 font-black text-xs sm:text-sm tracking-wider">
+                    <span className="text-lg animate-bounce">
+                      {pendingChanceTarget.type === 'demolish'
+                        ? '💣'
+                        : pendingChanceTarget.type === 'blackout'
+                        ? '⚡'
+                        : pendingChanceTarget.type === 'downgrade'
+                        ? '🔨'
+                        : '🛡️'}
+                    </span>
+                    <span>{pendingChanceTarget.title}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-200 font-medium leading-tight">
+                    {pendingChanceTarget.description}
+                  </p>
+                  <div className="text-[10px] text-purple-300 font-mono font-bold bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-500/40">
+                    🎯 Click a highlighted city on the board to apply!
+                  </div>
+                </motion.div>
+              )}
+
               {/* World Cup Host Selection Banner (In Center Box) */}
               {isWorldCupSelectionActive && (
                 <motion.div
@@ -1847,22 +2058,30 @@ export function MonopolyBoard({
                     Click any highlighted city or beach on the board to travel!
                   </p>
                   <div className="text-[10px] text-amber-300 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/40">
-                    💰 Passing START earns +$300 salary
+                    💰 Passing START earns +$250 salary
                   </div>
                 </motion.div>
               )}
 
               {/* 1. ROLL DICE BUTTON (In Center Box) */}
-              {!winner && !bankruptModalPlayer && !isWinnerVisible && !isAnyMoving && turnPhase === 'roll' && isMyTurn && !isWorldTourActive && !isWorldCupSelectionActive && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onRollDice}
-                  className="px-8 py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl hover:shadow-amber-400/50 cursor-pointer transition-all tracking-wider z-20 border-2 border-yellow-200 ring-4 ring-amber-400/20"
-                >
-                  🎲 ROLL DICE
-                </motion.button>
-              )}
+              {!winner &&
+                !bankruptModalPlayer &&
+                !isWinnerVisible &&
+                !isAnyMoving &&
+                turnPhase === 'roll' &&
+                isMyTurn &&
+                !isWorldTourActive &&
+                !isWorldCupSelectionActive &&
+                !isChanceTargetSelectionActive && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onRollDice}
+                    className="px-8 py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl hover:shadow-amber-400/50 cursor-pointer transition-all tracking-wider z-20 border-2 border-yellow-200 ring-4 ring-amber-400/20"
+                  >
+                    🎲 ROLL DICE
+                  </motion.button>
+                )}
 
               {/* 2. BUY PROPERTY CARD (In Center Box) */}
               {canShowActions && turnPhase === 'action' && buyOffer && (

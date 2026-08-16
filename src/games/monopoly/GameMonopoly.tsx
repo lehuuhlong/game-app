@@ -49,6 +49,7 @@ export function GameMonopoly() {
     dismissMonopolyCelebration,
     worldTourTravel,
     hostWorldCup,
+    selectChanceTarget,
     joinError: hookJoinError,
   } = useMonopoly(user?.username || '');
 
@@ -320,6 +321,7 @@ export function GameMonopoly() {
                 onDismissCelebration={dismissMonopolyCelebration}
                 onWorldTourTravel={worldTourTravel}
                 onHostWorldCup={hostWorldCup}
+                onSelectChanceTarget={selectChanceTarget}
               />
             </motion.div>
           )}

@@ -141,7 +141,7 @@ export interface MonopolyPlayerState {
   username: string;
   tokenColor: MonopolyTokenColor;
   position: number;          // 0-31
-  balance: number;           // starts $3000
+  balance: number;           // starts $2500
   ownedProperties: number[]; // space indices
   houseLevels: Record<number, number>; // spaceIndex → level (0-4)
   visitCounts: Record<number, number>; // spaceIndex → number of times landed on own property
@@ -165,16 +165,33 @@ export interface MonopolyPendingDebt {
   type: "rent" | "tax" | "fine" | "bail";
 }
 
+export interface MonopolyChanceTarget {
+  type: "demolish" | "downgrade" | "blackout" | "shield";
+  title: string;
+  description: string;
+}
+
+export interface MonopolyChanceEvent {
+  title: string;
+  description: string;
+  icon: string;
+  timestamp: number;
+}
+
 export interface MonopolyGameState {
   players: MonopolyPlayerState[];
   currentTurnPlayerId: string;
-  turnPhase: "roll" | "action" | "debt" | "world_tour" | "world_cup" | "end";
+  turnPhase: "roll" | "action" | "debt" | "world_tour" | "world_cup" | "chance_target" | "end";
   lastDice: [number, number] | null;
   rollCount?: number;
   eventLog: MonopolyEventLog[];
   winner: string | null;
   pendingDebt?: MonopolyPendingDebt | null;
   worldCupSpaceIndex?: number | null;
+  blackoutSpaces?: number[];
+  shieldedSpaces?: number[];
+  pendingChanceTarget?: MonopolyChanceTarget | null;
+  lastChanceEvent?: MonopolyChanceEvent | null;
 }
 
 
@@ -216,6 +233,7 @@ export interface ClientToServerEvents {
   mp_declare_bankruptcy: (data: { roomId: string }) => void;
   mp_world_tour_travel: (data: { roomId: string; targetSpaceIndex: number }) => void;
   mp_host_world_cup: (data: { roomId: string; spaceIndex: number }) => void;
+  mp_chance_select_target: (data: { roomId: string; targetSpaceIndex: number }) => void;
 }
 
 /** Events the server can emit to clients */

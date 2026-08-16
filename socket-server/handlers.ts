@@ -205,7 +205,7 @@ function broadcastBSGameState(roomId: string, io: GameIO) {
 // ── Monopoly helpers ──────────────────────────────────────────────
 
 const MONOPOLY_TOKEN_COLORS: MonopolyTokenColor[] = ["red", "blue", "green", "yellow"];
-const MONOPOLY_STARTING_BALANCE = 3000;
+const MONOPOLY_STARTING_BALANCE = 2500;
 const MONOPOLY_MIN_PLAYERS = 2;
 const MONOPOLY_MAX_PLAYERS = 4;
 
@@ -236,6 +236,10 @@ function createInitialMonopolyState(
     rollCount: 0,
     pendingDebt: null,
     worldCupSpaceIndex: null,
+    blackoutSpaces: [] as number[],
+    shieldedSpaces: [] as number[],
+    pendingChanceTarget: null,
+    lastChanceEvent: null,
     winner: null,
     eventLog: [
       { message: "🎩 Monopoly game started! Good luck!", timestamp: Date.now() },
@@ -335,17 +339,23 @@ function calculateRent(
   );
   if (!owner) return 0;
 
+  // Blackout rule: If property has power cut, rent is $0!
+  if (state.blackoutSpaces && state.blackoutSpaces.includes(spaceIndex)) {
+    return 0;
+  }
+
   let baseRentAmount = 0;
 
   if (space.type === "beach") {
-    // $25 base, doubles for each beach resort owned
+    // Scaling beach resort rent: 1=$50, 2=$120, 3=$250, 4=$500
     const beachIndices = MONOPOLY_BOARD
       .filter((s) => s.type === "beach")
       .map((s) => s.index);
     const ownedCount = beachIndices.filter((i) =>
       owner.ownedProperties.includes(i)
     ).length;
-    baseRentAmount = 25 * Math.pow(2, Math.max(0, ownedCount - 1));
+    const BEACH_RENT_SCALE = [50, 120, 250, 500];
+    baseRentAmount = BEACH_RENT_SCALE[Math.min(ownedCount, BEACH_RENT_SCALE.length) - 1] ?? 50;
   } else {
     // Regular property — check house level for scaled rent
     const houseLevel = owner.houseLevels[spaceIndex] ?? 0;
@@ -570,25 +580,214 @@ function resolveSpace(
     }
   }
 
-  // Chance — random $$ event
+  // Chance space
   if (space.type === "chance") {
-    const events = [
-      { message: "Bank pays you dividend of $100", amount: 100 },
-      { message: "Doctor's fees — pay $100", amount: -100 },
-      { message: "You won a crossword competition — collect $200", amount: 200 },
-      { message: "Pay hospital fees of $200", amount: -200 },
-      { message: "Income tax refund — collect $90", amount: 90 },
-      { message: "Pay school fees of $100", amount: -100 },
-      { message: "Receive $50 consultancy fee", amount: 50 },
-      { message: "You are assessed for street repairs — pay $80", amount: -80 },
-      { message: "You have won second prize in a beauty contest — collect $200", amount: 200 },
-      { message: "Life insurance matures — collect $200", amount: 200 },
-    ];
-    const event = events[Math.floor(Math.random() * events.length)];
-    mpLog(state, `❓ ${player.username}: ${event.message}`);
+    if (!state.shieldedSpaces) state.shieldedSpaces = [];
+    if (!state.blackoutSpaces) state.blackoutSpaces = [];
 
-    if (event.amount < 0) {
-      const penalty = Math.abs(event.amount);
+    const chanceCardTypes = [
+      "demolish",
+      "blackout",
+      "downgrade",
+      "shield",
+      "flight",
+      "jail",
+      "dividend",
+      "lottery",
+      "inheritance",
+      "consultancy",
+      "medical",
+      "speeding",
+      "renovation",
+    ];
+
+    const chosenCard = chanceCardTypes[Math.floor(Math.random() * chanceCardTypes.length)];
+    const opponents = state.players.filter((p) => p.isActive && p.playerId !== player.playerId);
+
+    if (chosenCard === "demolish") {
+      const targetable = opponents
+        .flatMap((p) => p.ownedProperties)
+        .filter((idx) => !state.shieldedSpaces?.includes(idx));
+
+      if (targetable.length > 0) {
+        state.turnPhase = "chance_target";
+        state.pendingChanceTarget = {
+          type: "demolish",
+          title: "💣 DEMOLISH CITY",
+          description: "Click an opponent's highlighted city on the board to demolish it!",
+        };
+        state.lastChanceEvent = {
+          title: "💣 DEMOLISH CARD!",
+          description: `${player.username} drew Demolish City card!`,
+          icon: "💣",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓💣 ${player.username} drew Demolish City card! Choosing a target...`);
+        return false;
+      } else {
+        player.balance += 200;
+        state.lastChanceEvent = {
+          title: "💣 DEMOLISH BONUS",
+          description: `No opponent cities to demolish — collected $200 bonus!`,
+          icon: "💰",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓💣 ${player.username} drew Demolish City card (No valid targets — received $200 bonus).`);
+        return false;
+      }
+    }
+
+    if (chosenCard === "blackout") {
+      const targetable = opponents
+        .flatMap((p) => p.ownedProperties)
+        .filter((idx) => !state.shieldedSpaces?.includes(idx) && !state.blackoutSpaces?.includes(idx));
+
+      if (targetable.length > 0) {
+        state.turnPhase = "chance_target";
+        state.pendingChanceTarget = {
+          type: "blackout",
+          title: "⚡ CITY BLACKOUT",
+          description: "Click an opponent's city to cut power (Rent becomes $0)!",
+        };
+        state.lastChanceEvent = {
+          title: "⚡ BLACKOUT CARD!",
+          description: `${player.username} drew City Blackout card!`,
+          icon: "⚡",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓⚡ ${player.username} drew City Blackout card! Choosing a target...`);
+        return false;
+      } else {
+        player.balance += 150;
+        state.lastChanceEvent = {
+          title: "⚡ BLACKOUT BONUS",
+          description: `No opponent cities for blackout — collected $150 bonus!`,
+          icon: "💰",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓⚡ ${player.username} drew City Blackout card (No valid targets — received $150 bonus).`);
+        return false;
+      }
+    }
+
+    if (chosenCard === "downgrade") {
+      const targetable = opponents
+        .flatMap((p) => p.ownedProperties)
+        .filter((idx) => {
+          const owner = opponents.find((o) => o.ownedProperties.includes(idx));
+          const lvl = owner?.houseLevels[idx] ?? 0;
+          return lvl > 0 && !state.shieldedSpaces?.includes(idx);
+        });
+
+      if (targetable.length > 0) {
+        state.turnPhase = "chance_target";
+        state.pendingChanceTarget = {
+          type: "downgrade",
+          title: "🔨 DOWNGRADE BUILDING",
+          description: "Click an opponent's city with houses to downgrade by 1 level!",
+        };
+        state.lastChanceEvent = {
+          title: "🔨 DOWNGRADE CARD!",
+          description: `${player.username} drew Downgrade Building card!`,
+          icon: "🔨",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓🔨 ${player.username} drew Downgrade Building card! Choosing a target...`);
+        return false;
+      } else {
+        player.balance += 150;
+        state.lastChanceEvent = {
+          title: "🔨 DOWNGRADE BONUS",
+          description: `No opponent buildings to downgrade — collected $150 bonus!`,
+          icon: "💰",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓🔨 ${player.username} drew Downgrade Building card (No valid targets — received $150 bonus).`);
+        return false;
+      }
+    }
+
+    if (chosenCard === "shield") {
+      const targetable = player.ownedProperties.filter((idx) => !state.shieldedSpaces?.includes(idx));
+
+      if (targetable.length > 0) {
+        state.turnPhase = "chance_target";
+        state.pendingChanceTarget = {
+          type: "shield",
+          title: "🛡️ ASSET SHIELD",
+          description: "Click 1 of your cities to protect with an Energy Shield!",
+        };
+        state.lastChanceEvent = {
+          title: "🛡️ ASSET SHIELD CARD!",
+          description: `${player.username} drew Asset Shield card!`,
+          icon: "🛡️",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓🛡️ ${player.username} drew Asset Shield card! Choosing a city to protect...`);
+        return false;
+      } else {
+        player.balance += 200;
+        state.lastChanceEvent = {
+          title: "🛡️ SHIELD BONUS",
+          description: `No owned cities to shield — collected $200 bonus!`,
+          icon: "💰",
+          timestamp: Date.now(),
+        };
+        mpLog(state, `❓🛡️ ${player.username} drew Asset Shield card (No owned cities — received $200 bonus).`);
+        return false;
+      }
+    }
+
+    if (chosenCard === "flight") {
+      player.position = 24; // World Tour
+      state.turnPhase = "world_tour";
+      state.lastChanceEvent = {
+        title: "✈️ FREE FLIGHT TICKET!",
+        description: `${player.username} got a Free World Tour Flight ticket!`,
+        icon: "✈️",
+        timestamp: Date.now(),
+      };
+      mpLog(state, `❓✈️ ${player.username} drew Free Flight Ticket — warped to World Tour!`);
+      return false;
+    }
+
+    if (chosenCard === "jail") {
+      player.position = 8;
+      player.inJail = true;
+      player.jailTurns = 0;
+      player.doublesCount = 0;
+      state.lastChanceEvent = {
+        title: "🏝️ LOST AT SEA!",
+        description: `A sudden typhoon swept ${player.username} to Lost Island!`,
+        icon: "🏝️",
+        timestamp: Date.now(),
+      };
+      mpLog(state, `❓🏝️ ${player.username} drew Lost at Sea — sent to Lost Island!`);
+      return false;
+    }
+
+    // Cash events
+    const cashEventsMap: Record<string, { title: string; desc: string; icon: string; amount: number }> = {
+      dividend: { title: "💰 TECH STOCK DIVIDEND", desc: "Overseas tech stocks skyrocketed! Collect $200", icon: "💰", amount: 200 },
+      lottery: { title: "🏆 GRAND LOTTERY", desc: "Won the mega lottery jackpot! Collect $300", icon: "🏆", amount: 300 },
+      inheritance: { title: "🎁 FAMILY INHERITANCE", desc: "Received an inheritance from abroad! Collect $250", icon: "🎁", amount: 250 },
+      consultancy: { title: "💼 CONSULTANCY DEAL", desc: "Signed a corporate advising contract! Collect $150", icon: "💼", amount: 150 },
+      medical: { title: "🏥 MEDICAL & CLINIC BILLS", desc: "Emergency dental and health checkup fees. Pay $150", icon: "🏥", amount: -150 },
+      speeding: { title: "🚗 SPEEDING TICKET", desc: "Caught speeding in a sports car. Pay $100", icon: "🚗", amount: -100 },
+      renovation: { title: "🛠️ CITY RENOVATION TAX", desc: "Municipal street & infrastructure fee. Pay $120", icon: "🛠️", amount: -120 },
+    };
+
+    const cashEv = cashEventsMap[chosenCard] || { title: "💰 SURPRISE BONUS", desc: "Collect $100", icon: "💰", amount: 100 };
+    state.lastChanceEvent = {
+      title: cashEv.title,
+      description: cashEv.desc,
+      icon: cashEv.icon,
+      timestamp: Date.now(),
+    };
+    mpLog(state, `❓ ${player.username}: ${cashEv.title} — ${cashEv.desc}`);
+
+    if (cashEv.amount < 0) {
+      const penalty = Math.abs(cashEv.amount);
       if (player.balance < penalty) {
         const totalAssetValue = player.ownedProperties.reduce((sum, idx) => {
           const sp = MONOPOLY_BOARD[idx];
@@ -602,7 +801,7 @@ function resolveSpace(
             amount: penalty,
             creditorId: null,
             creditorName: "Bank",
-            spaceName: space.name,
+            spaceName: "Chance Card Fine",
             type: "fine",
           };
           mpLog(state, `⚠️ ${player.username} owes $${penalty} for fine (has $${player.balance}). Sell properties to pay!`);
@@ -619,7 +818,7 @@ function resolveSpace(
         player.balance -= penalty;
       }
     } else {
-      player.balance += event.amount;
+      player.balance += cashEv.amount;
     }
     return false;
   }
@@ -674,6 +873,18 @@ function resolveSpace(
     }
 
     if (owner && owner.playerId === player.playerId) {
+      // Landing on own property — restore power if in blackout
+      if (state.blackoutSpaces && state.blackoutSpaces.includes(player.position)) {
+        state.blackoutSpaces = state.blackoutSpaces.filter((idx) => idx !== player.position);
+        mpLog(state, `💡 Power restored in ${space.name}! Rent is active again.`);
+        state.lastChanceEvent = {
+          title: "💡 POWER RESTORED!",
+          description: `${player.username} visited ${space.name} — power restored!`,
+          icon: "💡",
+          timestamp: Date.now(),
+        };
+      }
+
       // Landing on own property — offer upgrade if possible
       const currentLevel = owner.houseLevels[player.position] ?? 0;
       if (space.type === "property" && currentLevel < 4 && space.rentScale) {
@@ -920,13 +1131,13 @@ export function registerSocketHandlers(io: GameIO): void {
         } else {
           mpPlayer.jailTurns++;
           if (mpPlayer.jailTurns >= 3) {
-            // Must pay $50 bail after 3 failed turns
-            if (mpPlayer.balance >= 50) {
-              mpPlayer.balance -= 50;
+            // Must pay $100 bail after 3 failed turns
+            if (mpPlayer.balance >= 100) {
+              mpPlayer.balance -= 100;
               mpPlayer.inJail = false;
               mpPlayer.jailTurns = 0;
               mpPlayer.doublesCount = 0;
-              mpLog(state, `💵 ${mpPlayer.username} paid $50 bail after 3 turns on Lost Island.`);
+              mpLog(state, `💵 ${mpPlayer.username} paid $100 bail after 3 turns on Lost Island.`);
             } else {
               const totalAssetValue = mpPlayer.ownedProperties.reduce((sum, idx) => {
                 const sp = MONOPOLY_BOARD[idx];
@@ -934,19 +1145,19 @@ export function registerSocketHandlers(io: GameIO): void {
                 return sum + getSaleValue(sp?.price ?? 0, hl);
               }, 0);
 
-              if (mpPlayer.balance + totalAssetValue >= 50) {
+              if (mpPlayer.balance + totalAssetValue >= 100) {
                 mpPlayer.inJail = false;
                 mpPlayer.jailTurns = 0;
                 mpPlayer.doublesCount = 0;
                 state.turnPhase = "debt";
                 state.pendingDebt = {
-                  amount: 50,
+                  amount: 100,
                   creditorId: null,
                   creditorName: "Bank",
                   spaceName: "Lost Island Bail",
                   type: "fine",
                 };
-                mpLog(state, `⚠️ ${mpPlayer.username} owes $50 bail on Lost Island (has $${mpPlayer.balance}). Sell properties to pay!`);
+                mpLog(state, `⚠️ ${mpPlayer.username} owes $100 bail on Lost Island (has $${mpPlayer.balance}). Sell properties to pay!`);
                 io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
                 return;
               } else {
@@ -954,7 +1165,7 @@ export function registerSocketHandlers(io: GameIO): void {
                 mpPlayer.isActive = false;
                 mpPlayer.ownedProperties = [];
                 mpPlayer.houseLevels = {};
-                mpLog(state, `💀 ${mpPlayer.username} cannot afford $50 bail on Lost Island and went bankrupt!`);
+                mpLog(state, `💀 ${mpPlayer.username} cannot afford $100 bail on Lost Island and went bankrupt!`);
                 advanceMonopolyTurn(state, player.id, room, io, roomId);
                 return;
               }
@@ -988,13 +1199,13 @@ export function registerSocketHandlers(io: GameIO): void {
       const oldPosition = mpPlayer.position;
       mpPlayer.position = (mpPlayer.position + diceTotal) % MONOPOLY_BOARD.length;
 
-      // Check if passed or landed on GO
+      // Check if passed or landed on START
       if (mpPlayer.position < oldPosition && mpPlayer.position !== 0) {
-        mpPlayer.balance += 300;
-        mpLog(state, `💵 ${mpPlayer.username} passed GO — collected $300!`);
+        mpPlayer.balance += 250;
+        mpLog(state, `💵 ${mpPlayer.username} passed START — collected $250!`);
       } else if (mpPlayer.position === 0 && oldPosition !== 0) {
-        mpPlayer.balance += 300;
-        mpLog(state, `💵 ${mpPlayer.username} landed on GO — collected $300!`);
+        mpPlayer.balance += 250;
+        mpLog(state, `💵 ${mpPlayer.username} landed on START — collected $250!`);
       }
 
       const landedSpace = MONOPOLY_BOARD[mpPlayer.position];
@@ -1509,8 +1720,8 @@ export function registerSocketHandlers(io: GameIO): void {
       // Clockwise flight path: from 24 to targetSpaceIndex
       // If targetSpaceIndex < 24 (e.g. spaces 1..23), player travels clockwise past START (0)
       if (targetSpaceIndex < 24) {
-        mpPlayer.balance += 300;
-        mpLog(state, `💵 ${mpPlayer.username} passed START during World Tour flight — collected $300!`);
+        mpPlayer.balance += 250;
+        mpLog(state, `💵 ${mpPlayer.username} passed START during World Tour flight — collected $250!`);
       }
 
       mpPlayer.position = targetSpaceIndex;
@@ -1641,6 +1852,142 @@ export function registerSocketHandlers(io: GameIO): void {
       );
 
       // Check if player rolled doubles before landing on World Cup
+      const lastDice = state.lastDice;
+      const isDoubles = lastDice && lastDice[0] === lastDice[1];
+      if (isDoubles && !mpPlayer.inJail && (mpPlayer.doublesCount || 0) < 3) {
+        state.turnPhase = "roll";
+        mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+      } else {
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
+      }
+    });
+
+    // ── Chance: select a target property on the board ──────────────
+    socket.on("mp_chance_select_target", ({ roomId, targetSpaceIndex }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      if (player.id !== state.currentTurnPlayerId || state.turnPhase !== "chance_target" || !state.pendingChanceTarget) {
+        socket.emit("error", { message: "Cannot select chance target right now." });
+        return;
+      }
+
+      const targetSpace = MONOPOLY_BOARD[targetSpaceIndex];
+      if (!targetSpace) return;
+
+      const chanceType = state.pendingChanceTarget.type;
+      if (!state.shieldedSpaces) state.shieldedSpaces = [];
+      if (!state.blackoutSpaces) state.blackoutSpaces = [];
+
+      if (chanceType === "shield") {
+        // Must be player's own property
+        if (!mpPlayer.ownedProperties.includes(targetSpaceIndex)) {
+          socket.emit("error", { message: "You can only shield your own property." });
+          return;
+        }
+        if (!state.shieldedSpaces.includes(targetSpaceIndex)) {
+          state.shieldedSpaces.push(targetSpaceIndex);
+        }
+        mpLog(state, `🛡️ ${mpPlayer.username} activated Asset Shield on ${targetSpace.name}! It is now immune to attacks.`);
+        state.lastChanceEvent = {
+          title: "🛡️ ASSET SHIELDED!",
+          description: `${mpPlayer.username} protected ${targetSpace.name} with Energy Shield!`,
+          icon: "🛡️",
+          timestamp: Date.now(),
+        };
+      } else if (chanceType === "demolish") {
+        // Must be opponent property and not shielded
+        const opponent = state.players.find(
+          (p) => p.isActive && p.playerId !== mpPlayer.playerId && p.ownedProperties.includes(targetSpaceIndex)
+        );
+        if (!opponent) {
+          socket.emit("error", { message: "Must select an opponent property to demolish." });
+          return;
+        }
+        if (state.shieldedSpaces.includes(targetSpaceIndex)) {
+          socket.emit("error", { message: "This property is protected by Shield and cannot be demolished!" });
+          return;
+        }
+
+        // Demolish property
+        opponent.ownedProperties = opponent.ownedProperties.filter((idx) => idx !== targetSpaceIndex);
+        delete opponent.houseLevels[targetSpaceIndex];
+        if (opponent.visitCounts) delete opponent.visitCounts[targetSpaceIndex];
+        if (targetSpace.colorGroup && opponent.celebratedMonopolies) {
+          opponent.celebratedMonopolies = opponent.celebratedMonopolies.filter((g) => g !== targetSpace.colorGroup);
+        }
+        if (state.worldCupSpaceIndex === targetSpaceIndex) {
+          state.worldCupSpaceIndex = null;
+        }
+        state.blackoutSpaces = state.blackoutSpaces.filter((idx) => idx !== targetSpaceIndex);
+
+        mpLog(state, `💣 ${mpPlayer.username} demolished ${opponent.username}'s ${targetSpace.name}! Property returned to Bank.`);
+        state.lastChanceEvent = {
+          title: "💣 CITY DEMOLISHED!",
+          description: `${mpPlayer.username} demolished ${opponent.username}'s ${targetSpace.name}!`,
+          icon: "💣",
+          timestamp: Date.now(),
+        };
+      } else if (chanceType === "blackout") {
+        const opponent = state.players.find(
+          (p) => p.isActive && p.playerId !== mpPlayer.playerId && p.ownedProperties.includes(targetSpaceIndex)
+        );
+        if (!opponent) {
+          socket.emit("error", { message: "Must select an opponent property." });
+          return;
+        }
+        if (state.shieldedSpaces.includes(targetSpaceIndex)) {
+          socket.emit("error", { message: "This property is protected by Shield and immune to Blackout!" });
+          return;
+        }
+        if (!state.blackoutSpaces.includes(targetSpaceIndex)) {
+          state.blackoutSpaces.push(targetSpaceIndex);
+        }
+        mpLog(state, `⚡ ${mpPlayer.username} caused a Blackout in ${opponent.username}'s ${targetSpace.name}! Rent is now $0.`);
+        state.lastChanceEvent = {
+          title: "⚡ BLACKOUT TRIGGERED!",
+          description: `Power cut in ${targetSpace.name} (Rent = $0)!`,
+          icon: "⚡",
+          timestamp: Date.now(),
+        };
+      } else if (chanceType === "downgrade") {
+        const opponent = state.players.find(
+          (p) => p.isActive && p.playerId !== mpPlayer.playerId && p.ownedProperties.includes(targetSpaceIndex)
+        );
+        if (!opponent) {
+          socket.emit("error", { message: "Must select an opponent property." });
+          return;
+        }
+        if (state.shieldedSpaces.includes(targetSpaceIndex)) {
+          socket.emit("error", { message: "This property is protected by Shield!" });
+          return;
+        }
+        const currentLvl = opponent.houseLevels[targetSpaceIndex] ?? 0;
+        if (currentLvl <= 0) {
+          socket.emit("error", { message: "This property has no houses to downgrade." });
+          return;
+        }
+        opponent.houseLevels[targetSpaceIndex] = currentLvl - 1;
+        mpLog(state, `🔨 ${mpPlayer.username} downgraded ${opponent.username}'s ${targetSpace.name} from Lv.${currentLvl} to Lv.${currentLvl - 1}.`);
+        state.lastChanceEvent = {
+          title: "🔨 BUILDING DOWNGRADED!",
+          description: `${targetSpace.name} downgraded to Lv.${currentLvl - 1}!`,
+          icon: "🔨",
+          timestamp: Date.now(),
+        };
+      }
+
+      state.pendingChanceTarget = null;
+
+      // Check if player rolled doubles
       const lastDice = state.lastDice;
       const isDoubles = lastDice && lastDice[0] === lastDice[1];
       if (isDoubles && !mpPlayer.inJail && (mpPlayer.doublesCount || 0) < 3) {
