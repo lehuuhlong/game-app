@@ -904,7 +904,6 @@ function DiceDisplay({
 
 function AnimatedBalanceDisplay({
   balance,
-  isMoving = false,
   className = '',
 }: {
   balance: number;
@@ -915,10 +914,8 @@ function AnimatedBalanceDisplay({
   const [delta, setDelta] = useState<{ id: number; amount: number } | null>(null);
   const prevBalanceRef = useRef(balance);
 
-  // Trigger popup when balance changes (if player is moving, waits until move completes)
+  // Trigger popup when displayed balance changes (e.g. stepping on START or settling on tile)
   useEffect(() => {
-    if (isMoving) return;
-
     if (prevBalanceRef.current !== balance) {
       const diff = balance - prevBalanceRef.current;
       prevBalanceRef.current = balance;
@@ -930,7 +927,7 @@ function AnimatedBalanceDisplay({
         return () => clearTimeout(timer);
       }
     }
-  }, [balance, isMoving]);
+  }, [balance]);
 
   return (
     <div className="relative inline-flex items-center">
@@ -1227,6 +1224,7 @@ export function MonopolyBoard({
     tokenColor: MonopolyTokenColor;
   } | null>(null);
   const [isWinnerVisible, setIsWinnerVisible] = useState<boolean>(!gameState?.winner ? false : true);
+  const [startBonusPlayer, setStartBonusPlayer] = useState<string | null>(null);
 
   const prevPlayersRef = useRef<MonopolyPlayerState[]>([]);
   const pendingBankruptcyRef = useRef<{
@@ -1364,8 +1362,11 @@ export function MonopolyBoard({
               if (nextPos === 0) {
                 setDisplayedBalances((prev) => ({
                   ...prev,
-                  [p.playerId]: (prev[p.playerId] ?? p.balance) + 300,
+                  [p.playerId]: (prev[p.playerId] ?? (p.balance - 300)) + 300,
                 }));
+                setStartBonusPlayer(p.username);
+                const bonusTimer = setTimeout(() => setStartBonusPlayer(null), 2200);
+                moveTimersRef.current.push(bonusTimer);
               }
 
               if (step === stepsToMove) {
@@ -1637,6 +1638,22 @@ export function MonopolyBoard({
 
               {/* Dice Display */}
               <DiceDisplay dice={lastDice} isRolling={isRollingDice} />
+
+              {/* Start Bonus Salary Banner */}
+              <AnimatePresence>
+                {startBonusPlayer && (
+                  <motion.div
+                    initial={{ scale: 0.5, y: 15, opacity: 0 }}
+                    animate={{ scale: 1.05, y: 0, opacity: 1 }}
+                    exit={{ scale: 0.8, y: -15, opacity: 0 }}
+                    className="z-30 px-4 py-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-slate-950 font-black rounded-full text-xs sm:text-sm shadow-2xl border-2 border-emerald-200 animate-bounce flex items-center gap-1.5 pointer-events-none"
+                  >
+                    <span>🚩</span>
+                    <span>{startBonusPlayer} passed START: +$300 Salary!</span>
+                    <span>💰</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Winner Display */}
               {isWinnerVisible && winner && (
