@@ -129,7 +129,7 @@ export interface MonopolyPlayerState {
   username: string;
   tokenColor: MonopolyTokenColor;
   position: number;          // 0-31
-  balance: number;           // starts $1500
+  balance: number;           // starts $3000
   ownedProperties: number[]; // space indices
   houseLevels: Record<number, number>; // spaceIndex → level (0-4)
   visitCounts: Record<number, number>; // spaceIndex → number of times landed on own property

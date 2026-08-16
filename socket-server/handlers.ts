@@ -204,7 +204,7 @@ function broadcastBSGameState(roomId: string, io: GameIO) {
 // ── Monopoly helpers ──────────────────────────────────────────────
 
 const MONOPOLY_TOKEN_COLORS: MonopolyTokenColor[] = ["red", "blue", "green", "yellow"];
-const MONOPOLY_STARTING_BALANCE = 1500;
+const MONOPOLY_STARTING_BALANCE = 3000;
 const MONOPOLY_MIN_PLAYERS = 2;
 const MONOPOLY_MAX_PLAYERS = 4;
 
@@ -396,6 +396,15 @@ function resolveSpace(
     return false;
   }
 
+  // Lost Island / Jail (landing directly on space 8)
+  if (space.type === "jail") {
+    player.inJail = true;
+    player.jailTurns = 0;
+    player.doublesCount = 0;
+    mpLog(state, `🏝️ ${player.username} landed on Lost Island and is now trapped!`);
+    return false;
+  }
+
   // Tax
   if (space.type === "tax") {
     const taxAmount = TAX_AMOUNTS[player.position] ?? 0;
@@ -555,7 +564,7 @@ function resolveSpace(
     return false;
   }
 
-  // GO, Jail (just visiting), Free Parking — nothing special
+  // GO, Free Parking — nothing special
   return false;
 }
 

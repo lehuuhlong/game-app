@@ -154,14 +154,116 @@ function formatRentDisplay(rent: number): string {
   return `$${rent}`;
 }
 
-// ── House 3D Model Icons on Plot ──────────────────────────────────
+// ── Player Colored House Plot Components ──────────────────────────
 
-const HOUSE_PLOT_ICONS: Record<number, string> = {
-  1: '🏡',
-  2: '🏡🏡',
-  3: '🏘️',
-  4: '🏨',
+const PLAYER_HOUSE_THEMES: Record<string, { roof: string; roofDark: string; wall: string; accent: string; hotelGlow: string }> = {
+  red: {
+    roof: '#f43f5e',
+    roofDark: '#be123c',
+    wall: '#fff1f2',
+    accent: '#e11d48',
+    hotelGlow: 'drop-shadow(0 0 3px rgba(244, 63, 94, 0.6))',
+  },
+  blue: {
+    roof: '#0ea5e9',
+    roofDark: '#0369a1',
+    wall: '#f0f9ff',
+    accent: '#0284c7',
+    hotelGlow: 'drop-shadow(0 0 3px rgba(14, 165, 233, 0.6))',
+  },
+  green: {
+    roof: '#10b981',
+    roofDark: '#047857',
+    wall: '#ecfdf5',
+    accent: '#059669',
+    hotelGlow: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.6))',
+  },
+  yellow: {
+    roof: '#f59e0b',
+    roofDark: '#b45309',
+    wall: '#fffbeb',
+    accent: '#d97706',
+    hotelGlow: 'drop-shadow(0 0 3px rgba(245, 158, 11, 0.6))',
+  },
 };
+
+function SingleHouseSVG({ color = 'red', size = 15 }: { color?: string | null; size?: number }) {
+  const theme = (color && PLAYER_HOUSE_THEMES[color]) || PLAYER_HOUSE_THEMES.red;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="drop-shadow-xs flex-shrink-0">
+      {/* Chimney */}
+      <rect x="15" y="4" width="3" height="6" fill={theme.roofDark} rx="0.5" />
+      {/* Roof */}
+      <polygon points="12,2 2,11 22,11" fill={theme.roof} stroke={theme.roofDark} strokeWidth="0.8" />
+      <polygon points="12,2 12,11 22,11" fill={theme.roofDark} opacity="0.3" />
+      {/* Wall */}
+      <rect x="4" y="11" width="16" height="11" fill={theme.wall} stroke="#94a3b8" strokeWidth="0.8" rx="1" />
+      {/* Door */}
+      <rect x="10" y="15" width="4" height="7" fill={theme.accent} rx="0.5" />
+      {/* Windows */}
+      <rect x="5.5" y="13" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.4" rx="0.4" />
+      <rect x="15.5" y="13" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.4" rx="0.4" />
+    </svg>
+  );
+}
+
+function HotelLandmarkSVG({ color = 'red', size = 20 }: { color?: string | null; size?: number }) {
+  const theme = (color && PLAYER_HOUSE_THEMES[color]) || PLAYER_HOUSE_THEMES.red;
+  return (
+    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" className="drop-shadow-md flex-shrink-0" style={{ filter: theme.hotelGlow }}>
+      {/* Base */}
+      <rect x="3" y="24" width="22" height="3" fill="#334155" rx="0.8" />
+      {/* Body */}
+      <rect x="5" y="7" width="18" height="17" fill={theme.wall} stroke={theme.roofDark} strokeWidth="0.8" rx="1" />
+      {/* Roof */}
+      <polygon points="14,1 3,7 25,7" fill={theme.roof} stroke={theme.roofDark} strokeWidth="0.8" />
+      <polygon points="14,1 14,7 25,7" fill={theme.roofDark} opacity="0.3" />
+      {/* Star on Top */}
+      <text x="14" y="5.8" fontSize="4.5" textAnchor="middle" fill="#fbbf24" fontWeight="bold">★</text>
+      {/* Windows */}
+      <rect x="7" y="9" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.3" rx="0.3" />
+      <rect x="12.5" y="9" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.3" rx="0.3" />
+      <rect x="18" y="9" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.3" rx="0.3" />
+      <rect x="7" y="14" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.3" rx="0.3" />
+      <rect x="12.5" y="14" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.3" rx="0.3" />
+      <rect x="18" y="14" width="3" height="3" fill="#38bdf8" stroke="#0284c7" strokeWidth="0.3" rx="0.3" />
+      {/* Entrance */}
+      <rect x="11" y="19" width="6" height="5" fill={theme.accent} rx="0.5" />
+    </svg>
+  );
+}
+
+function HousePlotDisplay({
+  level,
+  ownerColor,
+  isRotated = false,
+}: {
+  level: number;
+  ownerColor?: string | null;
+  isRotated?: boolean;
+}) {
+  if (level <= 0) return null;
+
+  return (
+    <div className={`flex items-center justify-center gap-0.5 ${isRotated ? '-rotate-90' : ''}`}>
+      {level === 1 && <SingleHouseSVG color={ownerColor} size={15} />}
+      {level === 2 && (
+        <>
+          <SingleHouseSVG color={ownerColor} size={12.5} />
+          <SingleHouseSVG color={ownerColor} size={12.5} />
+        </>
+      )}
+      {level === 3 && (
+        <>
+          <SingleHouseSVG color={ownerColor} size={10.5} />
+          <SingleHouseSVG color={ownerColor} size={10.5} />
+          <SingleHouseSVG color={ownerColor} size={10.5} />
+        </>
+      )}
+      {level >= 4 && <HotelLandmarkSVG color={ownerColor} size={18} />}
+    </div>
+  );
+}
 
 // ── Board Cell Component (2-Subbox Layout) ─────────────────────────
 
@@ -202,27 +304,52 @@ function BoardCell({
 
   const isRotatedSide = orientation === 'left' || orientation === 'right';
 
-  // ── Corner & Special (Chance / Tax) 100% Full Tile Layout ────────
-  if (isCorner || space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
+  // ── 4 Main Corner Tiles (START, Lost Island, World Cup, World Tour) ──
+  if (isCorner) {
+    return (
+      <div className="relative w-full h-full border border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95 select-none overflow-hidden font-black flex flex-col justify-between p-1">
+        {/* Centered Icon on top & Text below icon (Centered vertically and horizontally) */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
+          <span className="text-xl sm:text-2xl md:text-3xl leading-none mb-1 drop-shadow-xs">
+            {icon}
+          </span>
+          <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-black uppercase tracking-tight text-center leading-tight line-clamp-2 text-amber-800 dark:text-amber-300">
+            {space.name}
+          </span>
+        </div>
+
+        {/* Player Tokens (Bottom) */}
+        <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
+          <PlayerTokens
+            players={players}
+            displayedPositions={displayedPositions}
+            movingPlayerId={movingPlayerId}
+            spaceIndex={space.index}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Special Tiles (Chance / Tax) 100% Full Tile Layout ───────────
+  if (space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
     const isTax = space.type === 'tax';
-    const bgClasses = isCorner
-      ? 'border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95'
-      : isTax
+    const bgClasses = isTax
       ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'
       : 'border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/70 dark:from-purple-950/50 dark:to-slate-900/90';
 
     // 90-degree sideways rotation for Chance & Tax on left and right columns
-    if (isRotatedSide && !isCorner) {
+    if (isRotatedSide) {
       return (
-        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-around p-1 ${bgClasses}`}>
-          {/* Space Name (90-degree rotated) */}
-          <div className="flex items-center justify-center min-w-0">
+        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex flex-row items-center justify-between p-0.5 sm:p-1 ${bgClasses}`}>
+          {/* Space Name (Perfect straight vertical line along outer edge) */}
+          <div className="w-4 h-full flex items-center justify-center flex-shrink-0">
             <span
               className={`
-                uppercase tracking-tight leading-none -rotate-90 whitespace-nowrap
+                uppercase tracking-tight leading-none [writing-mode:vertical-rl] rotate-180 whitespace-nowrap
                 ${isTax
-                  ? 'text-[7.5px] sm:text-[9px] md:text-[10px] font-black text-rose-800 dark:text-rose-300'
-                  : 'text-[7.5px] sm:text-[9px] md:text-[10px] font-black text-purple-800 dark:text-purple-300'
+                  ? 'text-[8px] sm:text-[9.5px] md:text-[10px] font-black text-rose-800 dark:text-rose-300'
+                  : 'text-[8px] sm:text-[9.5px] md:text-[10px] font-black text-purple-800 dark:text-purple-300'
                 }
               `}
             >
@@ -230,15 +357,15 @@ function BoardCell({
             </span>
           </div>
 
-          {/* Icon (90-degree rotated) */}
-          <div className="flex items-center justify-center">
+          {/* Icon (Center) */}
+          <div className="flex-1 flex items-center justify-center">
             <span className="text-base sm:text-lg md:text-xl leading-none drop-shadow-xs -rotate-90">
               {icon}
             </span>
           </div>
 
-          {/* Player Tokens (90-degree rotated) */}
-          <div className="flex items-center justify-center -rotate-90 min-h-[14px] sm:min-h-[18px]">
+          {/* Player Tokens (Right side) */}
+          <div className="w-4 h-full flex items-center justify-center flex-shrink-0 -rotate-90 min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
               displayedPositions={displayedPositions}
@@ -252,28 +379,28 @@ function BoardCell({
 
     return (
       <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-center ${bgClasses}`}>
-        <div className="w-full h-full flex flex-col justify-between p-1">
-          {/* Special Icon & Name */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
-            <span className={`${isCorner ? 'text-base sm:text-xl md:text-2xl' : 'text-sm sm:text-base md:text-lg'} leading-none mb-0.5 drop-shadow-xs`}>
+        <div className="w-full h-full flex flex-col justify-between p-0.5 sm:p-1">
+          {/* Space Name (Pinned to top edge, matching top and bottom rows) */}
+          <span
+            className={`
+              uppercase tracking-tight text-center truncate px-0.5 leading-none
+              ${isTax
+                ? 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-rose-800 dark:text-rose-300'
+                : 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-purple-800 dark:text-purple-300'
+              }
+            `}
+          >
+            {space.name}
+          </span>
+
+          {/* Special Icon (Center) */}
+          <div className="flex-1 flex items-center justify-center min-h-0 py-0.5">
+            <span className="text-sm sm:text-base md:text-lg leading-none drop-shadow-xs">
               {icon}
-            </span>
-            <span
-              className={`
-                uppercase tracking-tight leading-tight line-clamp-2
-                ${isCorner
-                  ? 'text-[8.5px] sm:text-[10px] md:text-[11.5px] font-black text-amber-800 dark:text-amber-300'
-                  : isTax
-                  ? 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-rose-800 dark:text-rose-300'
-                  : 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-purple-800 dark:text-purple-300'
-                }
-              `}
-            >
-              {space.name}
             </span>
           </div>
 
-          {/* Player Tokens */}
+          {/* Player Tokens (Bottom) */}
           <div className="w-full flex items-center justify-center min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
@@ -294,23 +421,23 @@ function BoardCell({
         {/* ── Sub-box 1: Land Plot (75% Width) ──────────────────────── */}
         <div
           className={`
-            relative w-[75%] h-full flex flex-row items-center justify-around p-0.5 overflow-hidden transition-colors
+            relative w-[75%] h-full flex flex-row items-center justify-between p-0.5 sm:p-1 overflow-hidden transition-colors
             ${colorStyle ? `${colorStyle.softBg} ${colorStyle.darkSoftBg}` : 'bg-slate-100/70 dark:bg-slate-800/40'}
           `}
         >
-          {/* Owner Token Badge */}
-          {ownerStyle && (
+          {/* Owner Token Badge (Only shown when no houses are built yet) */}
+          {ownerStyle && houseLevel === 0 && (
             <div
-              className={`absolute top-0.5 left-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
+              className={`absolute top-0.5 left-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-20`}
               title={`Owner: ${ownerStyle.emoji}`}
             />
           )}
 
-          {/* City / Space Name (90-degree rotated) */}
-          <div className="flex items-center justify-center min-w-0">
+          {/* City / Space Name (Perfect straight vertical line along outer edge) */}
+          <div className="w-4 h-full flex items-center justify-center flex-shrink-0">
             <span
               className={`
-                text-[7.5px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-tight text-center leading-none -rotate-90 whitespace-nowrap
+                text-[8px] sm:text-[9.5px] md:text-[10px] font-black uppercase tracking-tight text-center leading-none [writing-mode:vertical-rl] rotate-180 whitespace-nowrap
                 ${colorStyle ? colorStyle.text : 'text-slate-800 dark:text-slate-100'}
               `}
               title={space.name}
@@ -319,12 +446,10 @@ function BoardCell({
             </span>
           </div>
 
-          {/* Plot Content: 3D Houses / Special Icons (90-degree rotated) */}
-          <div className="flex items-center justify-center">
+          {/* Plot Content: Colored 3D Houses / Special Icons (Center) */}
+          <div className="flex-1 flex items-center justify-center">
             {houseLevel > 0 ? (
-              <span className="text-[10px] sm:text-xs md:text-sm leading-none drop-shadow-xs -rotate-90">
-                {HOUSE_PLOT_ICONS[houseLevel] || '🏡'}
-              </span>
+              <HousePlotDisplay level={houseLevel} ownerColor={ownerColor} isRotated={true} />
             ) : icon ? (
               <span className="text-[11px] sm:text-sm md:text-base leading-none opacity-85 -rotate-90">
                 {icon}
@@ -332,8 +457,8 @@ function BoardCell({
             ) : null}
           </div>
 
-          {/* Player Tokens (Inside Land Plot - 90-degree rotated) */}
-          <div className="flex items-center justify-center -rotate-90 min-h-[14px] sm:min-h-[18px]">
+          {/* Player Tokens (Inside Land Plot - Right side near Road Slab) */}
+          <div className="w-4 h-full flex items-center justify-center flex-shrink-0 -rotate-90 min-h-[14px] sm:min-h-[18px]">
             <PlayerTokens
               players={players}
               displayedPositions={displayedPositions}
@@ -346,7 +471,7 @@ function BoardCell({
         {/* ── Sub-box 2: Road Track / Pavement (25% Width) ──────────── */}
         <div className="w-[25%] h-full bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
           {currentRent !== null ? (
-            <span className="text-[8px] sm:text-[9.5px] md:text-[11px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center -rotate-90 whitespace-nowrap">
+            <span className="text-[8px] sm:text-[9.5px] md:text-[11px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center [writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
               {formatRentDisplay(currentRent)}
             </span>
           ) : null}
@@ -365,8 +490,8 @@ function BoardCell({
           ${colorStyle ? `${colorStyle.softBg} ${colorStyle.darkSoftBg}` : 'bg-slate-100/70 dark:bg-slate-800/40'}
         `}
       >
-        {/* Owner Token Badge */}
-        {ownerStyle && (
+        {/* Owner Token Badge (Only shown when no houses are built yet) */}
+        {ownerStyle && houseLevel === 0 && (
           <div
             className={`absolute top-0.5 right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
             title={`Owner: ${ownerStyle.emoji}`}
@@ -384,12 +509,10 @@ function BoardCell({
           {space.name}
         </span>
 
-        {/* Plot Content: 3D Houses / Special Icons */}
+        {/* Plot Content: Colored 3D Houses / Special Icons */}
         <div className="flex-1 flex items-center justify-center min-h-0 py-0.5">
           {houseLevel > 0 ? (
-            <span className="text-[10px] sm:text-xs md:text-sm leading-none drop-shadow-xs">
-              {HOUSE_PLOT_ICONS[houseLevel] || '🏡'}
-            </span>
+            <HousePlotDisplay level={houseLevel} ownerColor={ownerColor} isRotated={false} />
           ) : icon ? (
             <span className="text-[11px] sm:text-sm md:text-base leading-none opacity-85">
               {icon}
@@ -429,13 +552,14 @@ function DiceDisplay({
   dice: [number, number] | null;
   isRolling: boolean;
 }) {
-  const [displayDice, setDisplayDice] = useState<[number, number]>([1, 1]);
+  const [displayDice, setDisplayDice] = useState<[number, number]>(dice || [1, 1]);
 
+  // When rolling finishes or when dice changes while not rolling, ALWAYS synchronize with the exact server dice!
   useEffect(() => {
-    if (dice) {
+    if (!isRolling && dice) {
       setDisplayDice(dice);
     }
-  }, [dice]);
+  }, [dice, isRolling]);
 
   // Rolling shuffle effect
   useEffect(() => {
@@ -460,34 +584,56 @@ function DiceDisplay({
 
   const dotClass = 'bg-slate-900 dark:bg-slate-100 shadow-inner';
 
+  const isDoubles = !isRolling && dice && dice[0] === dice[1];
+  const diceSum = !isRolling && dice ? dice[0] + dice[1] : null;
+
   return (
-    <div className="flex items-center justify-center gap-3">
-      {displayDice.map((val, i) => (
-        <motion.div
-          key={i}
-          animate={
-            isRolling
-              ? {
-                  rotate: [0, 90, 180, 270, 360],
-                  scale: [1, 1.15, 0.95, 1.1, 1],
-                }
-              : { rotate: 0, scale: 1 }
-          }
-          transition={
-            isRolling
-              ? { repeat: Infinity, duration: 0.3 }
-              : { type: 'spring', stiffness: 300, damping: 20 }
-          }
-          className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white dark:bg-slate-800 border-2 border-amber-400 dark:border-amber-500/80 shadow-md relative select-none flex-shrink-0"
-        >
-          {(dotPositions[val] || []).map((pos, j) => (
-            <div
-              key={j}
-              className={`absolute w-2 h-2 rounded-full ${pos} ${dotClass}`}
-            />
-          ))}
-        </motion.div>
-      ))}
+    <div className="flex flex-col items-center justify-center gap-1.5">
+      <div className="flex items-center justify-center gap-3">
+        {displayDice.map((val, i) => (
+          <motion.div
+            key={i}
+            animate={
+              isRolling
+                ? {
+                    rotate: [0, 90, 180, 270, 360],
+                    scale: [1, 1.15, 0.95, 1.1, 1],
+                  }
+                : { rotate: 0, scale: 1 }
+            }
+            transition={
+              isRolling
+                ? { repeat: Infinity, duration: 0.3 }
+                : { type: 'spring', stiffness: 300, damping: 20 }
+            }
+            className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white dark:bg-slate-800 border-2 ${
+              isDoubles
+                ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-amber-500/20 shadow-lg'
+                : 'border-amber-400 dark:border-amber-500/80 shadow-md'
+            } relative select-none flex-shrink-0`}
+          >
+            {(dotPositions[val] || []).map((pos, j) => (
+              <div
+                key={j}
+                className={`absolute w-2 h-2 rounded-full ${pos} ${dotClass}`}
+              />
+            ))}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Dice total indicator */}
+      <div className="min-h-[16px] flex items-center justify-center">
+        {isRolling ? (
+          <span className="text-[10px] sm:text-xs font-black tracking-widest text-amber-300 dark:text-amber-400 animate-pulse">
+            ROLLING...
+          </span>
+        ) : diceSum !== null ? (
+          <span className={`text-[10px] sm:text-xs font-black tracking-wider ${isDoubles ? 'text-amber-300 animate-bounce' : 'text-amber-200/90 dark:text-amber-300/80'}`}>
+            🎲 {diceSum} {isDoubles ? '✨ DOUBLES! ✨' : ''}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -816,9 +962,19 @@ export function MonopolyBoard({
     return () => clearTimers();
   }, []);
 
+  const prevDiceRef = useRef<string | null>(null);
+
   // Synchronize server player positions with smooth sequential hopping animation
   useEffect(() => {
     if (!gameState || players.length === 0) return;
+
+    const diceKey = gameState.lastDice ? `${gameState.lastDice[0]}-${gameState.lastDice[1]}-${gameState.eventLog?.length || 0}` : null;
+    const isNewDiceRoll = diceKey !== null && diceKey !== prevDiceRef.current;
+    if (isNewDiceRoll) {
+      prevDiceRef.current = diceKey;
+    }
+
+    let hasPositionChange = false;
 
     players.forEach((p) => {
       const currentPos = displayedPositions[p.playerId];
@@ -832,6 +988,7 @@ export function MonopolyBoard({
 
       // If player position changed on server and not currently mid-animation
       if (currentPos !== targetPos && !isAnimatingMove) {
+        hasPositionChange = true;
         clearTimers();
         setIsAnimatingMove(true);
         setHasMovementSettled(false);
@@ -845,8 +1002,10 @@ export function MonopolyBoard({
           // Phase 2: Step-by-step hopping
           const stepsToMove = (targetPos - currentPos + 32) % 32;
 
-          // Special direct warp (e.g. Go to jail / Lost Island)
-          if (stepsToMove === 0 || (p.inJail && targetPos === 8)) {
+          // Special direct warp (e.g. Go to jail teleport where stepsToMove !== dice roll)
+          const diceTotal = (gameState?.lastDice?.[0] || 0) + (gameState?.lastDice?.[1] || 0);
+          const isTeleport = targetPos === 8 && stepsToMove !== diceTotal && diceTotal > 0;
+          if (stepsToMove === 0 || isTeleport) {
             setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: targetPos }));
             const settleTimer = setTimeout(() => {
               setIsAnimatingMove(false);
@@ -882,7 +1041,17 @@ export function MonopolyBoard({
         moveTimersRef.current.push(diceTimer);
       }
     });
-  }, [players, gameState?.lastDice]);
+
+    // If a new dice roll happened but position didn't change (e.g. rolled in jail or trapped)
+    if (isNewDiceRoll && !hasPositionChange && !isAnimatingMove) {
+      clearTimers();
+      setIsRollingDice(true);
+      const diceTimer = setTimeout(() => {
+        setIsRollingDice(false);
+      }, 600);
+      moveTimersRef.current.push(diceTimer);
+    }
+  }, [players, gameState?.lastDice, gameState?.eventLog?.length]);
 
   const getOwnerColor = useCallback(
     (spaceIndex: number): string | null => {
