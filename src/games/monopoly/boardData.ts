@@ -34,7 +34,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 15, name: "Berlin", type: "property", colorGroup: "orange", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
 
   // ── Top row (16-24) ─────────────────────────────────────────────
-  { index: 16, name: "World Cup", type: "free_parking", colorGroup: null, price: null, baseRent: null },
+  { index: 16, name: "World Cup", type: "world_cup", colorGroup: null, price: null, baseRent: null },
   { index: 17, name: "London", type: "property", colorGroup: "red", price: 180, baseRent: 14, rentScale: [70, 200, 550, 750, 950] },
   { index: 18, name: "Dubai", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 19, name: "Sydney", type: "property", colorGroup: "red", price: 220, baseRent: 18, rentScale: [90, 250, 700, 875, 1050] },
@@ -147,15 +147,6 @@ export const COLOR_GROUP_STYLES: Record<string, {
     border: "border-cyan-400 dark:border-cyan-700/70",
     glow: "shadow-cyan-600/30",
   },
-  utility: {
-    bg: "bg-teal-600",
-    barGradient: "from-teal-400 via-teal-500 to-cyan-600",
-    softBg: "bg-gradient-to-br from-teal-100/95 via-emerald-100/65 to-cyan-100/90",
-    darkSoftBg: "dark:from-teal-950/85 dark:via-emerald-950/50 dark:to-slate-950/90",
-    text: "text-teal-950 dark:text-teal-100 font-black",
-    border: "border-teal-400 dark:border-teal-700/70",
-    glow: "shadow-teal-600/30",
-  },
 };
 
 /**
@@ -176,16 +167,13 @@ export const TOKEN_STYLES: Record<string, { bg: string; ring: string; glow: stri
  * Business Tour Special Corner & Space Icons.
  */
 export const SPACE_ICONS: Record<string, string> = {
-  go:              "🚩",
-  jail:            "🏝️",
-  free_parking:    "🏆",
-  go_to_jail:      "✈️",
-  world_tour:      "✈️",
-  chance:          "☸️",
-  community_chest: "🎴",
-  tax:             "💸",
-  beach:           "",
-  utility:         "⚡",
+  go:         "🚩",
+  jail:       "🏝️",
+  world_cup:  "🏆",
+  world_tour: "✈️",
+  chance:     "☸️",
+  tax:        "💸",
+  beach:      "",
 };
 
 /**

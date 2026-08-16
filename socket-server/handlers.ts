@@ -333,15 +333,6 @@ function calculateRent(
       owner.ownedProperties.includes(i)
     ).length;
     baseRentAmount = 25 * Math.pow(2, Math.max(0, ownedCount - 1));
-  } else if (space.type === "utility") {
-    // 4× or 10× dice roll
-    const utilityIndices = MONOPOLY_BOARD
-      .filter((s) => s.type === "utility")
-      .map((s) => s.index);
-    const ownedCount = utilityIndices.filter((i) =>
-      owner.ownedProperties.includes(i)
-    ).length;
-    baseRentAmount = diceTotal * (ownedCount >= 2 ? 10 : 4);
   } else {
     // Regular property — check house level for scaled rent
     const houseLevel = owner.houseLevels[spaceIndex] ?? 0;
@@ -388,10 +379,10 @@ function checkMonopolyWinner(state: MonopolyGameState): string | null {
 
 /**
  * Check if a space index is a valid target destination for World Tour.
- * Disallows 4 main corners (0, 8, 16, 24) and chance, community chest, and tax spaces.
+ * Disallows 4 main corners (0, 8, 16, 24) and chance and tax spaces.
  */
 function isWorldTourTargetValid(spaceIndex: number): boolean {
-  if (typeof spaceIndex !== "number" || spaceIndex < 0 || spaceIndex >= MONOPOLY_BOARD.length) {
+  if (spaceIndex < 0 || spaceIndex >= MONOPOLY_BOARD.length) {
     return false;
   }
   // 4 corners cannot be targeted: START (0), Lost Island (8), World Cup (16), World Tour (24)
@@ -400,8 +391,8 @@ function isWorldTourTargetValid(spaceIndex: number): boolean {
   }
   const space = MONOPOLY_BOARD[spaceIndex];
   if (!space) return false;
-  // Chance, Community Chest, Tax cannot be targeted
-  if (space.type === "chance" || space.type === "community_chest" || space.type === "tax") {
+  // Chance and Tax cannot be targeted
+  if (space.type === "chance" || space.type === "tax") {
     return false;
   }
   return true;
@@ -469,7 +460,7 @@ function resolveSpace(
   if (!space) return false;
 
   // World Tour (Space 24) — player stays here and flies next turn
-  if (space.type === "world_tour" || space.type === "go_to_jail" || player.position === 24) {
+  if (space.type === "world_tour") {
     mpLog(state, `✈️ ${player.username} arrived at World Tour! On their next turn, they can fly directly to any destination!`);
     return false;
   }
@@ -519,23 +510,22 @@ function resolveSpace(
     }
   }
 
-  // Chance / Community Chest — simplified: random $$ event
-  if (space.type === "chance" || space.type === "community_chest") {
+  // Chance — random $$ event
+  if (space.type === "chance") {
     const events = [
       { message: "Bank pays you dividend of $100", amount: 100 },
       { message: "Doctor's fees — pay $100", amount: -100 },
       { message: "You won a crossword competition — collect $200", amount: 200 },
       { message: "Pay hospital fees of $200", amount: -200 },
-      { message: "Income tax refund — collect $40", amount: 40 },
+      { message: "Income tax refund — collect $90", amount: 90 },
       { message: "Pay school fees of $100", amount: -100 },
       { message: "Receive $50 consultancy fee", amount: 50 },
       { message: "You are assessed for street repairs — pay $80", amount: -80 },
-      { message: "You have won second prize in a beauty contest — collect $20", amount: 20 },
+      { message: "You have won second prize in a beauty contest — collect $200", amount: 200 },
       { message: "Life insurance matures — collect $200", amount: 200 },
     ];
     const event = events[Math.floor(Math.random() * events.length)];
-    const icon = space.type === "chance" ? "❓" : "🏦";
-    mpLog(state, `${icon} ${player.username}: ${event.message}`);
+    mpLog(state, `❓ ${player.username}: ${event.message}`);
 
     if (event.amount < 0) {
       const penalty = Math.abs(event.amount);
@@ -574,8 +564,8 @@ function resolveSpace(
     return false;
   }
 
-  // Purchasable space (property, beach, utility)
-  if (space.type === "property" || space.type === "beach" || space.type === "utility") {
+  // Purchasable space (property, beach)
+  if (space.type === "property" || space.type === "beach") {
     // Check if owned by anyone
     const owner = state.players.find((p) =>
       p.isActive && p.ownedProperties.includes(player.position)
@@ -603,7 +593,7 @@ function resolveSpace(
             spaceName: space.name,
             type: "rent",
           };
-          mpLog(state, `⚠️ ${player.username} owes $${rent} rent${levelStr} to ${owner.username} for ${space.name} (has $${player.balance}). Sell properties to pay!`);
+          mpLog(state, `⚠️ ${player.username} owes $${rent} rent to ${owner.username} for ${space.name}${levelStr} (has $${player.balance}). Sell properties to pay!`);
           return false;
         } else {
           // Bankrupt even after total liquidation
@@ -612,13 +602,13 @@ function resolveSpace(
           player.isActive = false;
           player.ownedProperties = [];
           player.houseLevels = {};
-          mpLog(state, `💀 ${player.username} cannot pay $${rent} rent and went bankrupt!`);
+          mpLog(state, `💀 ${player.username} cannot afford $${rent} rent and went bankrupt! All remaining cash given to ${owner.username}.`);
           return false;
         }
       } else {
         player.balance -= rent;
         owner.balance += rent;
-        mpLog(state, `🏠 ${player.username} paid $${rent} rent${levelStr} to ${owner.username} for ${space.name}.`);
+        mpLog(state, `💸 ${player.username} paid $${rent} rent to ${owner.username} for ${space.name}${levelStr}.`);
         return false;
       }
     }
@@ -1474,7 +1464,7 @@ export function registerSocketHandlers(io: GameIO): void {
             maxLevel: 3,
             costs,
           });
-        } else if (space.type === "beach" || space.type === "utility") {
+        } else if (space.type === "beach") {
           state.turnPhase = "action";
           io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
           io.to(socket.id).emit("mp_offer_buy", {

@@ -78,8 +78,8 @@ export function isWorldTourTargetValid(spaceIndex: number): boolean {
   }
   const space = MONOPOLY_BOARD[spaceIndex];
   if (!space) return false;
-  // Chance, Community Chest, Tax cannot be targeted
-  if (space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
+  // Chance and Tax cannot be targeted
+  if (space.type === 'chance' || space.type === 'tax') {
     return false;
   }
   return true;
@@ -97,7 +97,6 @@ const COLOR_GROUP_ORDER: Record<string, number> = {
   green: 7,
   dark_blue: 8,
   beach: 9,
-  utility: 10,
 };
 
 // ── Helper: Check if an owner completed a color monopoly group ────
@@ -418,7 +417,7 @@ function BoardCell({
   }
 
   // ── Special Tiles (Chance / Tax) 100% Full Tile Layout ───────────
-  if (space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
+  if (space.type === 'chance' || space.type === 'tax') {
     const isTax = space.type === 'tax';
     const bgClasses = isTax
       ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'

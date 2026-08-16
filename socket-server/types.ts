@@ -96,14 +96,26 @@ export interface BattleshipGameState {
 // ── Monopoly types ──────────────────────────────────────────────
 
 export type MonopolySpaceType =
-  | "go" | "property" | "beach" | "utility"
-  | "chance" | "community_chest" | "tax"
-  | "jail" | "free_parking" | "go_to_jail" | "world_tour";
+  | "go"
+  | "property"
+  | "beach"
+  | "jail"
+  | "chance"
+  | "world_cup"
+  | "world_tour"
+  | "tax";
 
 export type MonopolyColorGroup =
-  | "brown" | "light_blue" | "pink" | "orange"
-  | "red" | "yellow" | "green" | "dark_blue"
-  | "beach" | "utility" | null;
+  | "brown"
+  | "light_blue"
+  | "pink"
+  | "orange"
+  | "red"
+  | "yellow"
+  | "green"
+  | "dark_blue"
+  | "beach"
+  | null;
 
 export interface MonopolyBoardSpace {
   index: number;
