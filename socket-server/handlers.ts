@@ -212,7 +212,7 @@ const MONOPOLY_MAX_PLAYERS = 4;
 function createInitialMonopolyState(
   players: { id: string; username: string }[]
 ): MonopolyGameState {
-  const mpPlayers = players.map((p, i) => ({
+  const mpPlayers: MonopolyPlayerState[] = players.map((p, i) => ({
     playerId: p.id,
     username: p.username,
     tokenColor: MONOPOLY_TOKEN_COLORS[i],
@@ -221,6 +221,7 @@ function createInitialMonopolyState(
     ownedProperties: [] as number[],
     houseLevels: {} as Record<number, number>,
     visitCounts: {} as Record<number, number>,
+    celebratedMonopolies: [] as string[],
     inJail: false,
     jailTurns: 0,
     isActive: true,
@@ -233,12 +234,13 @@ function createInitialMonopolyState(
     turnPhase: "roll",
     lastDice: null,
     rollCount: 0,
+    pendingDebt: null,
+    worldCupSpaceIndex: null,
+    winner: null,
     eventLog: [
       { message: "🎩 Monopoly game started! Good luck!", timestamp: Date.now() },
       { message: `🎲 ${players[0].username}'s turn — roll the dice!`, timestamp: Date.now() },
     ],
-    winner: null,
-    worldCupSpaceIndex: null,
   };
 }
 
@@ -435,7 +437,7 @@ function advanceMonopolyTurn(
   // 1. Check if only 1 active player remains -> that remaining player is the winner!
   const activePlayers = state.players.filter((p) => p.isActive);
   if (activePlayers.length <= 1) {
-    const winner = activePlayers[0];
+    const winner = activePlayers[0] || state.players.reduce((prev, curr) => (curr.balance > prev.balance ? curr : prev), state.players[0]);
     if (winner) {
       room.status = "finished";
       state.winner = winner.playerId;
@@ -919,19 +921,43 @@ export function registerSocketHandlers(io: GameIO): void {
           mpPlayer.jailTurns++;
           if (mpPlayer.jailTurns >= 3) {
             // Must pay $50 bail after 3 failed turns
-            mpPlayer.balance -= 50;
-            mpPlayer.inJail = false;
-            mpPlayer.jailTurns = 0;
-            mpPlayer.doublesCount = 0;
-            mpLog(state, `💵 ${mpPlayer.username} paid $50 bail after 3 turns on Lost Island.`);
-            if (mpPlayer.balance <= 0) {
-              mpPlayer.balance = 0;
-              mpPlayer.isActive = false;
-              mpPlayer.ownedProperties = [];
-              mpPlayer.houseLevels = {};
-              mpLog(state, `💀 ${mpPlayer.username} went bankrupt!`);
-              advanceMonopolyTurn(state, player.id, room, io, roomId);
-              return;
+            if (mpPlayer.balance >= 50) {
+              mpPlayer.balance -= 50;
+              mpPlayer.inJail = false;
+              mpPlayer.jailTurns = 0;
+              mpPlayer.doublesCount = 0;
+              mpLog(state, `💵 ${mpPlayer.username} paid $50 bail after 3 turns on Lost Island.`);
+            } else {
+              const totalAssetValue = mpPlayer.ownedProperties.reduce((sum, idx) => {
+                const sp = MONOPOLY_BOARD[idx];
+                const hl = mpPlayer.houseLevels[idx] ?? 0;
+                return sum + getSaleValue(sp?.price ?? 0, hl);
+              }, 0);
+
+              if (mpPlayer.balance + totalAssetValue >= 50) {
+                mpPlayer.inJail = false;
+                mpPlayer.jailTurns = 0;
+                mpPlayer.doublesCount = 0;
+                state.turnPhase = "debt";
+                state.pendingDebt = {
+                  amount: 50,
+                  creditorId: null,
+                  creditorName: "Bank",
+                  spaceName: "Lost Island Bail",
+                  type: "fine",
+                };
+                mpLog(state, `⚠️ ${mpPlayer.username} owes $50 bail on Lost Island (has $${mpPlayer.balance}). Sell properties to pay!`);
+                io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+                return;
+              } else {
+                mpPlayer.balance = 0;
+                mpPlayer.isActive = false;
+                mpPlayer.ownedProperties = [];
+                mpPlayer.houseLevels = {};
+                mpLog(state, `💀 ${mpPlayer.username} cannot afford $50 bail on Lost Island and went bankrupt!`);
+                advanceMonopolyTurn(state, player.id, room, io, roomId);
+                return;
+              }
             }
           } else {
             mpLog(state, `🔒 ${mpPlayer.username} is still trapped on Lost Island (turn ${mpPlayer.jailTurns}/3).`);
@@ -1357,6 +1383,30 @@ export function registerSocketHandlers(io: GameIO): void {
 
       const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
       mpLog(state, `🏷️ ${mpPlayer.username} sold ${space.name}${levelStr} for $${saleValue}.`);
+
+      // If player is in debt phase and now has no properties left and cannot afford the debt -> auto-bankrupt
+      if (
+        state.turnPhase === "debt" &&
+        state.pendingDebt &&
+        mpPlayer.ownedProperties.length === 0 &&
+        mpPlayer.balance < state.pendingDebt.amount
+      ) {
+        const debt = state.pendingDebt;
+        if (debt.creditorId) {
+          const creditor = state.players.find((p) => p.playerId === debt.creditorId);
+          if (creditor) {
+            creditor.balance += mpPlayer.balance;
+          }
+        }
+        mpPlayer.balance = 0;
+        mpPlayer.isActive = false;
+        mpPlayer.ownedProperties = [];
+        mpPlayer.houseLevels = {};
+        state.pendingDebt = null;
+        mpLog(state, `💀 ${mpPlayer.username} sold all properties but still cannot pay $${debt.amount} ${debt.type} debt and went bankrupt!`);
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
+        return;
+      }
 
       io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
     });
@@ -1910,8 +1960,13 @@ export function registerSocketHandlers(io: GameIO): void {
       (room as any).lastRestart = now;
 
       room.status = "playing";
-      // Swap players so they alternate who goes first
-      room.players.reverse();
+      // Rotate players so they alternate who goes first
+      if (room.players.length === 2) {
+        room.players.reverse();
+      } else if (room.players.length > 2) {
+        const first = room.players.shift()!;
+        room.players.push(first);
+      }
 
       if (room.gameType === "caro") {
         const gameState = createInitialCaroState();

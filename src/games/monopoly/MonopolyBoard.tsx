@@ -1318,6 +1318,31 @@ export function MonopolyBoard({
   useEffect(() => {
     if (!gameState || players.length === 0) return;
 
+    // Handle Game Reset / Rematch (rollCount === 0 and winner === null)
+    if (gameState.rollCount === 0 && !gameState.winner) {
+      clearTimers();
+      setIsRollingDice(false);
+      setIsAnimatingMove(false);
+      setMovingPlayerId(null);
+      setHasMovementSettled(true);
+      setBankruptModalPlayer(null);
+      setIsWinnerVisible(false);
+      setStartBonusPlayer(null);
+      pendingBankruptcyRef.current = null;
+      prevRollCountRef.current = 0;
+      prevPlayersRef.current = players;
+
+      const freshPositions: Record<string, number> = {};
+      const freshBalances: Record<string, number> = {};
+      players.forEach((p) => {
+        freshPositions[p.playerId] = p.position;
+        freshBalances[p.playerId] = p.balance;
+      });
+      setDisplayedPositions(freshPositions);
+      setDisplayedBalances(freshBalances);
+      return;
+    }
+
     // Detect newly bankrupt player
     if (prevPlayersRef.current.length > 0) {
       const newlyBankrupt = players.find((p) => {
@@ -1757,9 +1782,22 @@ export function MonopolyBoard({
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl z-20 border-2 border-amber-200 animate-bounce"
+                  className="flex flex-col items-center gap-2.5 z-20"
                 >
-                  🏆 {players.find((p) => p.playerId === winner)?.username} WINS!
+                  <div className="px-6 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl border-2 border-amber-200 animate-bounce text-center">
+                    🏆 {players.find((p) => p.playerId === winner)?.username || gameState?.players?.find((p) => p.playerId === winner)?.username || room?.players?.find((p) => p.id === winner)?.username || 'WINNER'} WINS!
+                  </div>
+                  {onRematch && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={onRematch}
+                      className="px-6 py-2.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-2xl border-2 border-emerald-200 cursor-pointer flex items-center gap-1.5 transition-transform"
+                    >
+                      <span>🔄</span>
+                      <span>PLAY AGAIN (REMATCH)</span>
+                    </motion.button>
+                  )}
                 </motion.div>
               )}
 
