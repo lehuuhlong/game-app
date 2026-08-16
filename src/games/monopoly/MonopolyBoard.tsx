@@ -64,6 +64,7 @@ interface MonopolyBoardProps {
   } | null;
   onDismissCelebration?: () => void;
   onWorldTourTravel?: (targetSpaceIndex: number) => void;
+  onHostWorldCup?: (spaceIndex: number) => void;
 }
 
 // ── World Tour Target Validation Helper ───────────────────────────
@@ -127,12 +128,13 @@ function getHouseLevel(players: MonopolyPlayerState[], spaceIndex: number): numb
   return 0;
 }
 
-// ── Utility: Calculate current rent for a space (with 1.5x Monopoly bonus) ──
+// ── Utility: Calculate current rent for a space (with 1.5x Monopoly & 2x World Cup bonuses) ──
 
 function calculateSpaceRent(
   space: MonopolyBoardSpace,
   houseLevel: number = 0,
-  players: MonopolyPlayerState[] = []
+  players: MonopolyPlayerState[] = [],
+  worldCupSpaceIndex?: number | null
 ): number | null {
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   if (!owner) return null; // Unowned property -> DO NOT display rent or price
@@ -148,12 +150,19 @@ function calculateSpaceRent(
     rent = space.baseRent ?? 0;
   }
 
+  let finalRent = rent;
+
   // Full color group monopoly rule: Rent is increased by 1.5×
   if (space.colorGroup && isColorGroupMonopolized(space.colorGroup, owner)) {
-    return Math.round(rent * 1.5);
+    finalRent = Math.round(finalRent * 1.5);
   }
 
-  return rent;
+  // World Cup Host City rule: Rent is doubled (2×)
+  if (worldCupSpaceIndex === space.index) {
+    finalRent = Math.round(finalRent * 2);
+  }
+
+  return finalRent;
 }
 
 // ── Player Token on Board ─────────────────────────────────────────
@@ -358,6 +367,10 @@ function BoardCell({
   isWorldTourActive = false,
   isValidWorldTourTarget = false,
   onSelectDestination,
+  isWorldCupHost = false,
+  isWorldCupSelectionActive = false,
+  isMyOwnedProperty = false,
+  onHostWorldCup,
 }: {
   space: MonopolyBoardSpace;
   players: MonopolyPlayerState[];
@@ -369,30 +382,53 @@ function BoardCell({
   isWorldTourActive?: boolean;
   isValidWorldTourTarget?: boolean;
   onSelectDestination?: (index: number) => void;
+  isWorldCupHost?: boolean;
+  isWorldCupSelectionActive?: boolean;
+  isMyOwnedProperty?: boolean;
+  onHostWorldCup?: (index: number) => void;
 }) {
   const colorStyle = space.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
   const ownerStyle = ownerColor ? TOKEN_STYLES[ownerColor] : null;
   const icon = SPACE_ICONS[space.type];
-  const currentRent = calculateSpaceRent(space, houseLevel, players);
+  const currentRent = calculateSpaceRent(space, houseLevel, players, isWorldCupHost ? space.index : null);
   const orientation = getSpaceOrientation(space.index);
 
   const isRotatedSide = orientation === 'left' || orientation === 'right';
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   const isMonopolized = space.colorGroup ? isColorGroupMonopolized(space.colorGroup, owner) : false;
 
-  const isClickableTarget = isWorldTourActive && isValidWorldTourTarget;
-  const isDimmedNonTarget = isWorldTourActive && !isValidWorldTourTarget;
+  const isClickableWorldTour = isWorldTourActive && isValidWorldTourTarget;
+  const isDimmedWorldTour = isWorldTourActive && !isValidWorldTourTarget;
 
-  const worldTourCellClasses = isClickableTarget
+  const isClickableWorldCup = isWorldCupSelectionActive && isMyOwnedProperty;
+  const isDimmedWorldCup = isWorldCupSelectionActive && !isMyOwnedProperty;
+
+  const cellHighlightClasses = isClickableWorldCup
+    ? 'ring-2 ring-amber-400 ring-offset-1 shadow-xl shadow-amber-500/60 cursor-pointer animate-pulse hover:ring-4 hover:scale-[1.03] z-20 transition-all'
+    : isClickableWorldTour
     ? 'ring-2 ring-sky-400 ring-offset-1 shadow-lg shadow-sky-500/50 cursor-pointer animate-pulse hover:ring-4 hover:scale-[1.03] z-20 transition-all'
-    : isDimmedNonTarget
+    : isDimmedWorldCup || isDimmedWorldTour
     ? 'opacity-35 grayscale-[50%] transition-opacity'
     : '';
+
+  const handleClick = () => {
+    if (isClickableWorldCup) {
+      onHostWorldCup?.(space.index);
+    } else if (isClickableWorldTour) {
+      onSelectDestination?.(space.index);
+    }
+  };
+
+  const tooltipTitle = isClickableWorldCup
+    ? `Host World Cup on ${space.name} 🏆`
+    : isClickableWorldTour
+    ? `Fly to ${space.name} ✈️`
+    : undefined;
 
   // ── 4 Main Corner Tiles (START, Lost Island, World Cup, World Tour) ──
   if (isCorner) {
     return (
-      <div className={`relative w-full h-full border border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95 select-none overflow-hidden font-black flex flex-col justify-between p-1 ${worldTourCellClasses}`}>
+      <div className={`relative w-full h-full border border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95 select-none overflow-hidden font-black flex flex-col justify-between p-1 ${cellHighlightClasses}`}>
         {/* Centered Icon on top & Text below icon (Centered vertically and horizontally) */}
         <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
           <span className="text-xl sm:text-2xl md:text-3xl leading-none mb-1 drop-shadow-xs">
@@ -426,7 +462,7 @@ function BoardCell({
     // 90-degree sideways rotation for Chance & Tax on left and right columns
     if (isRotatedSide) {
       return (
-        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex flex-row items-center justify-between p-0.5 sm:p-1 ${bgClasses} ${worldTourCellClasses}`}>
+        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex flex-row items-center justify-between p-0.5 sm:p-1 ${bgClasses} ${cellHighlightClasses}`}>
           {/* Space Name (Perfect straight vertical line along outer edge) */}
           <div className="w-4 h-full flex items-center justify-center flex-shrink-0">
             <span
@@ -463,7 +499,7 @@ function BoardCell({
     }
 
     return (
-      <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-center ${bgClasses} ${worldTourCellClasses}`}>
+      <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-center ${bgClasses} ${cellHighlightClasses}`}>
         <div className="w-full h-full flex flex-col justify-between p-0.5 sm:p-1">
           {/* Space Name (Pinned to top edge, matching top and bottom rows) */}
           <span
@@ -503,9 +539,9 @@ function BoardCell({
   if (isRotatedSide) {
     return (
       <div
-        onClick={() => isClickableTarget && onSelectDestination?.(space.index)}
-        className={`relative w-full h-full flex flex-row border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden ${worldTourCellClasses}`}
-        title={isClickableTarget ? `Fly to ${space.name} ✈️` : undefined}
+        onClick={handleClick}
+        className={`relative w-full h-full flex flex-row border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden ${cellHighlightClasses}`}
+        title={tooltipTitle}
       >
         {/* ── Sub-box 1: Land Plot (75% Width) ──────────────────────── */}
         <div
@@ -520,6 +556,17 @@ function BoardCell({
               className={`absolute top-0.5 left-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-20`}
               title={`Owner: ${ownerStyle.emoji}`}
             />
+          )}
+
+          {/* World Cup Host Badge */}
+          {isWorldCupHost && (
+            <div
+              className="absolute bottom-0.5 left-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-[7px] sm:text-[8px] px-1 py-0.2 rounded-full border border-yellow-100 shadow-md animate-bounce"
+              title="World Cup Host City: 2× Rent Active!"
+            >
+              <span>🏆</span>
+              <span>2×</span>
+            </div>
           )}
 
           {/* City / Space Name (Perfect straight vertical line along outer edge) */}
@@ -569,6 +616,11 @@ function BoardCell({
                   👑
                 </span>
               )}
+              {isWorldCupHost && (
+                <span className="text-[7px] sm:text-[8px] font-black text-amber-500 dark:text-amber-300 leading-none" title="World Cup 2× Rent Active">
+                  🏆
+                </span>
+              )}
             </div>
           ) : null}
         </div>
@@ -579,9 +631,9 @@ function BoardCell({
   // ── Vertical Top & Bottom Rows (10w x 14h Ratio) ─────────────────
   return (
     <div
-      onClick={() => isClickableTarget && onSelectDestination?.(space.index)}
-      className={`relative w-full h-full flex flex-col border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden ${worldTourCellClasses}`}
-      title={isClickableTarget ? `Fly to ${space.name} ✈️` : undefined}
+      onClick={handleClick}
+      className={`relative w-full h-full flex flex-col border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden ${cellHighlightClasses}`}
+      title={tooltipTitle}
     >
       {/* ── Sub-box 1: Land Plot (75% Height) ──────────────────────── */}
       <div
@@ -596,6 +648,16 @@ function BoardCell({
             className={`absolute top-0.5 right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${ownerStyle.bg} border border-white shadow-xs z-10`}
             title={`Owner: ${ownerStyle.emoji}`}
           />
+        )}
+
+        {/* World Cup Host Badge */}
+        {isWorldCupHost && (
+          <div
+            className="absolute top-0.5 left-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-[7px] sm:text-[8px] px-1 py-0.2 rounded-full border border-yellow-100 shadow-md animate-bounce"
+            title="World Cup Host City: 2× Rent Active!"
+          >
+            <span>🏆</span>
+          </div>
         )}
 
         {/* City / Space Name */}
@@ -641,6 +703,11 @@ function BoardCell({
             {isMonopolized && (
               <span className="text-[7.5px] sm:text-[9px] font-black text-amber-600 dark:text-amber-400 animate-pulse flex-shrink-0" title="Monopoly Set 1.5× Rent Active">
                 👑
+              </span>
+            )}
+            {isWorldCupHost && (
+              <span className="text-[7.5px] sm:text-[9px] font-black text-amber-500 dark:text-amber-300 animate-pulse flex-shrink-0" title="World Cup 2× Rent Active">
+                🏆
               </span>
             )}
           </div>
@@ -1200,6 +1267,7 @@ export function MonopolyBoard({
   monopolyCelebration,
   onDismissCelebration,
   onWorldTourTravel,
+  onHostWorldCup,
 }: MonopolyBoardProps) {
   const players = gameState?.players ?? [];
   const currentTurnPlayerId = gameState?.currentTurnPlayerId;
@@ -1500,6 +1568,18 @@ export function MonopolyBoard({
     Boolean(myPlayer) &&
     (turnPhase === 'world_tour' || (turnPhase === 'roll' && myPlayer?.position === 24));
 
+  // Check if World Cup host selection phase is active for current user
+  const isWorldCupSelectionActive =
+    !winner &&
+    !isWinnerVisible &&
+    !bankruptModalPlayer &&
+    !isAnyMoving &&
+    hasMovementSettled &&
+    isMyTurn &&
+    Boolean(myPlayer) &&
+    turnPhase === 'world_cup' &&
+    (myPlayer?.ownedProperties.length ?? 0) > 0;
+
   // Actions/Modals can only show once movement has 100% completed and settled
   const canShowActions =
     !winner &&
@@ -1568,6 +1648,10 @@ export function MonopolyBoard({
                   isWorldTourActive={isWorldTourActive}
                   isValidWorldTourTarget={isWorldTourTargetValid(idx)}
                   onSelectDestination={onWorldTourTravel}
+                  isWorldCupHost={gameState?.worldCupSpaceIndex === idx}
+                  isWorldCupSelectionActive={isWorldCupSelectionActive}
+                  isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
+                  onHostWorldCup={onHostWorldCup}
                 />
               </div>
             ))}
@@ -1585,6 +1669,10 @@ export function MonopolyBoard({
                   isWorldTourActive={isWorldTourActive}
                   isValidWorldTourTarget={isWorldTourTargetValid(idx)}
                   onSelectDestination={onWorldTourTravel}
+                  isWorldCupHost={gameState?.worldCupSpaceIndex === idx}
+                  isWorldCupSelectionActive={isWorldCupSelectionActive}
+                  isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
+                  onHostWorldCup={onHostWorldCup}
                 />
               </div>
             ))}
@@ -1602,6 +1690,10 @@ export function MonopolyBoard({
                   isWorldTourActive={isWorldTourActive}
                   isValidWorldTourTarget={isWorldTourTargetValid(idx)}
                   onSelectDestination={onWorldTourTravel}
+                  isWorldCupHost={gameState?.worldCupSpaceIndex === idx}
+                  isWorldCupSelectionActive={isWorldCupSelectionActive}
+                  isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
+                  onHostWorldCup={onHostWorldCup}
                 />
               </div>
             ))}
@@ -1620,6 +1712,10 @@ export function MonopolyBoard({
                   isWorldTourActive={isWorldTourActive}
                   isValidWorldTourTarget={isWorldTourTargetValid(idx)}
                   onSelectDestination={onWorldTourTravel}
+                  isWorldCupHost={gameState?.worldCupSpaceIndex === idx}
+                  isWorldCupSelectionActive={isWorldCupSelectionActive}
+                  isMyOwnedProperty={Boolean(myPlayer?.ownedProperties.includes(idx))}
+                  onHostWorldCup={onHostWorldCup}
                 />
               </div>
             ))}
@@ -1678,6 +1774,26 @@ export function MonopolyBoard({
 
               {/* ── CENTER BOARD ACTION CONTROLS ───────────────── */}
 
+              {/* World Cup Host Selection Banner (In Center Box) */}
+              {isWorldCupSelectionActive && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="z-20 bg-slate-950/95 border-2 border-amber-400 p-3 rounded-2xl shadow-2xl text-center space-y-1.5 max-w-[290px] w-full select-none"
+                >
+                  <div className="flex items-center justify-center gap-1.5 text-amber-400 font-black text-xs sm:text-sm tracking-wider">
+                    <span className="text-lg animate-bounce">🏆</span>
+                    <span>SELECT WORLD CUP HOST</span>
+                  </div>
+                  <p className="text-[11px] text-slate-200 font-medium leading-tight">
+                    Click one of your highlighted properties on the board to host the World Cup!
+                  </p>
+                  <div className="text-[10px] text-emerald-300 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded-lg border border-emerald-500/40">
+                    💰 Rent on the host property will be DOUBLED (2×)!
+                  </div>
+                </motion.div>
+              )}
+
               {/* World Tour Flight Banner (In Center Box) */}
               {isWorldTourActive && (
                 <motion.div
@@ -1699,7 +1815,7 @@ export function MonopolyBoard({
               )}
 
               {/* 1. ROLL DICE BUTTON (In Center Box) */}
-              {!winner && !bankruptModalPlayer && !isWinnerVisible && !isAnyMoving && turnPhase === 'roll' && isMyTurn && !isWorldTourActive && (
+              {!winner && !bankruptModalPlayer && !isWinnerVisible && !isAnyMoving && turnPhase === 'roll' && isMyTurn && !isWorldTourActive && !isWorldCupSelectionActive && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

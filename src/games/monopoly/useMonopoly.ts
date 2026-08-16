@@ -259,6 +259,11 @@ export function useMonopoly(username: string) {
     socketRef.current?.emit('mp_world_tour_travel', { roomId: roomIdRef.current, targetSpaceIndex });
   }, []);
 
+  const hostWorldCup = useCallback((spaceIndex: number) => {
+    if (!roomIdRef.current) return;
+    socketRef.current?.emit('mp_host_world_cup', { roomId: roomIdRef.current, spaceIndex });
+  }, []);
+
   return {
     // State
     room,
@@ -285,5 +290,6 @@ export function useMonopoly(username: string) {
     restart,
     dismissMonopolyCelebration,
     worldTourTravel,
+    hostWorldCup,
   };
 }

@@ -238,6 +238,7 @@ function createInitialMonopolyState(
       { message: `🎲 ${players[0].username}'s turn — roll the dice!`, timestamp: Date.now() },
     ],
     winner: null,
+    worldCupSpaceIndex: null,
   };
 }
 
@@ -254,34 +255,25 @@ function getNextActivePlayer(
 
   const currentIndex = activePlayers.findIndex((p) => p.playerId === currentPlayerId);
   if (currentIndex === -1) {
-    // If currentPlayerId was just marked inactive, find the next active player in original order
-    const allIndex = state.players.findIndex((p) => p.playerId === currentPlayerId);
-    if (allIndex !== -1) {
-      for (let i = 1; i <= state.players.length; i++) {
-        const nextP = state.players[(allIndex + i) % state.players.length];
-        if (nextP && nextP.isActive) {
-          return nextP.playerId;
-        }
-      }
-    }
-    return activePlayers[0].playerId;
+    return activePlayers[0]?.playerId ?? null;
   }
-  const nextIndex = (currentIndex + 1) % activePlayers.length;
-  return activePlayers[nextIndex].playerId;
+  return activePlayers[(currentIndex + 1) % activePlayers.length].playerId;
 }
 
 /**
- * Check if a player owns all properties in a color group (Monopoly).
+ * Helper to check if a color group is fully owned by a single player.
  */
-function isColorGroupMonopolized(colorGroup: string, owner: MonopolyPlayerState): boolean {
-  if (!colorGroup || !owner) return false;
+function isColorGroupMonopolized(
+  colorGroup: string,
+  player: MonopolyPlayerState
+): boolean {
   const groupSpaces = MONOPOLY_BOARD.filter((s) => s.colorGroup === colorGroup);
   if (groupSpaces.length === 0) return false;
-  return groupSpaces.every((s) => owner.ownedProperties.includes(s.index));
+  return groupSpaces.every((s) => player.ownedProperties.includes(s.index));
 }
 
 /**
- * Check if the latest purchase completed a full color monopoly and notify all clients.
+ * Check if the player just completed a full color set (monopoly) and broadcast celebration event.
  */
 function checkAndNotifyMonopolyCompleted(
   state: MonopolyGameState,
@@ -289,25 +281,24 @@ function checkAndNotifyMonopolyCompleted(
   spaceIndex: number,
   io: GameIO,
   roomId: string
-): void {
+) {
   const space = MONOPOLY_BOARD[spaceIndex];
   if (!space || !space.colorGroup) return;
 
   const colorGroup = space.colorGroup;
-  const groupSpaces = MONOPOLY_BOARD.filter((s) => s.colorGroup === colorGroup);
-  if (groupSpaces.length === 0) return;
+  if (!mpPlayer.celebratedMonopolies) {
+    mpPlayer.celebratedMonopolies = [];
+  }
 
-  const isComplete = groupSpaces.every((s) => mpPlayer.ownedProperties.includes(s.index));
-  if (isComplete) {
-    mpPlayer.celebratedMonopolies = mpPlayer.celebratedMonopolies || [];
-    // Only celebrate on the FIRST time the player completes this color set
-    if (mpPlayer.celebratedMonopolies.includes(colorGroup)) {
-      return;
-    }
+  if (
+    !mpPlayer.celebratedMonopolies.includes(colorGroup) &&
+    isColorGroupMonopolized(colorGroup, mpPlayer)
+  ) {
     mpPlayer.celebratedMonopolies.push(colorGroup);
-
     const groupName = colorGroup.replace("_", " ").toUpperCase();
-    const propNames = groupSpaces.map((s) => s.name);
+    const propNames = MONOPOLY_BOARD
+      .filter((s) => s.colorGroup === colorGroup)
+      .map((s) => s.name);
 
     mpLog(
       state,
@@ -326,7 +317,7 @@ function checkAndNotifyMonopolyCompleted(
 
 /**
  * Calculate rent for a space, considering beaches (doubles per owned),
- * utilities (4× or 10× dice roll), house levels, and 1.5× full color monopoly bonus.
+ * house levels, 1.5× full color monopoly bonus, and 2× World Cup host city bonus.
  */
 function calculateRent(
   spaceIndex: number,
@@ -363,12 +354,19 @@ function calculateRent(
     }
   }
 
+  let finalRent = baseRentAmount;
+
   // Full color group monopoly rule: Rent is increased by 1.5×
   if (space.colorGroup && isColorGroupMonopolized(space.colorGroup, owner)) {
-    return Math.round(baseRentAmount * 1.5);
+    finalRent = Math.round(finalRent * 1.5);
   }
 
-  return baseRentAmount;
+  // World Cup Host City rule: Rent is doubled (2×)
+  if (state.worldCupSpaceIndex === spaceIndex) {
+    finalRent = Math.round(finalRent * 2);
+  }
+
+  return finalRent;
 }
 
 /** Tax amounts for tax spaces. */
@@ -505,6 +503,24 @@ function resolveSpace(
   if (space.type === "world_tour") {
     mpLog(state, `✈️ ${player.username} arrived at World Tour! On their next turn, they can fly directly to any destination!`);
     return false;
+  }
+
+  // World Cup (Space 16) — host selection
+  if (space.type === "world_cup") {
+    if (player.ownedProperties.length > 0) {
+      state.turnPhase = "world_cup";
+      mpLog(
+        state,
+        `🏆 ${player.username} landed on World Cup! Select one of your properties on the board to host World Cup (2× Rent)!`
+      );
+      return true; // Stays in turn so player can select an on-board property
+    } else {
+      mpLog(
+        state,
+        `🏆 ${player.username} landed on World Cup but has no properties to host.`
+      );
+      return false; // Auto-pass
+    }
   }
 
   // Lost Island / Jail (landing directly on space 8)
@@ -973,6 +989,12 @@ export function registerSocketHandlers(io: GameIO): void {
         return;
       }
 
+      // Check if player entered World Cup hosting phase
+      if ((state.turnPhase as string) === "world_cup") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
       if (shouldOfferBuy) {
         const space = MONOPOLY_BOARD[mpPlayer.position];
         const isOwnProperty = mpPlayer.ownedProperties.includes(mpPlayer.position);
@@ -1328,6 +1350,10 @@ export function registerSocketHandlers(io: GameIO): void {
       if (space.colorGroup && mpPlayer.celebratedMonopolies) {
         mpPlayer.celebratedMonopolies = mpPlayer.celebratedMonopolies.filter((g) => g !== space.colorGroup);
       }
+      if (state.worldCupSpaceIndex === spaceIndex) {
+        state.worldCupSpaceIndex = null;
+        mpLog(state, `🏆 World Cup host property ${space.name} was sold. World Cup host status cleared.`);
+      }
 
       const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
       mpLog(state, `🏷️ ${mpPlayer.username} sold ${space.name}${levelStr} for $${saleValue}.`);
@@ -1391,6 +1417,10 @@ export function registerSocketHandlers(io: GameIO): void {
         }
       }
 
+      if (state.worldCupSpaceIndex != null && mpPlayer.ownedProperties.includes(state.worldCupSpaceIndex)) {
+        state.worldCupSpaceIndex = null;
+      }
+
       mpPlayer.balance = 0;
       mpPlayer.isActive = false;
       mpPlayer.ownedProperties = [];
@@ -1448,6 +1478,12 @@ export function registerSocketHandlers(io: GameIO): void {
 
       // Check if player was placed into debt resolution phase
       if (state.pendingDebt || (state.turnPhase as string) === "debt") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
+      // Check if player entered World Cup hosting phase
+      if (state.turnPhase === "world_cup") {
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         return;
       }
@@ -1518,6 +1554,49 @@ export function registerSocketHandlers(io: GameIO): void {
             price: space.price!,
           });
         }
+      } else {
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
+      }
+    });
+
+    // ── World Cup: select an owned property to host the World Cup ──
+    socket.on("mp_host_world_cup", ({ roomId, spaceIndex }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      if (player.id !== state.currentTurnPlayerId || state.turnPhase !== "world_cup") {
+        socket.emit("error", { message: "Cannot select World Cup host right now." });
+        return;
+      }
+
+      if (!mpPlayer.ownedProperties.includes(spaceIndex)) {
+        socket.emit("error", { message: "You can only select a property that you own." });
+        return;
+      }
+
+      const hostSpace = MONOPOLY_BOARD[spaceIndex];
+      if (!hostSpace) return;
+
+      state.worldCupSpaceIndex = spaceIndex;
+      mpLog(
+        state,
+        `🏆 ${mpPlayer.username} chose ${hostSpace.name} to host the World Cup! Rent is now DOUBLED (2×)! 🏆`
+      );
+
+      // Check if player rolled doubles before landing on World Cup
+      const lastDice = state.lastDice;
+      const isDoubles = lastDice && lastDice[0] === lastDice[1];
+      if (isDoubles && !mpPlayer.inJail && (mpPlayer.doublesCount || 0) < 3) {
+        state.turnPhase = "roll";
+        mpLog(state, `🎲 ${mpPlayer.username} rolled doubles — roll again!`);
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
       } else {
         advanceMonopolyTurn(state, player.id, room, io, roomId);
       }

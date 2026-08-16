@@ -6,7 +6,6 @@ import { useAuth } from '@/components/auth';
 import { LoginModal } from '@/components/auth/LoginModal';
 import { useMonopoly } from './useMonopoly';
 import { MonopolyBoard } from './MonopolyBoard';
-import { TOKEN_STYLES } from './boardData';
 
 type Screen = 'lobby' | 'waiting' | 'playing' | 'finished';
 
@@ -49,6 +48,7 @@ export function GameMonopoly() {
     restart,
     dismissMonopolyCelebration,
     worldTourTravel,
+    hostWorldCup,
     joinError: hookJoinError,
   } = useMonopoly(user?.username || '');
 
@@ -319,6 +319,7 @@ export function GameMonopoly() {
                 monopolyCelebration={monopolyCelebration}
                 onDismissCelebration={dismissMonopolyCelebration}
                 onWorldTourTravel={worldTourTravel}
+                onHostWorldCup={hostWorldCup}
               />
             </motion.div>
           )}

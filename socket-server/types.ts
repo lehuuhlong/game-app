@@ -162,12 +162,13 @@ export interface MonopolyPendingDebt {
 export interface MonopolyGameState {
   players: MonopolyPlayerState[];
   currentTurnPlayerId: string;
-  turnPhase: "roll" | "action" | "debt" | "world_tour" | "end";
+  turnPhase: "roll" | "action" | "debt" | "world_tour" | "world_cup" | "end";
   lastDice: [number, number] | null;
   rollCount?: number;
   eventLog: MonopolyEventLog[];
   winner: string | null;
   pendingDebt?: MonopolyPendingDebt | null;
+  worldCupSpaceIndex?: number | null;
 }
 
 
@@ -196,6 +197,7 @@ export interface ClientToServerEvents {
   // Battleship
   bs_ready: (data: { roomId: string; ships: ShipPlacement[] }) => void;
   bs_fire: (data: { roomId: string; x: number; y: number }) => void;
+  bs_rematch: (data: { roomId: string }) => void;
 
   // Monopoly
   mp_roll_dice: (data: { roomId: string }) => void;
@@ -207,6 +209,7 @@ export interface ClientToServerEvents {
   mp_pay_debt: (data: { roomId: string }) => void;
   mp_declare_bankruptcy: (data: { roomId: string }) => void;
   mp_world_tour_travel: (data: { roomId: string; targetSpaceIndex: number }) => void;
+  mp_host_world_cup: (data: { roomId: string; spaceIndex: number }) => void;
 }
 
 export interface ServerToClientEvents {
