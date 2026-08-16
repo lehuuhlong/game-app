@@ -306,7 +306,7 @@ function calculateRent(
 
 /** Tax amounts for tax spaces. */
 const TAX_AMOUNTS: Record<number, number> = {
-  4: 200, // Income Tax
+  30: 400, // Tax
 };
 
 /**
@@ -434,16 +434,16 @@ function resolveSpace(
   // Chance / Community Chest — simplified: random $$ event
   if (space.type === "chance" || space.type === "community_chest") {
     const events = [
-      { message: "Bank pays you dividend of $50", amount: 50 },
-      { message: "Doctor's fees — pay $50", amount: -50 },
-      { message: "You won a crossword competition — collect $100", amount: 100 },
-      { message: "Pay hospital fees of $100", amount: -100 },
-      { message: "Income tax refund — collect $20", amount: 20 },
-      { message: "Pay school fees of $50", amount: -50 },
-      { message: "Receive $25 consultancy fee", amount: 25 },
-      { message: "You are assessed for street repairs — pay $40", amount: -40 },
-      { message: "You have won second prize in a beauty contest — collect $10", amount: 10 },
-      { message: "Life insurance matures — collect $100", amount: 100 },
+      { message: "Bank pays you dividend of $100", amount: 100 },
+      { message: "Doctor's fees — pay $100", amount: -100 },
+      { message: "You won a crossword competition — collect $200", amount: 200 },
+      { message: "Pay hospital fees of $200", amount: -200 },
+      { message: "Income tax refund — collect $40", amount: 40 },
+      { message: "Pay school fees of $100", amount: -100 },
+      { message: "Receive $50 consultancy fee", amount: 50 },
+      { message: "You are assessed for street repairs — pay $80", amount: -80 },
+      { message: "You have won second prize in a beauty contest — collect $20", amount: 20 },
+      { message: "Life insurance matures — collect $200", amount: 200 },
     ];
     const event = events[Math.floor(Math.random() * events.length)];
     const icon = space.type === "chance" ? "❓" : "🏦";
@@ -819,11 +819,11 @@ export function registerSocketHandlers(io: GameIO): void {
 
       // Check if passed or landed on GO
       if (mpPlayer.position < oldPosition && mpPlayer.position !== 0) {
-        mpPlayer.balance += 200;
-        mpLog(state, `💵 ${mpPlayer.username} passed GO — collected $200!`);
+        mpPlayer.balance += 300;
+        mpLog(state, `💵 ${mpPlayer.username} passed GO — collected $300!`);
       } else if (mpPlayer.position === 0 && oldPosition !== 0) {
-        mpPlayer.balance += 200;
-        mpLog(state, `💵 ${mpPlayer.username} landed on GO — collected $200!`);
+        mpPlayer.balance += 300;
+        mpLog(state, `💵 ${mpPlayer.username} landed on GO — collected $300!`);
       }
 
       const landedSpace = MONOPOLY_BOARD[mpPlayer.position];
