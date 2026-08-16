@@ -61,6 +61,11 @@ interface MonopolyBoardProps {
 function getHouseLevel(players: MonopolyPlayerState[], spaceIndex: number): number {
   for (const p of players) {
     if (p.isActive && p.ownedProperties.includes(spaceIndex)) {
+      const space = MONOPOLY_BOARD[spaceIndex];
+      if (space?.type === 'beach') {
+        const ownedBeaches = p.ownedProperties.filter((idx) => MONOPOLY_BOARD[idx]?.type === 'beach').length;
+        return Math.min(4, Math.max(1, ownedBeaches));
+      }
       return p.houseLevels[spaceIndex] ?? 0;
     }
   }

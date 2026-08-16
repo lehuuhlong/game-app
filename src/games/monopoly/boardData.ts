@@ -74,7 +74,7 @@ export const COLOR_GROUP_STYLES: Record<string, {
   yellow:     { bg: "bg-amber-400", softBg: "bg-yellow-100/70", darkSoftBg: "dark:bg-yellow-950/40", text: "text-yellow-950 dark:text-yellow-100", border: "border-yellow-300 dark:border-yellow-800/60", glow: "shadow-yellow-400/30", barGradient: "from-yellow-300 to-amber-400" },
   green:      { bg: "bg-emerald-500", softBg: "bg-emerald-100/70", darkSoftBg: "dark:bg-emerald-950/40", text: "text-emerald-900 dark:text-emerald-100", border: "border-emerald-300 dark:border-emerald-800/60", glow: "shadow-emerald-500/30", barGradient: "from-emerald-400 to-teal-600" },
   dark_blue:  { bg: "bg-blue-600", softBg: "bg-blue-100/70", darkSoftBg: "dark:bg-blue-950/40", text: "text-blue-900 dark:text-blue-100", border: "border-blue-300 dark:border-blue-800/60", glow: "shadow-blue-600/30", barGradient: "from-blue-500 to-indigo-600" },
-  beach:      { bg: "bg-cyan-600", softBg: "bg-cyan-100/75", darkSoftBg: "dark:bg-cyan-950/40", text: "text-cyan-950 dark:text-cyan-100", border: "border-cyan-300 dark:border-cyan-800/60", glow: "shadow-cyan-600/30", barGradient: "from-cyan-400 to-teal-500" },
+  beach:      { bg: "bg-cyan-600", softBg: "bg-gradient-to-br from-amber-100/90 via-cyan-100/80 to-sky-200/90", darkSoftBg: "dark:from-amber-950/40 dark:via-cyan-950/40 dark:to-sky-950/60", text: "text-teal-950 dark:text-cyan-200 font-black", border: "border-cyan-300 dark:border-cyan-800/60", glow: "shadow-cyan-600/30", barGradient: "from-cyan-400 to-teal-500" },
   utility:    { bg: "bg-teal-600", softBg: "bg-teal-100/70", darkSoftBg: "dark:bg-teal-950/40", text: "text-teal-900 dark:text-teal-100", border: "border-teal-300 dark:border-teal-800/60", glow: "shadow-teal-600/30", barGradient: "from-teal-500 to-cyan-700" },
 };
 
@@ -130,7 +130,7 @@ export const SPACE_ICONS: Record<string, string> = {
   chance:          "☸️",
   community_chest: "🎴",
   tax:             "💸",
-  beach:           "🏖️",
+  beach:           "",
   utility:         "⚡",
 };
 
