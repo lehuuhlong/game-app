@@ -387,6 +387,27 @@ function checkMonopolyWinner(state: MonopolyGameState): string | null {
 }
 
 /**
+ * Check if a space index is a valid target destination for World Tour.
+ * Disallows 4 main corners (0, 8, 16, 24) and chance, community chest, and tax spaces.
+ */
+function isWorldTourTargetValid(spaceIndex: number): boolean {
+  if (typeof spaceIndex !== "number" || spaceIndex < 0 || spaceIndex >= MONOPOLY_BOARD.length) {
+    return false;
+  }
+  // 4 corners cannot be targeted: START (0), Lost Island (8), World Cup (16), World Tour (24)
+  if (spaceIndex === 0 || spaceIndex === 8 || spaceIndex === 16 || spaceIndex === 24) {
+    return false;
+  }
+  const space = MONOPOLY_BOARD[spaceIndex];
+  if (!space) return false;
+  // Chance, Community Chest, Tax cannot be targeted
+  if (space.type === "chance" || space.type === "community_chest" || space.type === "tax") {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Advance Monopoly turn to the next active player.
  * Checks for game over if only 1 active player remains.
  */
@@ -419,10 +440,17 @@ function advanceMonopolyTurn(
   }
 
   state.currentTurnPlayerId = nextPlayerId;
-  state.turnPhase = "roll";
-
   const nextPlayer = state.players.find((p) => p.playerId === nextPlayerId);
-  mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+
+  // If next player is at World Tour (and not in jail), start turn in 'world_tour' phase
+  if (nextPlayer && nextPlayer.position === 24 && !nextPlayer.inJail) {
+    state.turnPhase = "world_tour";
+    mpLog(state, `✈️ ${nextPlayer.username} is at World Tour! Select any destination on the board to travel!`);
+  } else {
+    state.turnPhase = "roll";
+    mpLog(state, `🎲 ${nextPlayer?.username || "Unknown"}'s turn — roll the dice!`);
+  }
+
   io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
 }
 
@@ -440,13 +468,9 @@ function resolveSpace(
   const space = MONOPOLY_BOARD[player.position];
   if (!space) return false;
 
-  // Go To Jail / World Tour
-  if (space.type === "go_to_jail") {
-    player.position = 8;
-    player.inJail = true;
-    player.jailTurns = 0;
-    player.doublesCount = 0;
-    mpLog(state, `🏝️ ${player.username} was sent to Lost Island!`);
+  // World Tour (Space 24) — player stays here and flies next turn
+  if (space.type === "world_tour" || space.type === "go_to_jail" || player.position === 24) {
+    mpLog(state, `✈️ ${player.username} arrived at World Tour! On their next turn, they can fly directly to any destination!`);
     return false;
   }
 
@@ -1340,6 +1364,128 @@ export function registerSocketHandlers(io: GameIO): void {
       state.pendingDebt = null;
 
       advanceMonopolyTurn(state, player.id, room, io, roomId);
+    });
+
+    // ── World Tour: travel to any space on board ──────────────────
+    socket.on("mp_world_tour_travel", ({ roomId, targetSpaceIndex }) => {
+      const room = rooms.get(roomId);
+      const state = mpStates.get(roomId);
+      if (!room || !state || room.status !== "playing" || room.gameType !== "monopoly") return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const mpPlayer = state.players.find((p) => p.playerId === player.id);
+      if (!mpPlayer || !mpPlayer.isActive) return;
+
+      if (player.id !== state.currentTurnPlayerId || (state.turnPhase !== "world_tour" && mpPlayer.position !== 24)) {
+        socket.emit("error", { message: "Cannot travel via World Tour right now." });
+        return;
+      }
+
+      if (!isWorldTourTargetValid(targetSpaceIndex)) {
+        socket.emit("error", { message: "Invalid destination. You cannot land on corners, chance, or tax spaces." });
+        return;
+      }
+
+      const targetSpace = MONOPOLY_BOARD[targetSpaceIndex];
+      if (!targetSpace) return;
+
+      // Clockwise flight path: from 24 to targetSpaceIndex
+      // If targetSpaceIndex < 24 (e.g. spaces 1..23), player travels clockwise past START (0)
+      if (targetSpaceIndex < 24) {
+        mpPlayer.balance += 300;
+        mpLog(state, `💵 ${mpPlayer.username} passed START during World Tour flight — collected $300!`);
+      }
+
+      mpPlayer.position = targetSpaceIndex;
+      state.rollCount = (state.rollCount || 0) + 1;
+      mpLog(state, `✈️ ${mpPlayer.username} flew via World Tour to ${targetSpace.name}!`);
+
+      // Resolve the space they landed on
+      const shouldOfferBuy = resolveSpace(state, mpPlayer, 0, io, roomId);
+
+      // Check if player went bankrupt from space resolution
+      if (!mpPlayer.isActive) {
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
+        return;
+      }
+
+      // Check if player was placed into debt resolution phase
+      if (state.pendingDebt || (state.turnPhase as string) === "debt") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
+      if (shouldOfferBuy) {
+        const space = MONOPOLY_BOARD[mpPlayer.position];
+        const isOwnProperty = mpPlayer.ownedProperties.includes(mpPlayer.position);
+
+        if (isOwnProperty && space.type === "property") {
+          mpPlayer.visitCounts = mpPlayer.visitCounts || {};
+          mpPlayer.visitCounts[mpPlayer.position] = (mpPlayer.visitCounts[mpPlayer.position] || 0) + 1;
+          const visitCount = mpPlayer.visitCounts[mpPlayer.position];
+
+          const currentLevel = mpPlayer.houseLevels[mpPlayer.position] ?? 0;
+          const maxLevel = visitCount >= 2 ? 4 : 3;
+          const upgradeCostPerLevel = Math.floor((space.price ?? 0) * 0.5);
+
+          if (currentLevel >= maxLevel || mpPlayer.balance < upgradeCostPerLevel) {
+            advanceMonopolyTurn(state, player.id, room, io, roomId);
+            return;
+          }
+
+          const costs = [1, 2, 3, 4].map((lvl) => {
+            if (lvl <= currentLevel) return 0;
+            return (lvl - currentLevel) * upgradeCostPerLevel;
+          });
+
+          state.turnPhase = "action";
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(socket.id).emit("mp_offer_upgrade", {
+            spaceIndex: mpPlayer.position,
+            spaceName: space.name,
+            currentLevel,
+            upgradeCost: upgradeCostPerLevel,
+            maxLevel,
+            costs,
+          });
+        } else if (space.type === "property") {
+          const upgradeCostPerLevel = Math.floor((space.price ?? 0) * 0.5);
+          if (mpPlayer.balance < (space.price ?? 0)) {
+            advanceMonopolyTurn(state, player.id, room, io, roomId);
+            return;
+          }
+
+          const costs = [
+            (space.price ?? 0) + upgradeCostPerLevel,
+            (space.price ?? 0) + 2 * upgradeCostPerLevel,
+            (space.price ?? 0) + 3 * upgradeCostPerLevel,
+            0,
+          ];
+
+          state.turnPhase = "action";
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(socket.id).emit("mp_offer_upgrade", {
+            spaceIndex: mpPlayer.position,
+            spaceName: space.name,
+            currentLevel: 0,
+            upgradeCost: upgradeCostPerLevel,
+            maxLevel: 3,
+            costs,
+          });
+        } else if (space.type === "beach" || space.type === "utility") {
+          state.turnPhase = "action";
+          io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+          io.to(socket.id).emit("mp_offer_buy", {
+            spaceIndex: mpPlayer.position,
+            spaceName: space.name,
+            price: space.price!,
+          });
+        }
+      } else {
+        advanceMonopolyTurn(state, player.id, room, io, roomId);
+      }
     });
 
     // ══════════════════════════════════════════════════════════════

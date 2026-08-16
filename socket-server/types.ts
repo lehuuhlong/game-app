@@ -98,7 +98,7 @@ export interface BattleshipGameState {
 export type MonopolySpaceType =
   | "go" | "property" | "beach" | "utility"
   | "chance" | "community_chest" | "tax"
-  | "jail" | "free_parking" | "go_to_jail";
+  | "jail" | "free_parking" | "go_to_jail" | "world_tour";
 
 export type MonopolyColorGroup =
   | "brown" | "light_blue" | "pink" | "orange"
@@ -149,7 +149,7 @@ export interface MonopolyPendingDebt {
 export interface MonopolyGameState {
   players: MonopolyPlayerState[];
   currentTurnPlayerId: string;
-  turnPhase: "roll" | "action" | "debt" | "end";
+  turnPhase: "roll" | "action" | "debt" | "world_tour" | "end";
   lastDice: [number, number] | null;
   rollCount?: number;
   eventLog: MonopolyEventLog[];
@@ -193,6 +193,7 @@ export interface ClientToServerEvents {
   mp_sell_property: (data: { roomId: string; spaceIndex: number }) => void;
   mp_pay_debt: (data: { roomId: string }) => void;
   mp_declare_bankruptcy: (data: { roomId: string }) => void;
+  mp_world_tour_travel: (data: { roomId: string; targetSpaceIndex: number }) => void;
 }
 
 export interface ServerToClientEvents {

@@ -63,6 +63,26 @@ interface MonopolyBoardProps {
     propertyNames: string[];
   } | null;
   onDismissCelebration?: () => void;
+  onWorldTourTravel?: (targetSpaceIndex: number) => void;
+}
+
+// ── World Tour Target Validation Helper ───────────────────────────
+
+export function isWorldTourTargetValid(spaceIndex: number): boolean {
+  if (typeof spaceIndex !== 'number' || spaceIndex < 0 || spaceIndex >= MONOPOLY_BOARD.length) {
+    return false;
+  }
+  // 4 corners cannot be targeted: START (0), Lost Island (8), World Cup (16), World Tour (24)
+  if (spaceIndex === 0 || spaceIndex === 8 || spaceIndex === 16 || spaceIndex === 24) {
+    return false;
+  }
+  const space = MONOPOLY_BOARD[spaceIndex];
+  if (!space) return false;
+  // Chance, Community Chest, Tax cannot be targeted
+  if (space.type === 'chance' || space.type === 'community_chest' || space.type === 'tax') {
+    return false;
+  }
+  return true;
 }
 
 // ── Color Group Display Order for My Properties ───────────────────
@@ -336,6 +356,9 @@ function BoardCell({
   ownerColor,
   houseLevel = 0,
   isCorner = false,
+  isWorldTourActive = false,
+  isValidWorldTourTarget = false,
+  onSelectDestination,
 }: {
   space: MonopolyBoardSpace;
   players: MonopolyPlayerState[];
@@ -344,6 +367,9 @@ function BoardCell({
   ownerColor: string | null;
   houseLevel?: number;
   isCorner?: boolean;
+  isWorldTourActive?: boolean;
+  isValidWorldTourTarget?: boolean;
+  onSelectDestination?: (index: number) => void;
 }) {
   const colorStyle = space.colorGroup ? COLOR_GROUP_STYLES[space.colorGroup] : null;
   const ownerStyle = ownerColor ? TOKEN_STYLES[ownerColor] : null;
@@ -355,10 +381,19 @@ function BoardCell({
   const owner = players.find((p) => p.isActive && p.ownedProperties.includes(space.index));
   const isMonopolized = space.colorGroup ? isColorGroupMonopolized(space.colorGroup, owner) : false;
 
+  const isClickableTarget = isWorldTourActive && isValidWorldTourTarget;
+  const isDimmedNonTarget = isWorldTourActive && !isValidWorldTourTarget;
+
+  const worldTourCellClasses = isClickableTarget
+    ? 'ring-2 ring-sky-400 ring-offset-1 shadow-lg shadow-sky-500/50 cursor-pointer animate-pulse hover:ring-4 hover:scale-[1.03] z-20 transition-all'
+    : isDimmedNonTarget
+    ? 'opacity-35 grayscale-[50%] transition-opacity'
+    : '';
+
   // ── 4 Main Corner Tiles (START, Lost Island, World Cup, World Tour) ──
   if (isCorner) {
     return (
-      <div className="relative w-full h-full border border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95 select-none overflow-hidden font-black flex flex-col justify-between p-1">
+      <div className={`relative w-full h-full border border-slate-300 dark:border-slate-700/60 bg-gradient-to-br from-amber-50 via-amber-100/50 to-amber-200/40 dark:from-slate-800/95 dark:to-slate-900/95 select-none overflow-hidden font-black flex flex-col justify-between p-1 ${worldTourCellClasses}`}>
         {/* Centered Icon on top & Text below icon (Centered vertically and horizontally) */}
         <div className="flex-1 flex flex-col items-center justify-center text-center px-0.5 min-h-0">
           <span className="text-xl sm:text-2xl md:text-3xl leading-none mb-1 drop-shadow-xs">
@@ -392,7 +427,7 @@ function BoardCell({
     // 90-degree sideways rotation for Chance & Tax on left and right columns
     if (isRotatedSide) {
       return (
-        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex flex-row items-center justify-between p-0.5 sm:p-1 ${bgClasses}`}>
+        <div className={`relative w-full h-full border select-none overflow-hidden font-black flex flex-row items-center justify-between p-0.5 sm:p-1 ${bgClasses} ${worldTourCellClasses}`}>
           {/* Space Name (Perfect straight vertical line along outer edge) */}
           <div className="w-4 h-full flex items-center justify-center flex-shrink-0">
             <span
@@ -429,7 +464,7 @@ function BoardCell({
     }
 
     return (
-      <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-center ${bgClasses}`}>
+      <div className={`relative w-full h-full border select-none overflow-hidden font-black flex items-center justify-center ${bgClasses} ${worldTourCellClasses}`}>
         <div className="w-full h-full flex flex-col justify-between p-0.5 sm:p-1">
           {/* Space Name (Pinned to top edge, matching top and bottom rows) */}
           <span
@@ -468,7 +503,11 @@ function BoardCell({
   // ── Horizontal Side Cells (Left & Right Columns - 14w x 10h Ratio) ─
   if (isRotatedSide) {
     return (
-      <div className={`relative w-full h-full flex flex-row border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden`}>
+      <div
+        onClick={() => isClickableTarget && onSelectDestination?.(space.index)}
+        className={`relative w-full h-full flex flex-row border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden ${worldTourCellClasses}`}
+        title={isClickableTarget ? `Fly to ${space.name} ✈️` : undefined}
+      >
         {/* ── Sub-box 1: Land Plot (75% Width) ──────────────────────── */}
         <div
           className={`
@@ -540,7 +579,11 @@ function BoardCell({
 
   // ── Vertical Top & Bottom Rows (10w x 14h Ratio) ─────────────────
   return (
-    <div className={`relative w-full h-full flex flex-col border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden`}>
+    <div
+      onClick={() => isClickableTarget && onSelectDestination?.(space.index)}
+      className={`relative w-full h-full flex flex-col border ${colorStyle ? colorStyle.border : 'border-slate-300 dark:border-slate-700/70'} select-none overflow-hidden ${worldTourCellClasses}`}
+      title={isClickableTarget ? `Fly to ${space.name} ✈️` : undefined}
+    >
       {/* ── Sub-box 1: Land Plot (75% Height) ──────────────────────── */}
       <div
         className={`
@@ -1096,6 +1139,7 @@ export function MonopolyBoard({
   upgradeOffer,
   monopolyCelebration,
   onDismissCelebration,
+  onWorldTourTravel,
 }: MonopolyBoardProps) {
   const players = gameState?.players ?? [];
   const currentTurnPlayerId = gameState?.currentTurnPlayerId;
@@ -1153,10 +1197,16 @@ export function MonopolyBoard({
         clearTimers();
         setIsAnimatingMove(true);
         setHasMovementSettled(false);
-        setIsRollingDice(true);
         setMovingPlayerId(p.playerId);
 
-        // Phase 1: Dice rolling animation for 600ms
+        const isWorldTourFlight = currentPos === 24;
+        const diceDelay = isWorldTourFlight ? 0 : 600;
+
+        if (!isWorldTourFlight) {
+          setIsRollingDice(true);
+        }
+
+        // Phase 1: Dice rolling animation for 600ms (or 0ms if World Tour flight)
         const diceTimer = setTimeout(() => {
           setIsRollingDice(false);
 
@@ -1178,7 +1228,7 @@ export function MonopolyBoard({
           }
 
           // Sequential 1-by-1 cell hopping
-          const STEP_INTERVAL_MS = 200;
+          const STEP_INTERVAL_MS = isWorldTourFlight ? 150 : 200;
           for (let step = 1; step <= stepsToMove; step++) {
             const stepTimer = setTimeout(() => {
               const nextPos = (currentPos + step) % 32;
@@ -1197,7 +1247,7 @@ export function MonopolyBoard({
 
             moveTimersRef.current.push(stepTimer);
           }
-        }, 600);
+        }, diceDelay);
 
         moveTimersRef.current.push(diceTimer);
       }
@@ -1241,6 +1291,15 @@ export function MonopolyBoard({
         displayedPositions[p.playerId] !== undefined &&
         displayedPositions[p.playerId] !== p.position
     );
+
+  // Check if World Tour phase is active for current user
+  const isWorldTourActive =
+    !winner &&
+    !isAnyMoving &&
+    hasMovementSettled &&
+    isMyTurn &&
+    Boolean(myPlayer) &&
+    (turnPhase === 'world_tour' || (turnPhase === 'roll' && myPlayer?.position === 24));
 
   // Actions/Modals can only show once movement has 100% completed and settled
   const canShowActions =
@@ -1298,6 +1357,9 @@ export function MonopolyBoard({
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
                   isCorner={idx === 16 || idx === 24}
+                  isWorldTourActive={isWorldTourActive}
+                  isValidWorldTourTarget={isWorldTourTargetValid(idx)}
+                  onSelectDestination={onWorldTourTravel}
                 />
               </div>
             ))}
@@ -1312,6 +1374,9 @@ export function MonopolyBoard({
                   movingPlayerId={movingPlayerId}
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
+                  isWorldTourActive={isWorldTourActive}
+                  isValidWorldTourTarget={isWorldTourTargetValid(idx)}
+                  onSelectDestination={onWorldTourTravel}
                 />
               </div>
             ))}
@@ -1326,6 +1391,9 @@ export function MonopolyBoard({
                   movingPlayerId={movingPlayerId}
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
+                  isWorldTourActive={isWorldTourActive}
+                  isValidWorldTourTarget={isWorldTourTargetValid(idx)}
+                  onSelectDestination={onWorldTourTravel}
                 />
               </div>
             ))}
@@ -1341,6 +1409,9 @@ export function MonopolyBoard({
                   ownerColor={getOwnerColor(idx)}
                   houseLevel={getHouseLevel(players, idx)}
                   isCorner={idx === 8 || idx === 0}
+                  isWorldTourActive={isWorldTourActive}
+                  isValidWorldTourTarget={isWorldTourTargetValid(idx)}
+                  onSelectDestination={onWorldTourTravel}
                 />
               </div>
             ))}
@@ -1375,15 +1446,35 @@ export function MonopolyBoard({
               {isAnyMoving && (
                 <div className="text-center z-10 bg-amber-400/20 dark:bg-amber-400/10 px-4 py-1.5 rounded-full border border-amber-300/50 dark:border-amber-400/30 animate-pulse">
                   <span className="text-xs font-black text-amber-200">
-                    {isRollingDice ? '🎲 Rolling dice...' : '🏃 Hopping spaces...'}
+                    {isRollingDice ? '🎲 Rolling dice...' : '🏃 Moving...'}
                   </span>
                 </div>
               )}
 
               {/* ── CENTER BOARD ACTION CONTROLS ───────────────── */}
 
+              {/* World Tour Flight Banner (In Center Box) */}
+              {isWorldTourActive && (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="z-20 bg-slate-950/95 border-2 border-sky-400 p-3 rounded-2xl shadow-2xl text-center space-y-1.5 max-w-[290px] w-full select-none"
+                >
+                  <div className="flex items-center justify-center gap-1.5 text-sky-400 font-black text-xs sm:text-sm tracking-wider">
+                    <span className="text-lg animate-bounce">✈️</span>
+                    <span>WORLD TOUR FLIGHT</span>
+                  </div>
+                  <p className="text-[11px] text-slate-200 font-medium leading-tight">
+                    Click any highlighted city or beach on the board to travel!
+                  </p>
+                  <div className="text-[10px] text-amber-300 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/40">
+                    💰 Passing START earns +$300 salary
+                  </div>
+                </motion.div>
+              )}
+
               {/* 1. ROLL DICE BUTTON (In Center Box) */}
-              {!winner && !isAnyMoving && turnPhase === 'roll' && isMyTurn && (
+              {!winner && !isAnyMoving && turnPhase === 'roll' && isMyTurn && !isWorldTourActive && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

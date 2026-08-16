@@ -219,7 +219,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   {
     index: 24,
     name: 'World Tour',
-    type: 'go_to_jail',
+    type: 'world_tour',
     colorGroup: null,
     price: null,
     baseRent: null,

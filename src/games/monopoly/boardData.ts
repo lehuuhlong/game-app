@@ -44,7 +44,7 @@ export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   { index: 23, name: "New York", type: "property", colorGroup: "yellow", price: 240, baseRent: 20, rentScale: [100, 300, 750, 925, 1100] },
 
   // ── Right column (24-31) ────────────────────────────────────────
-  { index: 24, name: "World Tour", type: "go_to_jail", colorGroup: null, price: null, baseRent: null },
+  { index: 24, name: "World Tour", type: "world_tour", colorGroup: null, price: null, baseRent: null },
   { index: 25, name: "Nice", type: "beach", colorGroup: "beach", price: 200, baseRent: 25 },
   { index: 26, name: "Lyon", type: "property", colorGroup: "green", price: 260, baseRent: 22, rentScale: [110, 330, 800, 975, 1150] },
   { index: 27, name: "Paris", type: "property", colorGroup: "green", price: 280, baseRent: 24, rentScale: [120, 360, 850, 1025, 1200] },
@@ -180,6 +180,7 @@ export const SPACE_ICONS: Record<string, string> = {
   jail:            "🏝️",
   free_parking:    "🏆",
   go_to_jail:      "✈️",
+  world_tour:      "✈️",
   chance:          "☸️",
   community_chest: "🎴",
   tax:             "💸",

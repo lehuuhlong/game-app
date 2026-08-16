@@ -48,6 +48,7 @@ export function GameMonopoly() {
     endTurn,
     restart,
     dismissMonopolyCelebration,
+    worldTourTravel,
     joinError: hookJoinError,
   } = useMonopoly(user?.username || '');
 
@@ -317,6 +318,7 @@ export function GameMonopoly() {
                 upgradeOffer={upgradeOffer}
                 monopolyCelebration={monopolyCelebration}
                 onDismissCelebration={dismissMonopolyCelebration}
+                onWorldTourTravel={worldTourTravel}
               />
             </motion.div>
           )}
