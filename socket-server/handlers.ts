@@ -585,11 +585,33 @@ function resolveSpace(
     if (!state.shieldedSpaces) state.shieldedSpaces = [];
     if (!state.blackoutSpaces) state.blackoutSpaces = [];
 
-    const chanceCardTypes = [
-      "demolish",
-      "blackout",
-      "downgrade",
-      "shield",
+    const opponents = state.players.filter((p) => p.isActive && p.playerId !== player.playerId);
+    const opponentProperties = opponents
+      .flatMap((p) => p.ownedProperties)
+      .filter((idx) => !state.shieldedSpaces?.includes(idx));
+    const playerProperties = player.ownedProperties.filter((idx) => !state.shieldedSpaces?.includes(idx));
+
+    // Weighted candidate pool prioritizing interactive gameplay
+    const candidateCards: string[] = [];
+
+    // If opponents have unshielded properties, heavily feature attack cards
+    if (opponentProperties.length > 0) {
+      candidateCards.push("demolish", "demolish", "blackout", "blackout");
+      const hasHouses = opponents.some((o) =>
+        opponentProperties.some((idx) => (o.houseLevels[idx] ?? 0) > 0)
+      );
+      if (hasHouses) {
+        candidateCards.push("downgrade", "downgrade");
+      }
+    }
+
+    // If player has unshielded properties, feature defense shield
+    if (playerProperties.length > 0) {
+      candidateCards.push("shield", "shield", "shield");
+    }
+
+    // Always include flight, jail, and cash cards
+    candidateCards.push(
       "flight",
       "jail",
       "dividend",
@@ -598,11 +620,13 @@ function resolveSpace(
       "consultancy",
       "medical",
       "speeding",
-      "renovation",
-    ];
+      "renovation"
+    );
+    if (!player.inJail) {
+      candidateCards.push("jail");
+    }
 
-    const chosenCard = chanceCardTypes[Math.floor(Math.random() * chanceCardTypes.length)];
-    const opponents = state.players.filter((p) => p.isActive && p.playerId !== player.playerId);
+    const chosenCard = candidateCards[Math.floor(Math.random() * candidateCards.length)];
 
     if (chosenCard === "demolish") {
       const targetable = opponents
@@ -1232,6 +1256,18 @@ export function registerSocketHandlers(io: GameIO): void {
         return;
       }
 
+      // Check if player entered Chance Target selection phase
+      if ((state.turnPhase as string) === "chance_target") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
+      // Check if player entered World Tour phase (e.g. from Flight ticket chance card)
+      if ((state.turnPhase as string) === "world_tour") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
       if (shouldOfferBuy) {
         const space = MONOPOLY_BOARD[mpPlayer.position];
         const isOwnProperty = mpPlayer.ownedProperties.includes(mpPlayer.position);
@@ -1745,6 +1781,18 @@ export function registerSocketHandlers(io: GameIO): void {
 
       // Check if player entered World Cup hosting phase
       if (state.turnPhase === "world_cup") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
+      // Check if player entered Chance Target selection phase
+      if (state.turnPhase === "chance_target") {
+        io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
+        return;
+      }
+
+      // Check if player entered World Tour phase
+      if (state.turnPhase === "world_tour") {
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         return;
       }
