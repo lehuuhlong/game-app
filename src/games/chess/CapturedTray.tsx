@@ -3,8 +3,8 @@
 import React from "react";
 
 interface CapturedTrayProps {
-  pieces: string[]; // e.g. ["p", "p", "n", "q"] (lowercase = black pieces captured by white; uppercase = white pieces captured by black)
-  color: "white" | "black"; // which tray side this represents
+  pieces: string[]; // e.g. ["p", "p", "n", "q"]
+  color: "white" | "black";
 }
 
 const PIECE_SYMBOLS: Record<string, string> = {
@@ -37,19 +37,23 @@ const PIECE_VALUES: Record<string, number> = {
 
 export function CapturedTray({ pieces }: CapturedTrayProps) {
   if (!pieces || pieces.length === 0) {
-    return <div className="h-6 flex items-center text-xs text-slate-500 italic">No captures</div>;
+    return (
+      <div className="h-5 flex items-center text-[11px] text-foreground-muted italic">
+        No captures yet
+      </div>
+    );
   }
 
   // Count piece values
   const totalValue = pieces.reduce((sum, p) => sum + (PIECE_VALUES[p] || 0), 0);
 
   return (
-    <div className="flex items-center gap-1 flex-wrap min-h-[24px]">
-      <div className="flex items-center -space-x-1">
+    <div className="flex items-center gap-1 flex-wrap min-h-[20px] mt-0.5">
+      <div className="flex items-center -space-x-0.5">
         {pieces.map((p, idx) => (
           <span
             key={`${p}-${idx}`}
-            className="text-lg leading-none select-none transition-transform hover:scale-125 drop-shadow"
+            className="text-base leading-none select-none transition-transform hover:scale-125 text-foreground drop-shadow-sm"
             title={`Captured ${p.toUpperCase()}`}
           >
             {PIECE_SYMBOLS[p] || p}
@@ -57,7 +61,7 @@ export function CapturedTray({ pieces }: CapturedTrayProps) {
         ))}
       </div>
       {totalValue > 0 && (
-        <span className="text-[11px] font-semibold text-slate-400 ml-1">
+        <span className="text-[10px] font-bold px-1 py-0.2 rounded bg-accent/10 text-accent border border-accent/20 ml-1">
           +{totalValue}
         </span>
       )}
