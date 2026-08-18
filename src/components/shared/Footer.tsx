@@ -31,6 +31,9 @@ export function Footer() {
             <Link href="/" className="hover:text-foreground transition-colors">
               Home
             </Link>
+            <Link href="/games" className="hover:text-foreground transition-colors">
+              Games
+            </Link>
             <Link href="/leaderboard" className="hover:text-foreground transition-colors">
               Leaderboard
             </Link>

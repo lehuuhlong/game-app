@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth";
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/games", label: "Games" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
 
@@ -22,11 +23,6 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            {/* <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-lg shadow-sky-500/25 transition-transform duration-300 group-hover:scale-110">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-            </div> */}
             <span className="text-lg font-bold tracking-tight text-foreground">
               Game<span className="text-gradient">Portal</span>
             </span>
@@ -35,7 +31,11 @@ export function Navbar() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
+
               return (
                 <Link
                   key={link.href}
@@ -100,20 +100,26 @@ export function Navbar() {
             className="md:hidden overflow-hidden border-t border-border"
           >
             <nav className="flex flex-col gap-1 px-4 py-3">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === link.href
-                      ? "bg-accent-light text-accent"
-                      : "text-foreground-secondary hover:bg-surface-hover hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const isActive =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname === link.href || pathname.startsWith(`${link.href}/`);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-accent-light text-accent"
+                        : "text-foreground-secondary hover:bg-surface-hover hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </nav>
           </motion.div>
         )}
