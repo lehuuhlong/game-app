@@ -1,6 +1,7 @@
 import { Server as SocketIOServer } from "socket.io";
 import fs from "fs";
 import path from "path";
+import { Chess } from "chess.js";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -16,6 +17,11 @@ import type {
   MonopolyGameState,
   MonopolyPlayerState,
   MonopolyTokenColor,
+  ChessGameState,
+  ChessMove,
+  ChessMoveRecord,
+  ChessColor,
+  Player,
 } from "./types";
 import { MONOPOLY_BOARD, getSaleValue } from "./src/data/monopoly-board";
 
@@ -32,6 +38,7 @@ const caroStates = new Map<string, CaroGameState>();
 const wcStates = new Map<string, WordChainGameState>();
 const bsStates = new Map<string, BattleshipGameState>();
 const mpStates = new Map<string, MonopolyGameState>();
+const chessStates = new Map<string, ChessGameState>();
 
 // Timers for Word Chain turns (server-authoritative)
 const wcTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -50,6 +57,144 @@ function createInitialCaroState(): CaroGameState {
     winner: null,
     moveHistory: [],
   };
+}
+
+// ── Chess helpers ─────────────────────────────────────────────────
+
+const DEFAULT_CHESS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+function createInitialChessState(p1: Player, p2: Player): ChessGameState {
+  return {
+    fen: DEFAULT_CHESS_FEN,
+    currentTurn: "w",
+    whitePlayer: { id: p1.id, username: p1.username, color: "w" },
+    blackPlayer: { id: p2.id, username: p2.username, color: "b" },
+    moveHistory: [],
+    isCheck: false,
+    isCheckmate: false,
+    isDraw: false,
+    isStalemate: false,
+    isThreefoldRepetition: false,
+    isInsufficientMaterial: false,
+    winner: null,
+    endReason: null,
+  };
+}
+
+function handleChessMove(
+  socket: import("socket.io").Socket<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >,
+  io: GameIO,
+  move: ChessMove
+) {
+  const room = rooms.get(move.roomId);
+  if (!room || room.status !== "playing" || room.gameType !== "chess") return;
+
+  const gameState = chessStates.get(move.roomId);
+  if (!gameState) return;
+
+  const player = room.players.find((p) => p.socketId === socket.id);
+  if (!player) return;
+
+  // Verify it is this player's turn
+  const expectedPlayerId =
+    gameState.currentTurn === "w"
+      ? gameState.whitePlayer.id
+      : gameState.blackPlayer.id;
+
+  if (player.id !== expectedPlayerId) {
+    socket.emit("error", { message: "Not your turn." });
+    return;
+  }
+
+  try {
+    const chess = new Chess(gameState.fen);
+    const result = chess.move({
+      from: move.from,
+      to: move.to,
+      promotion: move.promotion || "q",
+    });
+
+    if (!result) {
+      socket.emit("error", { message: "Invalid move." });
+      return;
+    }
+
+    const newFen = chess.fen();
+    const isCheck = chess.isCheck();
+    const isCheckmate = chess.isCheckmate();
+    const isStalemate = chess.isStalemate();
+    const isThreefold = chess.isThreefoldRepetition();
+    const isInsufficient = chess.isInsufficientMaterial();
+    const isDraw = chess.isDraw();
+
+    const moveRecord: ChessMoveRecord = {
+      from: result.from,
+      to: result.to,
+      san: result.san,
+      color: result.color as ChessColor,
+      captured: result.captured,
+      promotion: result.promotion,
+      fen: newFen,
+    };
+
+    gameState.fen = newFen;
+    gameState.currentTurn = chess.turn() as ChessColor;
+    gameState.moveHistory.push(moveRecord);
+    gameState.isCheck = isCheck;
+    gameState.isCheckmate = isCheckmate;
+    gameState.isStalemate = isStalemate;
+    gameState.isThreefoldRepetition = isThreefold;
+    gameState.isInsufficientMaterial = isInsufficient;
+    gameState.isDraw = isDraw;
+
+    if (isCheckmate) {
+      room.status = "finished";
+      gameState.winner = result.color as ChessColor;
+      gameState.endReason = "checkmate";
+      io.to(move.roomId).emit("chess_game_update", {
+        gameState: { ...gameState },
+        lastMove: moveRecord,
+      });
+      io.to(move.roomId).emit("chess_game_over", {
+        winner: gameState.winner,
+        reason: "checkmate",
+        gameState: { ...gameState },
+      });
+      console.log(`♟️ Checkmate in room ${move.roomId}! Winner: ${gameState.winner}`);
+    } else if (isDraw) {
+      room.status = "finished";
+      gameState.winner = "draw";
+      gameState.endReason = isStalemate
+        ? "stalemate"
+        : isThreefold
+        ? "threefold"
+        : isInsufficient
+        ? "insufficient"
+        : "draw";
+      io.to(move.roomId).emit("chess_game_update", {
+        gameState: { ...gameState },
+        lastMove: moveRecord,
+      });
+      io.to(move.roomId).emit("chess_game_over", {
+        winner: "draw",
+        reason: gameState.endReason,
+        gameState: { ...gameState },
+      });
+      console.log(`♟️ Draw in room ${move.roomId} (${gameState.endReason})`);
+    } else {
+      io.to(move.roomId).emit("chess_game_update", {
+        gameState: { ...gameState },
+        lastMove: moveRecord,
+      });
+    }
+  } catch (err: any) {
+    socket.emit("error", { message: err?.message || "Invalid move." });
+  }
 }
 
 // ── Word Chain helpers ────────────────────────────────────────────
@@ -1076,6 +1221,17 @@ export function registerSocketHandlers(io: GameIO): void {
           const p2Id = room.players[1].id;
           bsStates.set(roomId, createInitialBSState(p1Id, p2Id));
           broadcastBSGameState(roomId, io);
+        } else if (room.gameType === "chess") {
+          const p1 = room.players[0];
+          const p2 = room.players[1];
+          const gameState = createInitialChessState(p1, p2);
+          chessStates.set(roomId, gameState);
+          io.to(roomId).emit("chess_game_started", {
+            room,
+            gameState,
+            whitePlayerId: p1.id,
+            blackPlayerId: p2.id,
+          });
         }
 
         console.log(`🎮 Game started in room ${roomId}`);
@@ -2048,12 +2204,73 @@ export function registerSocketHandlers(io: GameIO): void {
     });
 
     // ══════════════════════════════════════════════════════════════
+    //  CHESS EVENTS
+    // ══════════════════════════════════════════════════════════════
+
+    socket.on("chess_move", (move) => {
+      handleChessMove(socket, io, move);
+    });
+
+    socket.on("chess_resign", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.status !== "playing" || room.gameType !== "chess") return;
+
+      const gameState = chessStates.get(roomId);
+      if (!gameState) return;
+
+      const player = room.players.find((p) => p.socketId === socket.id);
+      if (!player) return;
+
+      const resigningColor: ChessColor =
+        player.id === gameState.whitePlayer.id ? "w" : "b";
+      const winnerColor: ChessColor = resigningColor === "w" ? "b" : "w";
+
+      room.status = "finished";
+      gameState.winner = winnerColor;
+      gameState.endReason = "resignation";
+
+      io.to(roomId).emit("chess_game_update", { gameState: { ...gameState } });
+      io.to(roomId).emit("chess_game_over", {
+        winner: winnerColor,
+        reason: "resignation",
+        gameState: { ...gameState },
+      });
+      console.log(`🏳️ Resignation in room ${roomId}: ${resigningColor} resigned, ${winnerColor} wins`);
+    });
+
+    socket.on("chess_timeout", ({ roomId, losingColor }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.status !== "playing" || room.gameType !== "chess") return;
+
+      const gameState = chessStates.get(roomId);
+      if (!gameState) return;
+
+      const winnerColor: ChessColor = losingColor === "w" ? "b" : "w";
+      room.status = "finished";
+      gameState.winner = winnerColor;
+      gameState.endReason = "timeout";
+
+      io.to(roomId).emit("chess_game_update", { gameState: { ...gameState } });
+      io.to(roomId).emit("chess_game_over", {
+        winner: winnerColor,
+        reason: "timeout",
+        gameState: { ...gameState },
+      });
+      console.log(`⏱️ Chess timeout in room ${roomId}: ${losingColor} timed out, ${winnerColor} wins`);
+    });
+
+    // ══════════════════════════════════════════════════════════════
     //  CARO EVENTS
     // ══════════════════════════════════════════════════════════════
 
-    socket.on("make_move", (move) => {
+    socket.on("make_move", (move: any) => {
       const room = rooms.get(move.roomId);
       if (!room || room.status !== "playing") return;
+
+      if (room.gameType === "chess" || move.from !== undefined) {
+        handleChessMove(socket, io, move as ChessMove);
+        return;
+      }
 
       const gameState = caroStates.get(move.roomId);
       if (!gameState) return;
@@ -2385,6 +2602,17 @@ export function registerSocketHandlers(io: GameIO): void {
         );
         mpStates.set(roomId, gameState);
         io.to(roomId).emit("mp_game_started", { room, gameState });
+      } else if (room.gameType === "chess") {
+        const p1 = room.players[0];
+        const p2 = room.players[1];
+        const gameState = createInitialChessState(p1, p2);
+        chessStates.set(roomId, gameState);
+        io.to(roomId).emit("chess_game_started", {
+          room,
+          gameState,
+          whitePlayerId: p1.id,
+          blackPlayerId: p2.id,
+        });
       }
 
       console.log(`🔄 Game restarted in room ${roomId}`);
@@ -2415,6 +2643,7 @@ export function registerSocketHandlers(io: GameIO): void {
         wcStates.delete(id);
         bsStates.delete(id);
         mpStates.delete(id);
+        chessStates.delete(id);
         clearWCTimer(id);
         console.log(`🧹 Cleaned up stale room: ${id}`);
       }
@@ -2485,6 +2714,28 @@ function handleLeaveRoom(
     }
   }
 
+  // Handle Chess disconnect
+  if (room.gameType === "chess" && room.status === "playing") {
+    const state = chessStates.get(roomId);
+    const leavingPlayer = room.players.find((p) => p.socketId === socket.id);
+    const stayingPlayer = room.players.find((p) => p.socketId !== socket.id);
+
+    if (state && leavingPlayer && stayingPlayer) {
+      room.status = "finished";
+      const winnerColor: ChessColor =
+        stayingPlayer.id === state.whitePlayer.id ? "w" : "b";
+      state.winner = winnerColor;
+      state.endReason = "disconnect";
+
+      io.to(roomId).emit("chess_game_update", { gameState: { ...state } });
+      io.to(roomId).emit("chess_game_over", {
+        winner: winnerColor,
+        reason: "disconnect",
+        gameState: { ...state },
+      });
+    }
+  }
+
   // Handle Monopoly disconnect — graceful: release properties, pass turn, continue game
   if (room.gameType === "monopoly" && room.status === "playing") {
     const state = mpStates.get(roomId);
@@ -2542,6 +2793,7 @@ function handleLeaveRoom(
     wcStates.delete(roomId);
     bsStates.delete(roomId);
     mpStates.delete(roomId);
+    chessStates.delete(roomId);
     clearWCTimer(roomId);
   } else {
     // For non-monopoly games, mark as finished. For monopoly, the game continues.

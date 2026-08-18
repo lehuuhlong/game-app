@@ -182,7 +182,27 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json({ error: "Missing ?game= parameter" }, { status: 400 });
+    if (game === "chess") {
+      const leaderboard = await User.find({ chessTotal: { $gt: 0 } })
+        .select("username avatarUrl chessWins chessTotal")
+        .sort({ chessWins: -1, chessTotal: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "chess",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          wins: u.chessWins || 0,
+          total: u.chessTotal || 0,
+          winRate: u.chessTotal > 0 ? Math.round(((u.chessWins || 0) / u.chessTotal) * 100) : 0,
+        })),
+      });
+    }
+
+    return NextResponse.json({ error: "Missing or invalid ?game= parameter" }, { status: 400 });
   } catch (error) {
     console.error("GET /api/leaderboard error:", error);
     return NextResponse.json(

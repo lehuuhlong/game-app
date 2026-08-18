@@ -3,7 +3,7 @@
  * (Duplicate of src/types/socket.ts — kept separate to avoid Next.js dependency)
  */
 
-export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly";
+export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly" | "chess";
 
 export type WordChainLanguage = "en" | "vi";
 
@@ -188,6 +188,58 @@ export interface MonopolyGameState {
   lastChanceEvent?: MonopolyChanceEvent | null;
 }
 
+// ── Chess types ──────────────────────────────────────────────────
+
+export type ChessColor = "w" | "b";
+
+export interface ChessMove {
+  roomId: string;
+  from: string;
+  to: string;
+  promotion?: string;
+}
+
+export interface ChessMoveRecord {
+  from: string;
+  to: string;
+  san: string;
+  color: ChessColor;
+  captured?: string;
+  promotion?: string;
+  fen: string;
+}
+
+export interface ChessPlayerInfo {
+  id: string;
+  username: string;
+  color: ChessColor;
+}
+
+export interface ChessGameState {
+  fen: string;
+  currentTurn: ChessColor;
+  whitePlayer: ChessPlayerInfo;
+  blackPlayer: ChessPlayerInfo;
+  moveHistory: ChessMoveRecord[];
+  isCheck: boolean;
+  isCheckmate: boolean;
+  isDraw: boolean;
+  isStalemate: boolean;
+  isThreefoldRepetition: boolean;
+  isInsufficientMaterial: boolean;
+  winner: ChessColor | "draw" | null;
+  endReason:
+    | "checkmate"
+    | "stalemate"
+    | "draw"
+    | "threefold"
+    | "insufficient"
+    | "resignation"
+    | "timeout"
+    | "disconnect"
+    | null;
+}
+
 
 // ── Socket Event Maps ───────────────────────────────────────────────
 
@@ -204,7 +256,7 @@ export interface ClientToServerEvents {
   restart_game: (data: { roomId: string }) => void;
 
   // Caro
-  make_move: (data: CaroMove) => void;
+  make_move: (data: CaroMove | ChessMove | any) => void;
   timeout_turn: (data: { roomId: string; losingPlayer: "X" | "O" }) => void;
 
   // Word Chain
@@ -228,6 +280,11 @@ export interface ClientToServerEvents {
   mp_world_tour_travel: (data: { roomId: string; targetSpaceIndex: number }) => void;
   mp_host_world_cup: (data: { roomId: string; spaceIndex: number }) => void;
   mp_chance_select_target: (data: { roomId: string; targetSpaceIndex: number }) => void;
+
+  // Chess
+  chess_move: (data: ChessMove) => void;
+  chess_resign: (data: { roomId: string }) => void;
+  chess_timeout: (data: { roomId: string; losingColor: ChessColor }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -284,6 +341,11 @@ export interface ServerToClientEvents {
   mp_offer_buy: (data: { spaceIndex: number; spaceName: string; price: number }) => void;
   mp_offer_upgrade: (data: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number; maxLevel: number; costs: number[] }) => void;
   mp_game_over: (data: { winnerId: string; winnerName: string; gameState: MonopolyGameState }) => void;
+
+  // Chess
+  chess_game_started: (data: { room: Room; gameState: ChessGameState; whitePlayerId: string; blackPlayerId: string }) => void;
+  chess_game_update: (data: { gameState: ChessGameState; lastMove?: ChessMoveRecord }) => void;
+  chess_game_over: (data: { winner: ChessColor | "draw" | null; reason: string; gameState: ChessGameState }) => void;
 }
 
 export interface InterServerEvents {

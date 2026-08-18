@@ -142,4 +142,16 @@ export const GAMES: GameInfo[] = [
     tags: ["Strategy", "Multiplayer", "Board Game"],
     color: "from-amber-500 via-red-500 to-emerald-600",
   },
+  {
+    id: "chess",
+    title: "Chess",
+    description:
+      "The royal game of strategy. Real-time 2-player multiplayer with standard chess rules, turn timers, and FEN state synchronization.",
+    thumbnail: "/games/chess/thumbnail.png",
+    route: "/games/chess",
+    minPlayers: 2,
+    maxPlayers: 2,
+    tags: ["Strategy", "Multiplayer", "Board Game", "Classic"],
+    color: "from-amber-600 via-stone-700 to-slate-900",
+  },
 ];

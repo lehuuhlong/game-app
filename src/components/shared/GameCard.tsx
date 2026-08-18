@@ -154,6 +154,41 @@ const gameIcons: Record<string, React.ReactNode> = {
       <path d="M6 42 Q14 40 22 42 T38 42 T46 42" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+  monopoly: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Top Hat */}
+      <path d="M16 20 L16 12 C16 10 32 10 32 12 L32 20 Z" fill="rgba(255,255,255,0.7)" />
+      <rect x="16" y="17" width="16" height="3" fill="rgba(255,255,255,0.9)" />
+      <ellipse cx="24" cy="20" rx="14" ry="3" fill="rgba(255,255,255,0.9)" />
+      {/* House */}
+      <path d="M12 36 L24 26 L36 36 L34 44 L14 44 Z" fill="rgba(255,255,255,0.5)" />
+      {/* Money Symbol */}
+      <text x="24" y="41" textAnchor="middle" fill="white" fontSize="12" fontWeight="extrabold">$</text>
+    </svg>
+  ),
+  chess: (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Cross on King */}
+      <line x1="24" y1="6" x2="24" y2="12" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      <line x1="21" y1="8" x2="27" y2="8" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      {/* King Crown */}
+      <path
+        d="M16 18 C16 14 32 14 32 18 C30 24 28 28 30 34 L18 34 C20 28 18 24 16 18 Z"
+        fill="rgba(255,255,255,0.6)"
+        stroke="white"
+        strokeWidth="1.5"
+      />
+      {/* Collar ring */}
+      <rect x="19" y="24" width="10" height="3" rx="1" fill="white" />
+      {/* Base */}
+      <path
+        d="M12 36 L36 36 L38 42 L10 42 Z"
+        fill="rgba(255,255,255,0.8)"
+        stroke="white"
+        strokeWidth="1.5"
+      />
+    </svg>
+  ),
 };
 
 export function GameCard({ game, index }: GameCardProps) {

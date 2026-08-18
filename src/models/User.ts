@@ -22,6 +22,8 @@ export interface IUser extends Document {
   sudokuBestEasy: number;      // Sudoku Easy: best time in seconds (0 = never won)
   sudokuBestMedium: number;    // Sudoku Medium: best time in seconds
   sudokuBestHard: number;      // Sudoku Hard: best time in seconds
+  chessWins: number;           // Chess: total wins
+  chessTotal: number;          // Chess: total games played
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +54,8 @@ const UserSchema = new Schema<IUser>(
     sudokuBestEasy:    { type: Number, default: 0 },
     sudokuBestMedium:  { type: Number, default: 0 },
     sudokuBestHard:    { type: Number, default: 0 },
+    chessWins:         { type: Number, default: 0 },
+    chessTotal:        { type: Number, default: 0 },
   },
   { timestamps: true }
 );

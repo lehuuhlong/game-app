@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type GameTab = "2048" | "caro" | "minesweeper" | "wordle" | "trex" | "wordchain" | "sudoku";
+type GameTab = "2048" | "caro" | "minesweeper" | "wordle" | "trex" | "wordchain" | "sudoku" | "chess";
 type MsLevel = "beginner" | "intermediate" | "expert";
 type SudokuLevel = "easy" | "medium" | "hard";
 
@@ -16,6 +16,15 @@ interface Entry2048 {
 }
 
 interface EntryCaro {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  wins: number;
+  total: number;
+  winRate: number;
+}
+
+interface EntryChess {
   rank: number;
   username: string;
   avatarUrl: string | null;
@@ -139,6 +148,11 @@ const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+  {
+    id: "chess",
+    label: "Chess",
+    icon: <span className="text-sm leading-none">♟️</span>,
+  },
 ];
 
 const MS_LEVELS: { id: MsLevel; label: string }[] = [
@@ -159,7 +173,7 @@ const MEDAL_COLORS = [
   "from-amber-600 to-orange-700",
 ];
 
-const TAB_INDEX: Record<string, number> = { "2048": 0, caro: 1, minesweeper: 2, wordle: 3, trex: 4, wordchain: 5, sudoku: 6 };
+const TAB_INDEX: Record<string, number> = { "2048": 0, caro: 1, minesweeper: 2, wordle: 3, trex: 4, wordchain: 5, sudoku: 6, chess: 7 };
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
 const SUDOKU_INDEX: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
@@ -222,6 +236,7 @@ export default function LeaderboardPage() {
   const [dataTrex, setDataTrex] = useState<EntryTrex[]>([]);
   const [dataWordChain, setDataWordChain] = useState<EntryWordChain[]>([]);
   const [dataSudoku, setDataSudoku] = useState<EntrySudoku[]>([]);
+  const [dataChess, setDataChess] = useState<EntryChess[]>([]);
   const [sudokuLevel, setSudokuLevel] = useState<SudokuLevel>("easy");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -268,6 +283,7 @@ export default function LeaderboardPage() {
         else if (activeTab === "trex") setDataTrex(json.leaderboard);
         else if (activeTab === "wordchain") setDataWordChain(json.leaderboard);
         else if (activeTab === "sudoku") setDataSudoku(json.leaderboard);
+        else if (activeTab === "chess") setDataChess(json.leaderboard);
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
         if (activeTab === "2048") setData2048([]);
@@ -277,6 +293,7 @@ export default function LeaderboardPage() {
         else if (activeTab === "trex") setDataTrex([]);
         else if (activeTab === "wordchain") setDataWordChain([]);
         else if (activeTab === "sudoku") setDataSudoku([]);
+        else if (activeTab === "chess") setDataChess([]);
       } finally {
         setIsLoading(false);
       }
@@ -619,6 +636,43 @@ export default function LeaderboardPage() {
                           <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
                             <span className="text-foreground-muted">⏱</span>
                             {formatTime(entry.time)}
+                          </span>
+                        </TableRow>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Chess ── */}
+              {activeTab === "chess" && (
+                <>
+                  <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px]">
+                    <span>Rank</span>
+                    <span>Player</span>
+                    <span className="text-right">Wins</span>
+                    <span className="text-right">Games</span>
+                    <span className="text-right">Win %</span>
+                  </TableHeader>
+                  {isLoading ? (
+                    <Spinner />
+                  ) : dataChess.length === 0 ? (
+                    <Empty text="No chess matches recorded yet. Play a game to rank up!" />
+                  ) : (
+                    <div>
+                      {dataChess.map((entry, i) => (
+                        <TableRow key={entry.username} index={i} cols="grid-cols-[56px_1fr_80px_80px_80px]" isLast={i === dataChess.length - 1}>
+                          <RankBadge rank={entry.rank} />
+                          <PlayerCell avatarUrl={entry.avatarUrl} username={entry.username} />
+                          <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
+                            <span className="text-amber-500">♔</span>
+                            {entry.wins}
+                          </span>
+                          <span className="text-sm text-foreground-secondary text-right tabular-nums">
+                            {entry.total}
+                          </span>
+                          <span className="text-sm font-semibold text-accent text-right tabular-nums">
+                            {entry.winRate}%
                           </span>
                         </TableRow>
                       ))}

@@ -17,7 +17,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
-const VALID_GAMES = ["2048", "caro", "minesweeper", "wordle", "trex", "wordchain", "sudoku"];
+const VALID_GAMES = ["2048", "caro", "minesweeper", "wordle", "trex", "wordchain", "sudoku", "chess"];
 const MS_FIELD_MAP: Record<string, "msBestBeginner" | "msBestIntermediate" | "msBestExpert"> = {
   beginner:     "msBestBeginner",
   intermediate: "msBestIntermediate",
@@ -107,6 +107,12 @@ export async function PATCH(
       if (current === 0 || time < current) {
         user[field] = time;
       }
+    } else if (game === "chess") {
+      const { won } = body;
+      user.chessTotal = (user.chessTotal || 0) + 1;
+      if (won === true) {
+        user.chessWins = (user.chessWins || 0) + 1;
+      }
     }
 
     await user.save();
@@ -126,6 +132,8 @@ export async function PATCH(
       sudokuBestEasy:    user.sudokuBestEasy,
       sudokuBestMedium:  user.sudokuBestMedium,
       sudokuBestHard:    user.sudokuBestHard,
+      chessWins:         user.chessWins,
+      chessTotal:        user.chessTotal,
     });
   } catch (error) {
     console.error("PATCH /api/users/[id]/score error:", error);
