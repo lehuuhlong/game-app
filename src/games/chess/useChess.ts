@@ -25,32 +25,7 @@ const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const TURN_TIMEOUT_SECONDS = 60;
-
-function saveChessScore(won: boolean) {
-  try {
-    const stored = localStorage.getItem("game-portal-user");
-    if (!stored) return;
-    const u = JSON.parse(stored);
-    if (!u?.id) return;
-    fetch(`/api/users/${u.id}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "chess", won }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.chessWins !== undefined) {
-          u.chessWins = d.chessWins;
-          u.chessTotal = d.chessTotal;
-          localStorage.setItem("game-portal-user", JSON.stringify(u));
-        }
-      })
-      .catch(() => {});
-  } catch {
-    // ignore
-  }
-}
+const CHESS_TOTAL_TIME = 15 * 60; // 900 seconds (15 minutes)
 
 /**
  * Helper to derive captured pieces from the current FEN string.
@@ -60,30 +35,28 @@ export function deriveCapturedPieces(fen: string): CapturedPieces {
   const currentWhite: Record<string, number> = { p: 0, r: 0, n: 0, b: 0, q: 0 };
   const currentBlack: Record<string, number> = { p: 0, r: 0, n: 0, b: 0, q: 0 };
 
-  const boardPart = (fen || DEFAULT_FEN).split(" ")[0];
-  for (const ch of boardPart) {
-    if (ch >= "a" && ch <= "z" && currentBlack[ch] !== undefined) {
-      currentBlack[ch]++;
-    } else if (ch >= "A" && ch <= "Z") {
-      const lower = ch.toLowerCase();
-      if (currentWhite[lower] !== undefined) {
-        currentWhite[lower]++;
-      }
+  const [placement] = fen.split(" ");
+  for (const char of placement) {
+    if (char >= "a" && char <= "z") {
+      currentBlack[char] = (currentBlack[char] || 0) + 1;
+    } else if (char >= "A" && char <= "Z") {
+      const lower = char.toLowerCase();
+      currentWhite[lower] = (currentWhite[lower] || 0) + 1;
     }
   }
 
   const capturedByWhite: string[] = [];
-  const capturedByBlack: string[] = [];
-
-  const pieceOrder = ["q", "r", "b", "n", "p"];
-  for (const piece of pieceOrder) {
-    const total = initial[piece as keyof typeof initial];
-    const diffBlack = Math.max(0, total - (currentBlack[piece] || 0));
-    for (let i = 0; i < diffBlack; i++) {
+  for (const [piece, count] of Object.entries(initial)) {
+    const missing = count - (currentBlack[piece] || 0);
+    for (let i = 0; i < missing; i++) {
       capturedByWhite.push(piece);
     }
-    const diffWhite = Math.max(0, total - (currentWhite[piece] || 0));
-    for (let i = 0; i < diffWhite; i++) {
+  }
+
+  const capturedByBlack: string[] = [];
+  for (const [piece, count] of Object.entries(initial)) {
+    const missing = count - (currentWhite[piece] || 0);
+    for (let i = 0; i < missing; i++) {
       capturedByBlack.push(piece.toUpperCase());
     }
   }
@@ -103,6 +76,7 @@ export function useChess(username: string) {
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
+  const gameStateRef = useRef<ChessGameState | null>(null);
   const [fen, setFen] = useState<string>(DEFAULT_FEN);
   const [myColor, setMyColor] = useState<ChessColor | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
@@ -112,10 +86,42 @@ export function useChess(username: string) {
   const [winner, setWinner] = useState<ChessColor | "draw" | null>(null);
   const [endReason, setEndReason] = useState<string | null>(null);
 
-  // Turn timer
-  const [timeLeft, setTimeLeft] = useState<number>(TURN_TIMEOUT_SECONDS);
+  // 15-minute game clocks for White and Black
+  const [whiteTime, setWhiteTime] = useState<number>(CHESS_TOTAL_TIME);
+  const [blackTime, setBlackTime] = useState<number>(CHESS_TOTAL_TIME);
   const [timerActive, setTimerActive] = useState<boolean>(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Score tracking lock to prevent duplicate recordings
+  const scoreSavedRef = useRef<boolean>(false);
+
+  const saveChessScore = useCallback((won: boolean) => {
+    if (scoreSavedRef.current) return;
+    scoreSavedRef.current = true;
+    try {
+      const stored = localStorage.getItem("game-portal-user");
+      if (!stored) return;
+      const u = JSON.parse(stored);
+      if (!u?.id) return;
+      fetch(`/api/users/${u.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: "chess", won }),
+        keepalive: true,
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.chessWins !== undefined) {
+            u.chessWins = d.chessWins;
+            u.chessTotal = d.chessTotal;
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          }
+        })
+        .catch(() => {});
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -127,26 +133,40 @@ export function useChess(username: string) {
 
   const startTimer = useCallback(() => {
     stopTimer();
-    setTimeLeft(TURN_TIMEOUT_SECONDS);
     setTimerActive(true);
     timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          stopTimer();
-          // Timeout logic
-          if (roomIdRef.current && myColorRef.current) {
-            const socket = socketRef.current;
-            if (socket && socket.connected) {
-              socket.emit("chess_timeout", {
+      const gs = gameStateRef.current;
+      if (!gs || gs.winner) return;
+
+      if (gs.currentTurn === "w") {
+        setWhiteTime((prev) => {
+          if (prev <= 1) {
+            stopTimer();
+            if (roomIdRef.current && myColorRef.current === "w") {
+              socketRef.current?.emit("chess_timeout", {
                 roomId: roomIdRef.current,
-                losingColor: myColorRef.current,
+                losingColor: "w",
               });
             }
+            return 0;
           }
-          return 0;
-        }
-        return t - 1;
-      });
+          return prev - 1;
+        });
+      } else {
+        setBlackTime((prev) => {
+          if (prev <= 1) {
+            stopTimer();
+            if (roomIdRef.current && myColorRef.current === "b") {
+              socketRef.current?.emit("chess_timeout", {
+                roomId: roomIdRef.current,
+                losingColor: "b",
+              });
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }
     }, 1000);
   }, [stopTimer]);
 
@@ -160,16 +180,24 @@ export function useChess(username: string) {
     return socketRef.current;
   }, []);
 
-  // Cleanup timers on unmount
+  // Cleanup timers & record loss on abrupt page unload
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (screen === "playing" && !gameStateRef.current?.winner) {
+        saveChessScore(false);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       stopTimer();
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
     };
-  }, [stopTimer]);
+  }, [screen, saveChessScore, stopTimer]);
 
   const setupSocket = useCallback(
     (socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
@@ -205,11 +233,16 @@ export function useChess(username: string) {
       });
 
       socket.on("chess_game_started", ({ room: r, gameState: gs, whitePlayerId, blackPlayerId }) => {
+        scoreSavedRef.current = false;
         setRoom(r);
         setGameState(gs);
+        gameStateRef.current = gs;
         setFen(gs.fen);
         fenRef.current = gs.fen;
         chessRef.current = new Chess(gs.fen);
+
+        setWhiteTime(gs.whiteTime ?? CHESS_TOTAL_TIME);
+        setBlackTime(gs.blackTime ?? CHESS_TOTAL_TIME);
 
         const currentPId = playerIdRef.current;
         const assignedColor: ChessColor = currentPId === whitePlayerId ? "w" : "b";
@@ -226,9 +259,13 @@ export function useChess(username: string) {
 
       socket.on("chess_game_update", ({ gameState: gs, lastMove: lm }) => {
         setGameState(gs);
+        gameStateRef.current = gs;
         setFen(gs.fen);
         fenRef.current = gs.fen;
         chessRef.current = new Chess(gs.fen);
+
+        setWhiteTime(gs.whiteTime ?? CHESS_TOTAL_TIME);
+        setBlackTime(gs.blackTime ?? CHESS_TOTAL_TIME);
 
         if (lm) {
           setLastMove({ from: lm.from, to: lm.to });
@@ -254,9 +291,12 @@ export function useChess(username: string) {
       socket.on("chess_game_over", ({ winner: w, reason, gameState: gs }) => {
         stopTimer();
         setGameState(gs);
+        gameStateRef.current = gs;
         setFen(gs.fen);
         fenRef.current = gs.fen;
         chessRef.current = new Chess(gs.fen);
+        setWhiteTime(gs.whiteTime ?? 0);
+        setBlackTime(gs.blackTime ?? 0);
         setWinner(w);
         setEndReason(reason);
         setScreen("finished");
@@ -286,7 +326,7 @@ export function useChess(username: string) {
         }
       });
     },
-    [screen, gameState, startTimer, stopTimer]
+    [screen, gameState, saveChessScore, startTimer, stopTimer]
   );
 
   const createRoom = useCallback(() => {
@@ -331,6 +371,9 @@ export function useChess(username: string) {
   );
 
   const leaveRoom = useCallback(() => {
+    if (screen === "playing" && !gameStateRef.current?.winner) {
+      saveChessScore(false);
+    }
     stopTimer();
     if (socketRef.current && roomIdRef.current) {
       socketRef.current.emit("leave_room", { roomId: roomIdRef.current });
@@ -340,6 +383,7 @@ export function useChess(username: string) {
     setScreen("lobby");
     setRoom(null);
     setGameState(null);
+    gameStateRef.current = null;
     setFen(DEFAULT_FEN);
     fenRef.current = DEFAULT_FEN;
     chessRef.current = new Chess();
@@ -350,7 +394,7 @@ export function useChess(username: string) {
     setLastMove(null);
     setError(null);
     setJoinError(null);
-  }, [stopTimer]);
+  }, [screen, saveChessScore, stopTimer]);
 
   const resign = useCallback(() => {
     if (!roomIdRef.current || screen !== "playing") return;
@@ -466,6 +510,11 @@ export function useChess(username: string) {
     return room.players.find((p) => p.id === playerId);
   }, [room, playerId]);
 
+  const isWhite = myColor === "w";
+  const myTime = isWhite ? whiteTime : blackTime;
+  const opponentTime = isWhite ? blackTime : whiteTime;
+  const timeLeft = isMyTurn ? myTime : opponentTime;
+
   return {
     screen,
     room,
@@ -485,6 +534,10 @@ export function useChess(username: string) {
     error,
     joinError,
     statusMsg,
+    whiteTime,
+    blackTime,
+    myTime,
+    opponentTime,
     timeLeft,
     timerActive,
     createRoom,

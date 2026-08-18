@@ -146,7 +146,7 @@ export const GAMES: GameInfo[] = [
     id: "chess",
     title: "Chess",
     description:
-      "The royal game of strategy. Real-time 2-player multiplayer with standard chess rules, turn timers, and FEN state synchronization.",
+      "The royal game of strategy. Real-time 2-player multiplayer with standard chess rules, 15-minute game clocks, and FEN state synchronization.",
     thumbnail: "/games/chess/thumbnail.png",
     route: "/games/chess",
     minPlayers: 2,

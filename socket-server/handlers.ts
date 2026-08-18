@@ -62,6 +62,7 @@ function createInitialCaroState(): CaroGameState {
 // ── Chess helpers ─────────────────────────────────────────────────
 
 const DEFAULT_CHESS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const CHESS_TOTAL_TIME = 15 * 60; // 900 seconds (15 minutes per player)
 
 function createInitialChessState(p1: Player, p2: Player): ChessGameState {
   return {
@@ -69,6 +70,9 @@ function createInitialChessState(p1: Player, p2: Player): ChessGameState {
     currentTurn: "w",
     whitePlayer: { id: p1.id, username: p1.username, color: "w" },
     blackPlayer: { id: p2.id, username: p2.username, color: "b" },
+    whiteTime: CHESS_TOTAL_TIME,
+    blackTime: CHESS_TOTAL_TIME,
+    lastMoveTimestamp: Date.now(),
     moveHistory: [],
     isCheck: false,
     isCheckmate: false,
@@ -111,6 +115,47 @@ function handleChessMove(
     return;
   }
 
+  // Deduct elapsed time from current turn player's clock
+  const now = Date.now();
+  const elapsed = Math.max(
+    0,
+    Math.floor((now - (gameState.lastMoveTimestamp || now)) / 1000)
+  );
+
+  if (gameState.currentTurn === "w") {
+    gameState.whiteTime = Math.max(0, gameState.whiteTime - elapsed);
+    if (gameState.whiteTime <= 0) {
+      room.status = "finished";
+      gameState.winner = "b";
+      gameState.endReason = "timeout";
+      io.to(move.roomId).emit("chess_game_update", {
+        gameState: { ...gameState },
+      });
+      io.to(move.roomId).emit("chess_game_over", {
+        winner: "b",
+        reason: "timeout",
+        gameState: { ...gameState },
+      });
+      return;
+    }
+  } else {
+    gameState.blackTime = Math.max(0, gameState.blackTime - elapsed);
+    if (gameState.blackTime <= 0) {
+      room.status = "finished";
+      gameState.winner = "w";
+      gameState.endReason = "timeout";
+      io.to(move.roomId).emit("chess_game_update", {
+        gameState: { ...gameState },
+      });
+      io.to(move.roomId).emit("chess_game_over", {
+        winner: "w",
+        reason: "timeout",
+        gameState: { ...gameState },
+      });
+      return;
+    }
+  }
+
   try {
     const chess = new Chess(gameState.fen);
     const result = chess.move({
@@ -144,6 +189,7 @@ function handleChessMove(
 
     gameState.fen = newFen;
     gameState.currentTurn = chess.turn() as ChessColor;
+    gameState.lastMoveTimestamp = now;
     gameState.moveHistory.push(moveRecord);
     gameState.isCheck = isCheck;
     gameState.isCheckmate = isCheckmate;

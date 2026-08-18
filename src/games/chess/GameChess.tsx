@@ -74,6 +74,10 @@ export function GameChess() {
     error,
     joinError,
     statusMsg,
+    whiteTime,
+    blackTime,
+    myTime,
+    opponentTime,
     timeLeft,
     timerActive,
     createRoom,
@@ -139,7 +143,7 @@ export function GameChess() {
         <div className="w-full text-center sm:text-left">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">Chess</h1>
           <p className="text-sm text-foreground-secondary mt-0.5">
-            Standard rules • Online 2-player multiplayer • 60s per turn
+            Standard rules • Online 2-player multiplayer • 15:00 clock per player
           </p>
         </div>
 
@@ -296,7 +300,7 @@ export function GameChess() {
                       ? capturedPieces.capturedByBlack
                       : capturedPieces.capturedByWhite
                   }
-                  timeLeft={timeLeft}
+                  timeLeft={opponentTime}
                   timerActive={timerActive}
                 />
               </div>
@@ -326,7 +330,7 @@ export function GameChess() {
                       ? capturedPieces.capturedByWhite
                       : capturedPieces.capturedByBlack
                   }
-                  timeLeft={timeLeft}
+                  timeLeft={myTime}
                   timerActive={timerActive}
                 />
               </div>

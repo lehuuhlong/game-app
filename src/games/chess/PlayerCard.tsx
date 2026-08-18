@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 import { CapturedTray } from "./CapturedTray";
 import type { ChessColor } from "@/types/socket";
 
@@ -14,6 +13,13 @@ interface PlayerCardProps {
   capturedPieces: string[];
   timeLeft: number;
   timerActive: boolean;
+}
+
+function formatChessClock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
 }
 
 export function PlayerCard({
@@ -29,11 +35,11 @@ export function PlayerCard({
   const isWhite = color === "w";
   const initial = username ? username[0].toUpperCase() : "P";
 
-  // Dynamic timer badge styling
-  const timerStyle =
-    timeLeft <= 10
-      ? "text-red-600 dark:text-red-400 border-red-500/50 bg-red-500/10 animate-pulse font-bold"
-      : timeLeft <= 20
+  // Dynamic timer badge styling when active
+  const activeTimerStyle =
+    timeLeft <= 30
+      ? "text-red-600 dark:text-red-400 border-red-500/50 bg-red-500/10 animate-pulse font-bold ring-1 ring-red-500/30"
+      : timeLeft <= 120
       ? "text-amber-600 dark:text-amber-400 border-amber-500/50 bg-amber-500/10 font-bold"
       : "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10 font-bold";
 
@@ -109,20 +115,19 @@ export function PlayerCard({
         </div>
       </div>
 
-      {/* Right: Turn indicator / Countdown timer */}
+      {/* Right: Chess Clock (MM:SS) */}
       <div className="flex items-center gap-2 shrink-0">
-        {isCurrentTurn ? (
-          <div
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono text-sm tabular-nums shadow-sm transition-colors ${timerStyle}`}
-          >
-            <span className="text-xs">⏱</span>
-            <span>{timeLeft}s</span>
-          </div>
-        ) : (
-          <span className="text-xs text-foreground-muted font-medium px-2 py-1">
-            Waiting
-          </span>
-        )}
+        <div
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono text-sm tabular-nums shadow-sm transition-all ${
+            isCurrentTurn
+              ? activeTimerStyle
+              : "bg-surface-hover text-foreground-secondary border-border font-medium opacity-90"
+          }`}
+          title={isCurrentTurn ? "Active clock" : "Remaining clock"}
+        >
+          <span className="text-xs">⏱</span>
+          <span>{formatChessClock(timeLeft)}</span>
+        </div>
       </div>
     </div>
   );
