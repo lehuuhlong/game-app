@@ -204,16 +204,32 @@ export function GameCard({ game, index }: GameCardProps) {
     >
       <Link href={game.route} className="block group" id={`game-card-${game.id}`}>
         <div className="relative rounded-2xl overflow-hidden card-shimmer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          {/* Gradient header */}
+          {/* Thumbnail / Gradient header */}
           <div
-            className={`relative h-48 bg-gradient-to-br ${game.color} p-6 flex flex-col justify-between`}
+            className={`relative h-48 bg-gradient-to-br ${game.color} p-6 flex flex-col justify-between overflow-hidden`}
           >
-            {/* Decorative circles */}
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/10 -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/10 translate-y-1/2 -translate-x-1/2" />
+            {/* Thumbnail Image Cover */}
+            {game.thumbnail && (
+              <>
+                <img
+                  src={game.thumbnail}
+                  alt={game.title}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = "none";
+                  }}
+                />
+                {/* Dark Gradient Overlay for readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20 pointer-events-none" />
+              </>
+            )}
+
+            {/* Decorative circles (visible on fallback or transparent areas) */}
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/10 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
             {/* Icon */}
-            <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+            <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
               {gameIcons[game.id] || (
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -223,7 +239,7 @@ export function GameCard({ game, index }: GameCardProps) {
 
             {/* Player count badge */}
             <div className="relative z-10 flex items-center gap-1.5">
-              <div className="flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-xs font-medium text-white">
+              <div className="flex items-center gap-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/15 px-3 py-1 text-xs font-medium text-white shadow-sm">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
