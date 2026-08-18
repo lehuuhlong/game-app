@@ -71,12 +71,36 @@ export function GameMinesweeper() {
     }
   }, [gameOver, user]);
 
-  // ── Save score on WIN ───────────────────────────────────────────
+  // ── Save score and match history on game end ───────────────────
   useEffect(() => {
-    if (!user) return;
-    if (gameStatus !== "won") return;
+    if (gameStatus === "playing") {
+      scoreSavedRef.current = false;
+    }
+
+    if (!gameOver) return;
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
+
+    // Record match history
+    fetch("/api/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameType: "minesweeper",
+        players: [
+          {
+            userId: user?.id,
+            username: user ? user.username : "Guest",
+            score: elapsedTime,
+            result: gameStatus === "won" ? "win" : "loss",
+          },
+        ],
+        duration: elapsedTime,
+        gameData: { difficulty, time: elapsedTime },
+      }),
+    }).catch((err) => console.error("Failed to save minesweeper match:", err));
+
+    if (!user || gameStatus !== "won") return;
 
     fetch(`/api/users/${user.id}/score`, {
       method: "PATCH",
@@ -101,7 +125,7 @@ export function GameMinesweeper() {
         } catch { /* ignore */ }
       })
       .catch((err) => console.error("Failed to save minesweeper score:", err));
-  }, [gameStatus, user, difficulty, elapsedTime]);
+  }, [gameOver, gameStatus, user, difficulty, elapsedTime]);
 
   // ── Confirmation dialog state ───────────────────────────────────
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);

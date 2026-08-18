@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useWordChain } from "./useWordChain";
+import { HeadToHeadBadge } from "@/components/shared/HeadToHeadBadge";
 
 export function GameWordChain() {
   const { user } = useAuth();
@@ -415,6 +416,17 @@ useEffect(() => {
                   <span className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">Room</span>
                   <span className="font-mono font-bold text-accent text-sm">{roomId}</span>
                 </div>
+
+                {user?.username && players.length >= 2 && (
+                  <div className="pt-1 pb-1 flex justify-center">
+                    <HeadToHeadBadge
+                      player1={user.username}
+                      player2={players.find((p) => p.username !== user.username)?.username || ""}
+                      gameType="wordchain"
+                      compact
+                    />
+                  </div>
+                )}
 
                 {players.map((p, i) => {
                   const isTurn = p.id === currentTurnPlayerId && screen === "playing";

@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/auth/LoginModal';
 import { useBattleship, SHIPS_CONFIG } from './useBattleship';
 import { Grid } from './Grid';
 import { SHIP_COLORS } from './types';
+import { HeadToHeadBadge } from '@/components/shared/HeadToHeadBadge';
 
 type Screen = 'lobby' | 'waiting' | 'playing' | 'finished';
 
@@ -57,6 +58,7 @@ export function GameBattleship() {
   } = useBattleship(user?.username || '');
 
   const isMyTurn = currentTurnPlayerId === playerId;
+  const opponent = room?.players.find(p => p.id !== playerId);
   const allShipsPlaced = placedShips.length === SHIPS_CONFIG.length;
 
   const handleShipDrop = useCallback((shipType: string, x: number, y: number, offsetX: number, offsetY: number) => {
@@ -281,7 +283,17 @@ export function GameBattleship() {
                 <div className="h-10 w-10 bg-sky-500/10 rounded-xl flex items-center justify-center text-xl">⚓</div>
                 <div>
                   <h2 className="font-bold text-foreground">Battleship</h2>
-                  <p className="text-xs text-foreground-secondary font-mono uppercase tracking-wider">Room: {roomId}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-foreground-secondary font-mono uppercase tracking-wider">Room: {roomId}</p>
+                    {user?.username && opponent?.username && (
+                      <HeadToHeadBadge
+                        player1={user.username}
+                        player2={opponent.username}
+                        gameType="battleship"
+                        compact
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 

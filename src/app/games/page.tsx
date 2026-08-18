@@ -110,7 +110,7 @@ function GamesCatalogContent() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'featured' | 'name' | 'players')}
-                className="rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground focus:border-accent focus:outline-none transition-colors"
+                className="rounded-xl border border-border/70 bg-surface-hover/60 hover:bg-surface-hover hover:border-accent/40 px-3 py-1.5 text-xs font-semibold text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-all cursor-pointer"
               >
                 <option value="featured">Featured (Default)</option>
                 <option value="name">Name (A — Z)</option>
@@ -121,22 +121,34 @@ function GamesCatalogContent() {
 
           {/* Filter Tag Chips */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/60">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap items-center gap-1">
               {FILTER_TAGS.map((tag) => {
                 const isSelected = selectedTag === tag;
-                const count = tag === 'All' ? GAMES.length : GAMES.filter((g) => g.tags.some((t) => t.toLowerCase() === tag.toLowerCase())).length;
+                const count =
+                  tag === 'All'
+                    ? GAMES.length
+                    : GAMES.filter((g) => g.tags.some((t) => t.toLowerCase() === tag.toLowerCase())).length;
 
                 return (
                   <button
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                    className={`relative px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                       isSelected
-                        ? 'bg-accent text-white shadow-md shadow-accent/25 scale-105'
-                        : 'bg-background border border-border text-foreground-secondary hover:text-foreground hover:border-border-hover hover:bg-surface-hover'
+                        ? 'text-accent dark:text-white font-bold'
+                        : 'text-foreground-secondary hover:text-foreground'
                     }`}
                   >
-                    {tag} <span className="opacity-70">({count})</span>
+                    {isSelected && (
+                      <motion.div
+                        layoutId="activeGamesFilterIndicator"
+                        className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
+                        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                      />
+                    )}
+                    <span className="relative z-10">
+                      {tag} <span className={isSelected ? 'opacity-80' : 'opacity-60'}>({count})</span>
+                    </span>
                   </button>
                 );
               })}

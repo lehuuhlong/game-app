@@ -45,12 +45,35 @@ export function GameWordle() {
     }
   }, [gameOver, user]);
 
-  // ── Save score on WIN ───────────────────────────────────────────
+  // ── Save score and match history on game end ───────────────────
   useEffect(() => {
-    if (!user) return;
-    if (gameStatus !== "won") return;
+    if (!gameOver) {
+      scoreSavedRef.current = false;
+      return;
+    }
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
+
+    // Record match history
+    fetch("/api/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameType: "wordle",
+        players: [
+          {
+            userId: user?.id,
+            username: user ? user.username : "Guest",
+            score: gameStatus === "won" ? 1 : 0,
+            result: gameStatus === "won" ? "win" : "loss",
+          },
+        ],
+        duration: 0,
+        gameData: { won: gameStatus === "won", solution, guessesCount: guesses.length },
+      }),
+    }).catch((err) => console.error("Failed to save wordle match:", err));
+
+    if (!user || gameStatus !== "won") return;
 
     fetch(`/api/users/${user.id}/score`, {
       method: "PATCH",
@@ -69,7 +92,7 @@ export function GameWordle() {
         } catch { /* ignore */ }
       })
       .catch((err) => console.error("Failed to save wordle score:", err));
-  }, [gameStatus, user]);
+  }, [gameOver, gameStatus, user, solution, guesses.length]);
 
   const isRestartingRef = useRef(false);
 

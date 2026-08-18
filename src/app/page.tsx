@@ -285,34 +285,34 @@ export default function HomePage() {
       <section className="px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl rounded-3xl border border-border bg-surface/50 backdrop-blur-md p-8 sm:p-12">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Why Play on GamePortal?</h2>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">Why Play on Game<span className="text-gradient">Portal?</span></h2>
             <p className="mt-2 text-sm text-foreground-secondary">
               Engineered from the ground up for seamless, responsive, and competitive web gaming.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="space-y-3 text-center sm:text-left">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-light text-accent text-xl">⚡</div>
-              <h3 className="text-lg font-bold text-foreground">Instant Zero-Install Play</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-border bg-surface p-6 space-y-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light text-accent text-xl">⚡</div>
+              <h3 className="text-base font-bold text-foreground">Instant Zero-Install Play</h3>
               <p className="text-sm text-foreground-secondary leading-relaxed">
                 No apps, no heavy downloads, no loading screens. Open any browser on your computer, tablet, or phone and start playing in
                 milliseconds.
               </p>
             </div>
 
-            <div className="space-y-3 text-center sm:text-left">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-light text-accent text-xl">🌐</div>
-              <h3 className="text-lg font-bold text-foreground">Real-Time Peer Rooms</h3>
+            <div className="rounded-2xl border border-border bg-surface p-6 space-y-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light text-accent text-xl">🌐</div>
+              <h3 className="text-base font-bold text-foreground">Real-Time Peer Rooms</h3>
               <p className="text-sm text-foreground-secondary leading-relaxed">
                 Create a private room, copy the 6-character code, and share it with friends for instant, low-latency multiplayer matches powered by
                 WebSockets.
               </p>
             </div>
 
-            <div className="space-y-3 text-center sm:text-left">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-light text-accent text-xl">🏆</div>
-              <h3 className="text-lg font-bold text-foreground">Ranked Leaderboards</h3>
+            <div className="rounded-2xl border border-border bg-surface p-6 space-y-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light text-accent text-xl">🏆</div>
+              <h3 className="text-base font-bold text-foreground">Ranked Leaderboards</h3>
               <p className="text-sm text-foreground-secondary leading-relaxed">
                 Log in to save your personal bests, track match records, and compete with other players to rank at the top of the global leaderboards.
               </p>
@@ -363,25 +363,29 @@ export default function HomePage() {
       {/* ── 7. BOTTOM CTA BANNER ─────────────────────────────────── */}
       <section className="px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-8 sm:p-14 text-center text-white shadow-2xl shadow-accent/20">
-            {/* Background pattern */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent pointer-events-none" />
+          <div className="relative rounded-3xl overflow-hidden border border-border bg-gradient-to-b from-surface/90 via-accent/[0.04] to-surface/70 backdrop-blur-xl p-8 sm:p-14 text-center shadow-sm">
+            {/* Subtle soft ambient glow in the background */}
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-              <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">Ready to Challenge Your Friends?</h2>
-              <p className="text-white/85 text-base sm:text-lg">Jump into the arcade right now. Free forever, no registration required to play.</p>
-              <div className="pt-2 flex flex-wrap justify-center gap-4">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
+                Ready to Challenge <span className="text-gradient">Your Friends?</span>
+              </h2>
+              <p className="text-foreground-secondary text-sm sm:text-base max-w-xl mx-auto">
+                Jump into the arcade right now. Free forever, no registration required to play.
+              </p>
+              <div className="pt-2 flex flex-wrap justify-center gap-3">
                 <Link
                   href="/games"
-                  className="px-8 py-3.5 rounded-xl bg-white text-blue-700 font-extrabold text-sm shadow-xl hover:bg-slate-100 hover:scale-105 transition-all"
+                  className="px-7 py-3 rounded-xl bg-accent text-white font-bold text-sm shadow-md hover:bg-accent-hover transition-all"
                 >
-                  Browse Game Library 🕹️
+                  Browse Game Library
                 </Link>
                 <Link
                   href="/leaderboard"
-                  className="px-8 py-3.5 rounded-xl bg-black/30 backdrop-blur-md border border-white/30 text-white font-bold text-sm hover:bg-black/40 transition-all"
+                  className="px-7 py-3 rounded-xl bg-surface border border-border text-foreground hover:bg-surface-hover hover:border-accent/30 font-semibold text-sm transition-all shadow-xs"
                 >
-                  View High Scores 🏆
+                  View Leaderboard
                 </Link>
               </div>
             </div>

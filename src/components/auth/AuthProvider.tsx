@@ -17,9 +17,24 @@ export interface AuthUser {
   highest2048Tile: number;
   caroWins: number;
   caroTotal: number;
+  msBestBeginner?: number;
+  msBestIntermediate?: number;
+  msBestExpert?: number;
+  wordleWins?: number;
   bestScoreTrex: number;
   wordchainWins: number;
   wordchainTotal: number;
+  sudokuBestEasy?: number;
+  sudokuBestMedium?: number;
+  sudokuBestHard?: number;
+  chessWins?: number;
+  chessTotal?: number;
+  aimTrainerBestScore?: number;
+  aimTrainerBestAccuracy?: number;
+  battleshipWins?: number;
+  battleshipTotal?: number;
+  monopolyWins?: number;
+  monopolyTotal?: number;
 }
 
 interface AuthContextValue {

@@ -197,7 +197,75 @@ export async function GET(request: Request) {
           avatarUrl: u.avatarUrl || null,
           wins: u.chessWins || 0,
           total: u.chessTotal || 0,
-          winRate: u.chessTotal > 0 ? Math.round(((u.chessWins || 0) / u.chessTotal) * 100) : 0,
+          winRate:
+            (u.chessTotal || 0) > 0
+              ? Math.round(((u.chessWins || 0) / u.chessTotal!) * 100)
+              : 0,
+        })),
+      });
+    }
+
+    if (game === "aimtrainer") {
+      const leaderboard = await User.find({ aimTrainerBestScore: { $gt: 0 } })
+        .select("username avatarUrl aimTrainerBestScore aimTrainerBestAccuracy")
+        .sort({ aimTrainerBestScore: -1, aimTrainerBestAccuracy: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "aimtrainer",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.aimTrainerBestScore || 0,
+          accuracy: u.aimTrainerBestAccuracy || 0,
+        })),
+      });
+    }
+
+    if (game === "battleship") {
+      const leaderboard = await User.find({ battleshipTotal: { $gt: 0 } })
+        .select("username avatarUrl battleshipWins battleshipTotal")
+        .sort({ battleshipWins: -1, battleshipTotal: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "battleship",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          wins: u.battleshipWins || 0,
+          total: u.battleshipTotal || 0,
+          winRate:
+            (u.battleshipTotal || 0) > 0
+              ? Math.round(((u.battleshipWins || 0) / u.battleshipTotal!) * 100)
+              : 0,
+        })),
+      });
+    }
+
+    if (game === "monopoly") {
+      const leaderboard = await User.find({ monopolyTotal: { $gt: 0 } })
+        .select("username avatarUrl monopolyWins monopolyTotal")
+        .sort({ monopolyWins: -1, monopolyTotal: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "monopoly",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          wins: u.monopolyWins || 0,
+          total: u.monopolyTotal || 0,
+          winRate:
+            (u.monopolyTotal || 0) > 0
+              ? Math.round(((u.monopolyWins || 0) / u.monopolyTotal!) * 100)
+              : 0,
         })),
       });
     }

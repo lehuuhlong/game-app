@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Match from "@/models/Match";
+import User from "@/models/User";
 
 export async function GET(request: Request) {
   try {
@@ -16,11 +17,18 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const gameType = searchParams.get("gameType");
+    const username = searchParams.get("username");
     const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 100);
     const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
     const skip = (page - 1) * limit;
 
-    const filter = gameType ? { gameType } : {};
+    const filter: Record<string, unknown> = {};
+    if (gameType && gameType !== "all") {
+      filter.gameType = gameType;
+    }
+    if (username) {
+      filter["players.username"] = username;
+    }
 
     const [matches, total] = await Promise.all([
       Match.find(filter)
@@ -32,8 +40,33 @@ export async function GET(request: Request) {
       Match.countDocuments(filter),
     ]);
 
+    // Fetch avatars for players
+    const usernamesToFetch = Array.from(
+      new Set(
+        matches.flatMap((m) => m.players.map((p) => p.username)).filter(Boolean)
+      )
+    );
+
+    const userAvatars = await User.find({
+      username: { $in: usernamesToFetch },
+    })
+      .select("username avatarUrl")
+      .lean();
+
+    const avatarMap = new Map<string, string | null>(
+      userAvatars.map((u) => [u.username, u.avatarUrl || null])
+    );
+
+    const enrichedMatches = matches.map((m) => ({
+      ...m,
+      players: m.players.map((p) => ({
+        ...p,
+        avatarUrl: avatarMap.get(p.username) ?? null,
+      })),
+    }));
+
     return NextResponse.json({
-      matches,
+      matches: enrichedMatches,
       pagination: {
         page,
         limit,
@@ -64,9 +97,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // Auto-link user IDs if not provided
+    const usernames = players.map((p: any) => p.username).filter(Boolean);
+    const existingUsers = await User.find({ username: { $in: usernames } })
+      .select("_id username")
+      .lean();
+    const userMap = new Map<string, any>(
+      existingUsers.map((u) => [u.username, u._id])
+    );
+
+    const formattedPlayers = players.map((p: any) => ({
+      userId: p.userId || userMap.get(p.username) || null,
+      username: p.username,
+      score: p.score ?? 0,
+      result: p.result,
+    }));
+
     const match = await Match.create({
       gameType,
-      players,
+      players: formattedPlayers,
       duration: duration || 0,
       gameData: gameData || {},
     });

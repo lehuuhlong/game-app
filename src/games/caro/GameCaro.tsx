@@ -8,6 +8,7 @@ import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
 import { checkWin } from "./winDetection";
 import type { CellValue, Player } from "./types";
+import { HeadToHeadBadge } from "@/components/shared/HeadToHeadBadge";
 
 const GRID_SIZE = 25;
 const TURN_SECONDS = 30;
@@ -124,17 +125,40 @@ export function GameCaro() {
     stopTimer();
     setScreen("finished");
 
-    if (!winnerSymbol || winnerSymbol === "draw") {
+    const isDraw = !winnerSymbol || winnerSymbol === "draw";
+    const isMe = !isDraw && winnerSymbol === mySymbolRef.current;
+    const suffix = isTimeout ? " (Time out)" : "";
+
+    if (isDraw) {
       setWinnerMsg("🤝 It's a draw!");
       saveCaro(false);
-      return;
+    } else {
+      setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
+      saveCaro(isMe);
     }
 
-    const isMe = winnerSymbol === mySymbolRef.current;
-    const suffix = isTimeout ? " (Time out)" : "";
-    setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
-    saveCaro(isMe);
-  }, [stopTimer, saveCaro]);
+    // Record match
+    if (players.length >= 2) {
+      const p1 = players[0];
+      const p2 = players[1];
+      const p1Won = !isDraw && winnerSymbol === "X";
+      const p2Won = !isDraw && winnerSymbol === "O";
+      fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "caro",
+          players: [
+            { username: p1.username, result: isDraw ? "draw" : p1Won ? "win" : "loss", score: p1Won ? 1 : 0 },
+            { username: p2.username, result: isDraw ? "draw" : p2Won ? "win" : "loss", score: p2Won ? 1 : 0 },
+          ],
+          duration: 0,
+          gameData: { moves: moveCount, winner: isDraw ? "draw" : winnerSymbol },
+        }),
+      }).catch(() => {});
+    }
+
+  }, [stopTimer, saveCaro, players, moveCount]);
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")
@@ -513,6 +537,17 @@ export function GameCaro() {
                   <span className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">Room</span>
                   <span className="font-mono font-bold text-accent text-sm">{roomId}</span>
                 </div>
+
+                {user?.username && players.length >= 2 && (
+                  <div className="pt-1 pb-1 flex justify-center">
+                    <HeadToHeadBadge
+                      player1={user.username}
+                      player2={players.find((p) => p.username !== user.username)?.username || ""}
+                      gameType="caro"
+                      compact
+                    />
+                  </div>
+                )}
 
                 {players.map((p, i) => {
                   const symbol: Player = i === 0 ? "X" : "O";

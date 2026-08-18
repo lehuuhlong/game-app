@@ -37,14 +37,35 @@ export function GameTrex() {
     }
   }, [gameState.isGameOver, user]);
 
-  // ── Save score to DB on game over ──────────────────────────────
+  // ── Save score and match history on game over ───────────────────
   useEffect(() => {
     if (!gameState.isGameOver) {
       scoreSavedRef.current = false;
       return;
     }
-    if (!user || scoreSavedRef.current) return;
+    if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
+
+    // Record match history
+    fetch("/api/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameType: "trex",
+        players: [
+          {
+            userId: user?.id,
+            username: user ? user.username : "Guest",
+            score: gameState.score,
+            result: gameState.score >= 500 ? "win" : "loss",
+          },
+        ],
+        duration: 0,
+        gameData: { score: gameState.score },
+      }),
+    }).catch((err) => console.error("Failed to save T-Rex match:", err));
+
+    if (!user) return;
 
     fetch(`/api/users/${user.id}/score`, {
       method: "PATCH",

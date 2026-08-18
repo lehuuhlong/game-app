@@ -270,3 +270,13 @@ button:disabled {
     );
   background-size: 60px 60px;
 }
+
+/* Hide scrollbar for clean UI across all browsers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

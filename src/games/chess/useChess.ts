@@ -311,6 +311,45 @@ export function useChess(username: string) {
           playDefeatSound();
           saveChessScore(false);
         }
+
+        // Record 1v1 match in matches collection
+        try {
+          const whiteP = gs.whitePlayer?.username;
+          const blackP = gs.blackPlayer?.username;
+          if (whiteP && blackP) {
+            const isDraw = w === "draw";
+            const whiteWon = w === "w";
+            const blackWon = w === "b";
+
+            fetch("/api/matches", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                gameType: "chess",
+                players: [
+                  {
+                    username: whiteP,
+                    result: isDraw ? "draw" : whiteWon ? "win" : "loss",
+                    score: whiteWon ? 1 : 0,
+                  },
+                  {
+                    username: blackP,
+                    result: isDraw ? "draw" : blackWon ? "win" : "loss",
+                    score: blackWon ? 1 : 0,
+                  },
+                ],
+                duration: 0,
+                gameData: {
+                  movesCount: gs.moveHistory?.length || 0,
+                  endReason: reason,
+                  winner: w,
+                },
+              }),
+            }).catch(() => {});
+          }
+        } catch {
+          // ignore
+        }
       });
 
       socket.on("error", ({ message }) => {

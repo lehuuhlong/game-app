@@ -170,13 +170,33 @@ export function GameSudoku() {
     }
   }, [gameState, user]);
 
-  // Save result to DB when won
+  // Save result and match history when won
   useEffect(() => {
     if (gameState === 'won') {
       setSavedTime(elapsedSeconds);
-      if (!user) return;
       if (scoreSavedRef.current) return;
       scoreSavedRef.current = true;
+
+      // Save match to global history
+      fetch('/api/matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameType: 'sudoku',
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : 'Guest',
+              score: elapsedSeconds,
+              result: 'win',
+            },
+          ],
+          duration: elapsedSeconds,
+          gameData: { difficulty, time: elapsedSeconds },
+        }),
+      }).catch((err) => console.error('Failed to save sudoku match:', err));
+
+      if (!user) return;
 
       fetch(`/api/users/${user.id}/score`, {
         method: 'PATCH',

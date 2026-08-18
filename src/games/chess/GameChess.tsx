@@ -8,6 +8,7 @@ import { useChess } from "./useChess";
 import { ChessBoard } from "./ChessBoard";
 import { PlayerCard } from "./PlayerCard";
 import { MoveHistory } from "./MoveHistory";
+import { HeadToHeadBadge } from "@/components/shared/HeadToHeadBadge";
 
 function formatEndReason(
   reason: string | null,
@@ -267,6 +268,16 @@ export function GameChess() {
                     </span>
                   </div>
                 ))}
+                {user?.username && room && room.players.length >= 2 && (
+                  <div className="pt-2 flex justify-center">
+                    <HeadToHeadBadge
+                      player1={user.username}
+                      player2={room.players.find((p) => p.username !== user.username)?.username || ""}
+                      gameType="chess"
+                      compact
+                    />
+                  </div>
+                )}
               </div>
 
               <button
@@ -284,6 +295,23 @@ export function GameChess() {
           <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* Main Left/Center Board Column */}
             <div className="lg:col-span-8 flex flex-col items-center space-y-3 w-full">
+              {/* Rival Badge if 2 players */}
+              {user?.username && (
+                <div className="w-full max-w-[540px] flex justify-between items-center px-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">Room: {roomId}</span>
+                  <HeadToHeadBadge
+                    player1={user.username}
+                    player2={
+                      isWhite
+                        ? blackPlayer?.username || opponentInfo?.username || ""
+                        : whitePlayer?.username || opponentInfo?.username || ""
+                    }
+                    gameType="chess"
+                    compact
+                  />
+                </div>
+              )}
+
               {/* Top: Opponent Card */}
               <div className="w-full max-w-[540px]">
                 <PlayerCard

@@ -249,6 +249,31 @@ export function useWordChain() {
         setChain(data.gameState.chain);
         setScreen("finished");
         saveWordchain(win);
+
+        // Record 1v1 match
+        try {
+          if (data.winnerName && data.loserName) {
+            fetch("/api/matches", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                gameType: "wordchain",
+                players: [
+                  { username: data.winnerName, result: "win", score: 1 },
+                  { username: data.loserName, result: "loss", score: 0 },
+                ],
+                duration: 0,
+                gameData: {
+                  wordsCount: data.gameState?.chain?.length || 0,
+                  reason: data.reason,
+                  language: data.gameState?.language || "en",
+                },
+              }),
+            }).catch(() => {});
+          }
+        } catch {
+          // ignore
+        }
       });
 
       // ── Error ─────────────────────────────────────────────────

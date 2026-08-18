@@ -24,6 +24,12 @@ export interface IUser extends Document {
   sudokuBestHard: number;      // Sudoku Hard: best time in seconds
   chessWins: number;           // Chess: total wins
   chessTotal: number;          // Chess: total games played
+  aimTrainerBestScore: number;    // Aim Trainer: best score in 60s
+  aimTrainerBestAccuracy: number; // Aim Trainer: accuracy %
+  battleshipWins: number;         // Battleship: total wins
+  battleshipTotal: number;        // Battleship: total games played
+  monopolyWins: number;           // Monopoly: total wins
+  monopolyTotal: number;          // Monopoly: total games played
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,22 +46,28 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: null,
     },
-    bestScore2048:     { type: Number, default: 0 },
-    highest2048Tile:   { type: Number, default: 0 },
-    caroWins:          { type: Number, default: 0 },
-    caroTotal:         { type: Number, default: 0 },
-    msBestBeginner:    { type: Number, default: 0 },
-    msBestIntermediate:{ type: Number, default: 0 },
-    msBestExpert:      { type: Number, default: 0 },
-    wordleWins:        { type: Number, default: 0 },
-    bestScoreTrex:     { type: Number, default: 0 },
-    wordchainWins:     { type: Number, default: 0 },
-    wordchainTotal:    { type: Number, default: 0 },
-    sudokuBestEasy:    { type: Number, default: 0 },
-    sudokuBestMedium:  { type: Number, default: 0 },
-    sudokuBestHard:    { type: Number, default: 0 },
-    chessWins:         { type: Number, default: 0 },
-    chessTotal:        { type: Number, default: 0 },
+    bestScore2048:          { type: Number, default: 0 },
+    highest2048Tile:        { type: Number, default: 0 },
+    caroWins:               { type: Number, default: 0 },
+    caroTotal:              { type: Number, default: 0 },
+    msBestBeginner:         { type: Number, default: 0 },
+    msBestIntermediate:     { type: Number, default: 0 },
+    msBestExpert:           { type: Number, default: 0 },
+    wordleWins:             { type: Number, default: 0 },
+    bestScoreTrex:          { type: Number, default: 0 },
+    wordchainWins:          { type: Number, default: 0 },
+    wordchainTotal:         { type: Number, default: 0 },
+    sudokuBestEasy:         { type: Number, default: 0 },
+    sudokuBestMedium:       { type: Number, default: 0 },
+    sudokuBestHard:         { type: Number, default: 0 },
+    chessWins:              { type: Number, default: 0 },
+    chessTotal:             { type: Number, default: 0 },
+    aimTrainerBestScore:    { type: Number, default: 0 },
+    aimTrainerBestAccuracy: { type: Number, default: 0 },
+    battleshipWins:         { type: Number, default: 0 },
+    battleshipTotal:        { type: Number, default: 0 },
+    monopolyWins:           { type: Number, default: 0 },
+    monopolyTotal:          { type: Number, default: 0 },
   },
   { timestamps: true }
 );

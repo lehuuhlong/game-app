@@ -1,12 +1,3 @@
-import type {
-  ChessColor,
-  ChessGameState,
-  ChessMove,
-  ChessMoveRecord,
-  ChessPlayerInfo,
-  Room,
-} from "@/types/socket";
-
 export type Screen = "lobby" | "waiting" | "playing" | "finished";
 
 export interface CapturedPieces {

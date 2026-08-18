@@ -37,21 +37,43 @@ export function Game2048() {
     }
   }, [gameStatus, user]);
 
-  // Save score to DB when game ends
+  // Save score and match history when game ends
   useEffect(() => {
     if (gameStatus === "playing") {
       scoreSavedRef.current = false;
     }
 
-    if (!user) return;
     if (gameStatus !== "lost" && gameStatus !== "won") return;
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
+    const highestTile = Math.max(...tiles.map((t) => t.value), 0);
+
+    // Save to global matches history
+    fetch("/api/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameType: "2048",
+        players: [
+          {
+            userId: user?.id,
+            username: user ? user.username : "Guest",
+            score,
+            result: gameStatus === "won" ? "win" : "loss",
+          },
+        ],
+        duration: 0,
+        gameData: { score, highestTile },
+      }),
+    }).catch((err) => console.error("Failed to save 2048 match:", err));
+
+    if (!user) return;
+
     fetch(`/api/users/${user.id}/score`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "2048", score, highestTile: Math.max(...tiles.map((t) => t.value), 0) }),
+      body: JSON.stringify({ game: "2048", score, highestTile }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -60,7 +82,7 @@ export function Game2048() {
         }
       })
       .catch((err) => console.error("Failed to save score:", err));
-  }, [gameStatus, score, user, refreshUser]);
+  }, [gameStatus, score, tiles, user, refreshUser]);
 
   const displayBestScore = user ? Math.max(user.bestScore2048 || 0, score) : bestScore;
 

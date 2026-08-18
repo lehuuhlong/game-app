@@ -32,11 +32,59 @@ export function useAimTrainer() {
     spawnTarget();
   }, [spawnTarget]);
 
+  const scoreRef = useRef(score);
+  scoreRef.current = score;
+  const missesRef = useRef(misses);
+  missesRef.current = misses;
+
+  const saveScore = useCallback((finalScore: number, finalMisses: number) => {
+    try {
+      const stored = localStorage.getItem("game-portal-user");
+      if (!stored) return;
+      const u = JSON.parse(stored);
+      if (!u?.id) return;
+
+      const totalShots = finalScore + finalMisses;
+      const accuracy = totalShots > 0 ? Math.round((finalScore / totalShots) * 100) : 0;
+
+      // Update user score
+      fetch(`/api/users/${u.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: "aimtrainer", score: finalScore, accuracy }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.aimTrainerBestScore !== undefined) {
+            u.aimTrainerBestScore = d.aimTrainerBestScore;
+            u.aimTrainerBestAccuracy = d.aimTrainerBestAccuracy;
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          }
+        })
+        .catch(() => {});
+
+      // Record match session
+      fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "aimtrainer",
+          players: [{ username: u.username, score: finalScore, result: "win" }],
+          duration: 60,
+          gameData: { accuracy, misses: finalMisses },
+        }),
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const endGame = useCallback(() => {
     setGameState('finished');
     setTarget(null);
     if (timerRef.current) clearInterval(timerRef.current);
-  }, []);
+    saveScore(scoreRef.current, missesRef.current);
+  }, [saveScore]);
 
   useEffect(() => {
     if (gameState === 'playing') {

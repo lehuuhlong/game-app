@@ -133,6 +133,51 @@ export function useMonopoly(username: string) {
     socket.on('mp_game_over', ({ winnerId, winnerName, gameState }) => {
       setGameState(gameState);
       setWinner({ id: winnerId, name: winnerName });
+
+      // Record score and match
+      try {
+        const isMeWinner = winnerId === playerIdRef.current;
+        const stored = localStorage.getItem("game-portal-user");
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u?.id) {
+            fetch(`/api/users/${u.id}/score`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ game: "monopoly", won: isMeWinner }),
+            })
+              .then((r) => r.json())
+              .then((d) => {
+                if (d.monopolyWins !== undefined) {
+                  u.monopolyWins = d.monopolyWins;
+                  u.monopolyTotal = d.monopolyTotal;
+                  localStorage.setItem("game-portal-user", JSON.stringify(u));
+                }
+              })
+              .catch(() => {});
+          }
+        }
+
+        // Record multiplayer match
+        if (gameState?.players && gameState.players.length >= 2) {
+          fetch("/api/matches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              gameType: "monopoly",
+              players: gameState.players.map((p: any) => ({
+                username: p.username,
+                result: p.playerId === winnerId ? "win" : "loss",
+                score: p.balance || 0,
+              })),
+              duration: 0,
+              gameData: { winnerName },
+            }),
+          }).catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
     });
 
     socket.on('error', (data) => {

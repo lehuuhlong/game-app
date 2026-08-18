@@ -8,16 +8,29 @@
  */
 
 import mongoose, { Schema, type Document, type Model } from "mongoose";
-import type { GameType } from "@/types/socket";
+export type AllGameType =
+  | "2048"
+  | "caro"
+  | "wordchain"
+  | "battleship"
+  | "monopoly"
+  | "chess"
+  | "aimtrainer"
+  | "minesweeper"
+  | "wordle"
+  | "trex"
+  | "sudoku";
+
+export interface IMatchPlayer {
+  userId?: mongoose.Types.ObjectId | null;
+  username: string;
+  score?: number;
+  result: "win" | "loss" | "draw";
+}
 
 export interface IMatch extends Document {
-  gameType: GameType;
-  players: {
-    userId: mongoose.Types.ObjectId;
-    username: string;
-    score: number;
-    result: "win" | "loss" | "draw";
-  }[];
+  gameType: AllGameType;
+  players: IMatchPlayer[];
   duration: number; // in seconds
   gameData: Record<string, unknown>; // game-specific payload
   createdAt: Date;
@@ -29,14 +42,26 @@ const MatchSchema = new Schema<IMatch>(
     gameType: {
       type: String,
       required: true,
-      enum: ["2048", "caro"],
+      enum: [
+        "2048",
+        "caro",
+        "wordchain",
+        "battleship",
+        "monopoly",
+        "chess",
+        "aimtrainer",
+        "minesweeper",
+        "wordle",
+        "trex",
+        "sudoku",
+      ],
     },
     players: [
       {
         userId: {
           type: Schema.Types.ObjectId,
           ref: "User",
-          required: true,
+          default: null,
         },
         username: { type: String, required: true },
         score: { type: Number, default: 0 },
@@ -61,9 +86,16 @@ const MatchSchema = new Schema<IMatch>(
   }
 );
 
-// Index for leaderboard queries
-MatchSchema.index({ gameType: 1, "players.score": -1 });
+// Indexes for Head-to-Head & Leaderboard queries
+MatchSchema.index({ gameType: 1, createdAt: -1 });
+MatchSchema.index({ "players.username": 1, createdAt: -1 });
+MatchSchema.index({ "players.username": 1, gameType: 1, createdAt: -1 });
 MatchSchema.index({ "players.userId": 1, createdAt: -1 });
+
+// Always rebuild during dev to pick up schema changes
+if (process.env.NODE_ENV === "development" && mongoose.models.Match) {
+  delete mongoose.models.Match;
+}
 
 const Match: Model<IMatch> =
   mongoose.models.Match || mongoose.model<IMatch>("Match", MatchSchema);

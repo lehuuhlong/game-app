@@ -190,6 +190,53 @@ export function useBattleship(username: string) {
       if (data.enemyShips) {
         setRevealedEnemyShips(data.enemyShips);
       }
+
+      // Record score and match
+      try {
+        const isMeWinner = data.winnerId === playerIdRef.current;
+        const stored = localStorage.getItem("game-portal-user");
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u?.id) {
+            fetch(`/api/users/${u.id}/score`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ game: "battleship", won: isMeWinner }),
+            })
+              .then((r) => r.json())
+              .then((d) => {
+                if (d.battleshipWins !== undefined) {
+                  u.battleshipWins = d.battleshipWins;
+                  u.battleshipTotal = d.battleshipTotal;
+                  localStorage.setItem("game-portal-user", JSON.stringify(u));
+                }
+              })
+              .catch(() => {});
+          }
+        }
+
+        // Record 1v1 match
+        const currentRoom = (socket as any)._lastRoom || room;
+        const opp = currentRoom?.players?.find((p: any) => p.id !== data.winnerId);
+        const winPlayer = currentRoom?.players?.find((p: any) => p.id === data.winnerId);
+        if (winPlayer && opp) {
+          fetch("/api/matches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              gameType: "battleship",
+              players: [
+                { username: winPlayer.username, result: "win", score: 1 },
+                { username: opp.username, result: "loss", score: 0 },
+              ],
+              duration: 0,
+              gameData: { winnerName: data.winnerName },
+            }),
+          }).catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
     });
 
     socket.on('error', (data) => {
