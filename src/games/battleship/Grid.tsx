@@ -88,7 +88,7 @@ export function Grid({
             grid grid-cols-10 rounded-xl overflow-hidden
             border-2 transition-all duration-300
             ${activeTurn
-              ? 'border-sky-500/60 shadow-[0_0_20px_rgba(14,165,233,0.15)]'
+              ? 'border-emerald-500/80 ring-2 ring-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.25)]'
               : 'border-border'
             }
             ${isOwnBoard

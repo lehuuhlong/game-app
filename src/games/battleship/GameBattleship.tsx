@@ -302,11 +302,17 @@ export function GameBattleship() {
                 {room?.players.map(p => (
                   <div key={p.id} className={`flex flex-col items-center px-4 py-2 rounded-xl transition-all ${
                     currentTurnPlayerId === p.id && phase === 'battle' 
-                      ? 'bg-sky-500/10 border border-sky-500/30' 
+                      ? p.id === playerId
+                        ? 'bg-emerald-500/10 border border-emerald-500/30'
+                        : 'bg-red-500/10 border border-red-500/30' 
                       : ''
                   }`}>
                     <span className={`text-xs uppercase tracking-widest font-bold ${
-                      currentTurnPlayerId === p.id && phase === 'battle' ? 'text-sky-500' : 'text-foreground-muted'
+                      currentTurnPlayerId === p.id && phase === 'battle'
+                        ? p.id === playerId
+                          ? 'text-emerald-400'
+                          : 'text-red-400'
+                        : 'text-foreground-muted'
                     }`}>
                       {p.id === playerId ? 'YOU' : 'ENEMY'}
                     </span>
@@ -315,12 +321,12 @@ export function GameBattleship() {
                 ))}
               </div>
 
-              <div className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-widest border ${
+              <div className={`px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest border transition-all ${
                 phase === 'placement' 
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
                   : phase === 'battle'
                     ? isMyTurn 
-                      ? 'bg-sky-500/10 border-sky-500/30 text-sky-500'
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse'
                       : 'bg-red-500/10 border-red-500/30 text-red-400'
                     : 'bg-surface border-border text-foreground-muted'
               }`}>
@@ -383,7 +389,7 @@ export function GameBattleship() {
             {/* Boards */}
             <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-12">
               {/* LEFT: Your Fleet */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 w-full max-w-[390px]">
                 <h3 className="text-center font-bold text-foreground-muted uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                   <span>🛡️</span> Your Fleet
                 </h3>
@@ -424,7 +430,7 @@ export function GameBattleship() {
                   });
 
                   return (
-                    <div className="bg-surface border border-border p-4 rounded-xl space-y-2">
+                    <div className="bg-surface border border-border p-4 rounded-2xl space-y-3 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Fleet Status</p>
                         <span className="text-xs font-bold text-sky-400">
@@ -434,32 +440,33 @@ export function GameBattleship() {
                       <div className="grid grid-cols-1 gap-1.5">
                         {shipsWithLiveHits.map((ship) => {
                           const isSunk = ship.liveHits >= ship.length;
+                          const label = SHIPS_CONFIG.find(s => s.type === ship.type)?.label || (ship.type.charAt(0).toUpperCase() + ship.type.slice(1));
                           return (
                             <div
                               key={ship.type}
-                              className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-all ${
+                              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all ${
                                 isSunk
                                   ? 'bg-red-500/10 border border-red-500/20 text-red-400'
                                   : 'bg-background border border-border text-foreground'
                               }`}
                             >
-                              <span className={`font-bold ${isSunk ? 'line-through' : ''}`}>
-                                {ship.type.charAt(0).toUpperCase() + ship.type.slice(1)}
+                              <span className="font-bold">
+                                {label}
                               </span>
                               <div className="flex items-center gap-1.5">
-                                <div className="flex gap-0.5">
+                                <div className="flex gap-1">
                                   {Array.from({ length: ship.length }).map((_, i) => (
                                     <div
                                       key={i}
-                                      className={`w-3 h-3 rounded-sm border transition-all ${
+                                      className={`w-3 h-3 rounded-full border transition-all ${
                                         i < ship.liveHits
-                                          ? 'bg-red-500 border-red-600'
-                                          : 'bg-green-500/30 border-green-500/40'
+                                          ? 'bg-red-500 border-red-600 shadow-[0_0_4px_rgba(239,68,68,0.4)]'
+                                          : 'bg-emerald-500/30 border-emerald-500/40'
                                       }`}
                                     />
                                   ))}
                                 </div>
-                                {isSunk && <span className="text-[10px]">💀</span>}
+                                {isSunk && <span className="text-xs ml-1">💀</span>}
                               </div>
                             </div>
                           );
@@ -570,7 +577,7 @@ export function GameBattleship() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex flex-col gap-4"
+                  className="flex flex-col gap-4 w-full max-w-[390px]"
                 >
                   <h3 className="text-center font-bold text-foreground-muted uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                     <span>🎯</span> Enemy Waters
@@ -584,48 +591,11 @@ export function GameBattleship() {
                     revealedShips={revealedEnemyShips.length > 0 ? revealedEnemyShips : sunkEnemyShips}
                   />
 
-                  <div className={`border p-4 rounded-xl text-center transition-all ${
-                    isMyTurn && phase === 'battle'
-                      ? 'bg-sky-500/5 border-sky-500/20'
-                      : 'bg-surface/30 border-border'
-                  }`}>
-                    <p className="text-xs text-foreground-muted italic">
-                      {phase === 'finished' 
-                        ? '🏁 Game over!'
-                        : isMyTurn 
-                          ? '🎯 Select a coordinate to fire upon the enemy fleet.' 
-                          : '💣 Brace for impact! Enemy is targeting your fleet...'
-                      }
-                    </p>
-                  </div>
-
-                  {/* Shot Stats */}
-                  {myState?.shots && myState.shots.length > 0 && (
-                    <div className="bg-surface border border-border p-4 rounded-xl">
-                      <div className="flex items-center justify-around text-center">
-                        <div>
-                          <p className="text-lg font-black text-sky-500">{myState.shots.filter(s => s.result !== 'miss').length}</p>
-                          <p className="text-[10px] text-foreground-muted uppercase tracking-wider">Hits</p>
-                        </div>
-                        <div className="w-px h-8 bg-border" />
-                        <div>
-                          <p className="text-lg font-black text-foreground-muted">{myState.shots.filter(s => s.result === 'miss').length}</p>
-                          <p className="text-[10px] text-foreground-muted uppercase tracking-wider">Misses</p>
-                        </div>
-                        <div className="w-px h-8 bg-border" />
-                        <div>
-                          <p className="text-lg font-black text-red-500">{enemySunkTypes.length}</p>
-                          <p className="text-[10px] text-foreground-muted uppercase tracking-wider">Sunk</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Enemy Fleet Tracker */}
-                  <div className="bg-surface border border-border p-4 rounded-xl space-y-2">
+                  <div className="bg-surface border border-border p-4 rounded-2xl space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Enemy Fleet</p>
-                      <span className="text-xs font-bold text-sky-500">
+                      <span className="text-xs font-bold text-sky-400">
                         {SHIPS_CONFIG.length - enemySunkTypes.length}/{SHIPS_CONFIG.length} remaining
                       </span>
                     </div>
@@ -635,29 +605,29 @@ export function GameBattleship() {
                         return (
                           <div
                             key={ship.type}
-                            className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all ${
+                            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all ${
                               isSunk
-                                ? 'bg-red-500/10 border border-red-500/20'
-                                : 'bg-background border border-border'
+                                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                                : 'bg-background border border-border text-foreground'
                             }`}
                           >
-                            <span className={`font-bold ${isSunk ? 'text-red-400 line-through' : 'text-foreground'}`}>
+                            <span className="font-bold">
                               {ship.label}
                             </span>
-                            <div className="flex items-center gap-2">
-                              <div className={`flex gap-0.5 ${isSunk ? 'opacity-40' : ''}`}>
+                            <div className="flex items-center gap-1.5">
+                              <div className={`flex gap-1 ${isSunk ? 'opacity-40' : ''}`}>
                                 {Array.from({ length: ship.length }).map((_, i) => (
                                   <div
                                     key={i}
-                                    className={`w-3 h-3 rounded-sm border ${
+                                    className={`w-3 h-3 rounded-full border transition-all ${
                                       isSunk
-                                        ? 'bg-red-500/60 border-red-600/50'
+                                        ? 'bg-red-500/60 border-red-600/50 shadow-[0_0_4px_rgba(239,68,68,0.4)]'
                                         : 'bg-slate-500/30 border-slate-500/40'
                                     }`}
                                   />
                                 ))}
                               </div>
-                              {isSunk && <span className="text-[10px]">💀</span>}
+                              {isSunk && <span className="text-xs ml-1">💀</span>}
                             </div>
                           </div>
                         );
