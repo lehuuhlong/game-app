@@ -31,6 +31,7 @@ export function useBattleship(username: string) {
   const [enemyShots, setEnemyShots] = useState<Shot[]>([]);
   const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
   const [winner, setWinner] = useState<{ id: string; name: string } | null>(null);
+  const [endReason, setEndReason] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [enemySunkTypes, setEnemySunkTypes] = useState<ShipType[]>([]);
@@ -188,6 +189,7 @@ export function useBattleship(username: string) {
 
     socket.on('bs_game_over', (data) => {
       setWinner({ id: data.winnerId, name: data.winnerName });
+      setEndReason(data.reason || 'win');
       setPhase('finished');
       phaseRef.current = 'finished';
       
@@ -276,6 +278,7 @@ export function useBattleship(username: string) {
     setEnemyShots([]);
     setCurrentTurnPlayerId(null);
     setWinner(null);
+    setEndReason(null);
     setError(null);
     setPlacedShips([]);
     setCurrentShipIndex(0);
@@ -430,6 +433,7 @@ export function useBattleship(username: string) {
     if (socketRef.current) {
       socketRef.current.emit('restart_game', { roomId: roomIdRef.current });
       setWinner(null);
+      setEndReason(null);
       setPlacedShips([]);
       setCurrentShipIndex(0);
       setPhase('placement');
@@ -457,6 +461,7 @@ export function useBattleship(username: string) {
     enemyShots,
     currentTurnPlayerId,
     winner,
+    endReason,
     error,
     joinError,
     placedShips,

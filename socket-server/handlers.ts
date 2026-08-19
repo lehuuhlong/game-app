@@ -648,6 +648,7 @@ function advanceMonopolyTurn(
       io.to(roomId).emit("mp_game_over", {
         winnerId: winner.playerId,
         winnerName: winner.username,
+        reason: "win",
         gameState: { ...state },
       });
       return;
@@ -667,6 +668,7 @@ function advanceMonopolyTurn(
       io.to(roomId).emit("mp_game_over", {
         winnerId,
         winnerName: winner?.username || "Unknown",
+        reason: "win",
         gameState: { ...state },
       });
     }
@@ -2359,6 +2361,7 @@ export function registerSocketHandlers(io: GameIO): void {
 
       io.to(roomId).emit("game_over", {
         winner,
+        reason: "timeout",
         gameState: { ...gameState },
       });
       console.log(`⏱ Timeout in room ${roomId}: ${losingPlayer} loses`);
@@ -2576,6 +2579,7 @@ export function registerSocketHandlers(io: GameIO): void {
           io.to(p.socketId).emit("bs_game_over", {
             winnerId: player.id,
             winnerName: player.username,
+            reason: "win",
             enemyShips: other ? state.players[other.id].ships : undefined,
           });
         });
@@ -2774,6 +2778,7 @@ function handleLeaveRoom(
         io.to(p.socketId).emit("bs_game_over", {
           winnerId: stayingPlayer.id,
           winnerName: stayingPlayer.username,
+          reason: "disconnect",
           enemyShips: other ? state.players[other.id].ships : undefined,
         });
       });
@@ -2839,6 +2844,7 @@ function handleLeaveRoom(
           io.to(roomId).emit("mp_game_over", {
             winnerId,
             winnerName: winner?.username || "Unknown",
+            reason: "disconnect",
             gameState: { ...state },
           });
         } else {

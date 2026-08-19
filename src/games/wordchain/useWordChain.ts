@@ -216,11 +216,14 @@ export function useWordChain() {
         const win = data.winnerId === myPlayerIdRef.current;
         setDidIWin(win);
         
-        const suffix = data.reason === "timeout" ? " (Time out)" : "";
         if (data.reason === "disconnect") {
-          setWinnerMsg("🏃 Opponent left — you win!");
+          setWinnerMsg(win ? "🏃 Opponent left the match — You win!" : "🚪 You left the match");
+        } else if (data.reason === "timeout") {
+          setWinnerMsg(win ? "⌛ Opponent timed out — You win!" : "⌛ Turn time expired — You lose!");
+        } else if (data.reason === "invalid_word") {
+          setWinnerMsg(win ? "❌ Opponent used invalid word — You win!" : "❌ Invalid word — You lose!");
         } else {
-          setWinnerMsg(win ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
+          setWinnerMsg(win ? "🏆 You win!" : "😔 You lose!");
         }
 
         setChain(data.gameState.chain);

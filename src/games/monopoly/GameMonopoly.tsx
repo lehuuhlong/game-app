@@ -34,6 +34,7 @@ export function GameMonopoly() {
     buyOffer,
     upgradeOffer,
     winner,
+    endReason,
     monopolyCelebration,
     joinRoom: hookJoinRoom,
     leaveRoom,
@@ -322,6 +323,7 @@ export function GameMonopoly() {
                 onWorldTourTravel={worldTourTravel}
                 onHostWorldCup={hostWorldCup}
                 onSelectChanceTarget={selectChanceTarget}
+                endReason={endReason}
               />
             </motion.div>
           )}

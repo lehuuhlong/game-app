@@ -341,7 +341,7 @@ export interface ServerToClientEvents {
     nextTurnPlayerId: string;
     firedBy: string;
   }) => void;
-  bs_game_over: (data: { winnerId: string; winnerName: string; enemyShips?: ShipPlacement[] }) => void;
+  bs_game_over: (data: { winnerId: string; winnerName: string; enemyShips?: ShipPlacement[]; reason?: string }) => void;
 
   // Monopoly
   mp_game_started: (data: { room: Room; gameState: MonopolyGameState }) => void;
@@ -350,7 +350,7 @@ export interface ServerToClientEvents {
   mp_monopoly_completed: (data: { playerId: string; username: string; tokenColor: MonopolyTokenColor; colorGroup: string; propertyNames: string[] }) => void;
   mp_offer_buy: (data: { spaceIndex: number; spaceName: string; price: number }) => void;
   mp_offer_upgrade: (data: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number; maxLevel: number; costs: number[] }) => void;
-  mp_game_over: (data: { winnerId: string; winnerName: string; gameState: MonopolyGameState }) => void;
+  mp_game_over: (data: { winnerId: string; winnerName: string; gameState: MonopolyGameState; reason?: string }) => void;
 
   // Chess
   chess_game_started: (data: { room: Room; gameState: ChessGameState; whitePlayerId: string; blackPlayerId: string }) => void;

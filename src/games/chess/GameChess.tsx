@@ -18,34 +18,34 @@ function formatEndReason(
   switch (reason) {
     case "checkmate":
       return isWinner
-        ? "Victory by Checkmate! You delivered checkmate."
-        : "Defeat by Checkmate — Your King was checkmated.";
+        ? "🏆 Victory by Checkmate! You delivered checkmate."
+        : "💥 Defeat by Checkmate — Your King was checkmated.";
     case "stalemate":
-      return "Draw by Stalemate — No legal moves available and not in check.";
+      return "🤝 Draw by Stalemate — No legal moves available.";
     case "threefold":
-      return "Draw by Threefold Repetition — Same board position occurred 3 times.";
+      return "🤝 Draw by Threefold Repetition — Position repeated 3 times.";
     case "insufficient":
-      return "Draw by Insufficient Material — Neither side has enough material to checkmate.";
+      return "🤝 Draw by Insufficient Material — Neither side has mating material.";
     case "resignation":
       return isWinner
-        ? "Victory — Opponent resigned from the match."
-        : "Defeat — You resigned from the match.";
+        ? "🏆 Victory — Opponent resigned from the match."
+        : "🏳️ Defeat — You resigned from the match.";
     case "timeout":
       return isWinner
-        ? "Victory on Time — Opponent ran out of time."
-        : "Defeat on Time — Your turn timer expired.";
+        ? "⌛ Victory on Time — Opponent ran out of time."
+        : "⌛ Defeat on Time — Turn timer expired.";
     case "disconnect":
       return isWinner
-        ? "Victory — Opponent disconnected from the match."
-        : "Defeat — Disconnected from the match.";
+        ? "🏃 Victory — Opponent disconnected from the match."
+        : "🚪 Defeat — You disconnected from the match.";
     case "draw":
-      return "Draw — The match ended in a draw.";
+      return "🤝 The match ended in a draw.";
     default:
       return isWinner
-        ? "You won the game!"
+        ? "🏆 You won the game!"
         : isDraw
-        ? "The game ended in a draw."
-        : "Opponent won the game.";
+        ? "🤝 The game ended in a draw."
+        : "😔 Opponent won the game.";
   }
 }
 

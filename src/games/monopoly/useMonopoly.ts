@@ -36,6 +36,7 @@ export function useMonopoly(username: string) {
     costs: number[];
   } | null>(null);
   const [winner, setWinner] = useState<{ id: string; name: string } | null>(null);
+  const [endReason, setEndReason] = useState<string | null>(null);
   const [monopolyCelebration, setMonopolyCelebration] = useState<{
     playerId: string;
     username: string;
@@ -130,9 +131,10 @@ export function useMonopoly(username: string) {
       setBuyOffer(null);
     });
 
-    socket.on('mp_game_over', ({ winnerId, winnerName, gameState }) => {
+    socket.on('mp_game_over', ({ winnerId, winnerName, gameState, reason }) => {
       setGameState(gameState);
       setWinner({ id: winnerId, name: winnerName });
+      setEndReason(reason || 'win');
 
       // Record score and match (only winner submits to prevent duplicate entries)
       try {
@@ -222,6 +224,7 @@ export function useMonopoly(username: string) {
     setBuyOffer(null);
     setUpgradeOffer(null);
     setWinner(null);
+    setEndReason(null);
     onJoinSuccessRef.current = null;
   }, []);
 
@@ -286,6 +289,7 @@ export function useMonopoly(username: string) {
     setBuyOffer(null);
     setUpgradeOffer(null);
     setWinner(null);
+    setEndReason(null);
   }, []);
 
   const dismissMonopolyCelebration = useCallback(() => {
@@ -317,6 +321,7 @@ export function useMonopoly(username: string) {
     buyOffer,
     upgradeOffer,
     winner,
+    endReason,
     monopolyCelebration,
 
     // Actions

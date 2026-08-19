@@ -66,6 +66,7 @@ interface MonopolyBoardProps {
   onWorldTourTravel?: (targetSpaceIndex: number) => void;
   onHostWorldCup?: (spaceIndex: number) => void;
   onSelectChanceTarget?: (targetSpaceIndex: number) => void;
+  endReason?: string | null;
 }
 
 // ── World Tour Target Validation Helper ───────────────────────────
@@ -1337,6 +1338,7 @@ export function MonopolyBoard({
   onWorldTourTravel,
   onHostWorldCup,
   onSelectChanceTarget,
+  endReason,
 }: MonopolyBoardProps) {
   const players = gameState?.players ?? [];
   const currentTurnPlayerId = gameState?.currentTurnPlayerId;
@@ -1969,6 +1971,9 @@ export function MonopolyBoard({
                 >
                   <div className="px-6 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl border-2 border-amber-200 animate-bounce text-center">
                     🏆 {players.find((p) => p.playerId === winner)?.username || gameState?.players?.find((p) => p.playerId === winner)?.username || room?.players?.find((p) => p.id === winner)?.username || 'WINNER'} WINS!
+                    {endReason === 'disconnect' && (
+                      <div className="text-xs font-bold mt-1 text-slate-900">🏃 Opponent left the match</div>
+                    )}
                   </div>
                   {onRematch && (
                     <motion.button

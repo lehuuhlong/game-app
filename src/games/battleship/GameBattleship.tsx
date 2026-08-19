@@ -36,6 +36,7 @@ export function GameBattleship() {
     enemyShots,
     currentTurnPlayerId,
     winner,
+    endReason,
     error,
     placedShips,
     isVertical,
@@ -349,10 +350,14 @@ export function GameBattleship() {
                         }`}>
                           {winner.id === playerId ? 'VICTORY!' : 'DEFEAT!'}
                         </h2>
-                        <p className="text-foreground-secondary mt-1">
+                        <p className="text-foreground-secondary mt-1 font-medium">
                           {winner.id === playerId
-                            ? 'You have obliterated the enemy fleet.'
-                            : `${winner.name} has sunken your entire fleet.`}
+                            ? endReason === 'disconnect'
+                              ? '🏃 Opponent left the match — You win!'
+                              : '🏆 You have obliterated the entire enemy fleet!'
+                            : endReason === 'disconnect'
+                            ? '🚪 You left the match.'
+                            : `💥 ${winner.name} has sunken your entire fleet.`}
                         </p>
                       </div>
                     </div>

@@ -107,14 +107,24 @@ export function GameCaro() {
     const isDraw = !winnerSymbol || winnerSymbol === "draw";
     const isMe = !isDraw && winnerSymbol === mySymbolRef.current;
     
-    let suffix = "";
-    if (reason === "timeout") suffix = " (Time out)";
-    if (reason === "disconnect") suffix = " (Opponent left)";
-
     if (isDraw) {
       setWinnerMsg("🤝 It's a draw!");
+    } else if (isMe) {
+      if (reason === "timeout") {
+        setWinnerMsg("⌛ Opponent timed out — You win!");
+      } else if (reason === "disconnect") {
+        setWinnerMsg("🏃 Opponent left the match — You win!");
+      } else {
+        setWinnerMsg("🏆 You win! (5 in a row)");
+      }
     } else {
-      setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
+      if (reason === "timeout") {
+        setWinnerMsg("⌛ Turn time expired — You lose!");
+      } else if (reason === "disconnect") {
+        setWinnerMsg("🚪 You left the match");
+      } else {
+        setWinnerMsg("😔 You lose!");
+      }
     }
 
     // Record match to MongoDB for Match History, Head-to-Head stats & User totals
@@ -258,8 +268,8 @@ export function GameCaro() {
       startTimer();
     });
 
-    socket.on("game_over", ({ winner }: any) => {
-      handleGameOver(winner, "timeout");
+    socket.on("game_over", ({ winner, reason }: any) => {
+      handleGameOver(winner, reason || "timeout");
     });
 
     socket.on("error", ({ message }: any) => {
