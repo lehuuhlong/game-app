@@ -97,29 +97,6 @@ export function useWordChain() {
     }, 1000);
   }, [stopTimer]);
 
-  const saveWordchain = useCallback((won: boolean) => {
-    try {
-      const stored = localStorage.getItem("game-portal-user");
-      if (!stored) return;
-      const u = JSON.parse(stored);
-      if (!u?.id) return;
-      fetch(`/api/users/${u.id}/score`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game: "wordchain", won }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.wordchainWins !== undefined) {
-            u.wordchainWins = d.wordchainWins;
-            u.wordchainTotal = d.wordchainTotal;
-            localStorage.setItem("game-portal-user", JSON.stringify(u));
-          }
-        })
-        .catch(() => {});
-    } catch { /* ignore */ }
-  }, []);
-
   // ── Socket connection ───────────────────────────────────────────
 
   const getSocket = useCallback((): Socket => {
@@ -248,11 +225,10 @@ export function useWordChain() {
 
         setChain(data.gameState.chain);
         setScreen("finished");
-        saveWordchain(win);
 
-        // Record 1v1 match
+        // Record 1v1 match (only winner submits to prevent duplicate entries)
         try {
-          if (data.winnerName && data.loserName) {
+          if (win && data.winnerName && data.loserName) {
             fetch("/api/matches", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -269,7 +245,22 @@ export function useWordChain() {
                   language: data.gameState?.language || "en",
                 },
               }),
-            }).catch(() => {});
+            })
+              .then((r) => r.json())
+              .then((resData) => {
+                try {
+                  const stored = localStorage.getItem("game-portal-user");
+                  if (stored && resData.users) {
+                    const u = JSON.parse(stored);
+                    const updated = resData.users.find((x: any) => x.username === u.username);
+                    if (updated) {
+                      Object.assign(u, updated);
+                      localStorage.setItem("game-portal-user", JSON.stringify(u));
+                    }
+                  }
+                } catch {}
+              })
+              .catch(() => {});
           }
         } catch {
           // ignore
@@ -281,7 +272,7 @@ export function useWordChain() {
         setJoinError(message);
       });
     },
-    [setScreen, startTimer, stopTimer, saveWordchain]
+    [setScreen, startTimer, stopTimer]
   );
 
   // ── Room actions ───────────────────────────────────────────────
@@ -329,9 +320,6 @@ export function useWordChain() {
   );
 
   const leaveRoom = useCallback(() => {
-    if (screenRef.current === "playing") {
-      saveWordchain(false);
-    }
     stopTimer();
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();

@@ -2711,6 +2711,26 @@ function handleLeaveRoom(
   const room = rooms.get(roomId);
   if (!room) return;
 
+  // Handle Caro disconnect
+  if (room.gameType === "caro" && room.status === "playing") {
+    const state = caroStates.get(roomId);
+    const leavingPlayer = room.players.find((p) => p.socketId === socket.id);
+    const stayingPlayer = room.players.find((p) => p.socketId !== socket.id);
+
+    if (leavingPlayer && stayingPlayer) {
+      room.status = "finished";
+      const winnerSymbol = room.players.indexOf(stayingPlayer) === 0 ? "X" : "O";
+      if (state) {
+        state.winner = winnerSymbol;
+      }
+      io.to(roomId).emit("game_over", {
+        winner: winnerSymbol,
+        reason: "disconnect",
+        gameState: state ? { ...state } : undefined,
+      });
+    }
+  }
+
   // If this player disconnects during a Word Chain game, the other player wins
   if (room.gameType === "wordchain" && room.status === "playing") {
     const state = wcStates.get(roomId);

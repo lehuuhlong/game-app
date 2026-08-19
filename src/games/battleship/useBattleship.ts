@@ -17,16 +17,16 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000'
 
 export function useBattleship(username: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const roomIdRef = useRef('');
+  const roomIdRef = useRef<string>('');
   const playerIdRef = useRef<string | null>(null);
-
-  /** Track all coordinates we've fired at to prevent double-fire */
+  const phaseRef = useRef<BattleshipPhase>('placement');
   const firedCoordsRef = useRef<Set<string>>(new Set());
+  const roomRef = useRef<Room | null>(null);
 
+  // Core state
+  const [phase, setPhase] = useState<BattleshipPhase>('placement');
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [phase, setPhase] = useState<BattleshipPhase>('placement');
-  const phaseRef = useRef<BattleshipPhase>('placement');
   const [myState, setMyState] = useState<BattleshipPlayerState | null>(null);
   const [enemyShots, setEnemyShots] = useState<Shot[]>([]);
   const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
@@ -71,6 +71,7 @@ export function useBattleship(username: string) {
 
     socket.on('room_joined', ({ room, playerId }) => {
       setRoom(room);
+      roomRef.current = room;
       setPlayerId(playerId);
       playerIdRef.current = playerId;
       // Confirm join to component so it can advance screen
@@ -80,14 +81,17 @@ export function useBattleship(username: string) {
 
     socket.on('player_joined' as any, ({ room }: { room: Room }) => {
       setRoom(room);
+      roomRef.current = room;
     });
 
     socket.on('player_left' as any, ({ room }: { room: Room }) => {
       setRoom(room);
+      roomRef.current = room;
     });
 
     socket.on('bs_game_state', (data) => {
       setRoom(data.room);
+      roomRef.current = data.room;
       setPhase(data.phase);
       setCurrentTurnPlayerId(data.currentTurnPlayerId);
       setMyState(data.myState);
@@ -191,48 +195,43 @@ export function useBattleship(username: string) {
         setRevealedEnemyShips(data.enemyShips);
       }
 
-      // Record score and match
+      // Record score and match (only the winner submits to avoid duplicate records)
       try {
         const isMeWinner = data.winnerId === playerIdRef.current;
-        const stored = localStorage.getItem("game-portal-user");
-        if (stored) {
-          const u = JSON.parse(stored);
-          if (u?.id) {
-            fetch(`/api/users/${u.id}/score`, {
-              method: "PATCH",
+        const currentRoom = roomRef.current;
+        if (isMeWinner && currentRoom && currentRoom.players) {
+          const opp = currentRoom.players.find((p: any) => p.id !== data.winnerId);
+          const winPlayer = currentRoom.players.find((p: any) => p.id === data.winnerId);
+          if (winPlayer && opp) {
+            fetch("/api/matches", {
+              method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ game: "battleship", won: isMeWinner }),
+              body: JSON.stringify({
+                gameType: "battleship",
+                players: [
+                  { username: winPlayer.username, result: "win", score: 1 },
+                  { username: opp.username, result: "loss", score: 0 },
+                ],
+                duration: 0,
+                gameData: { winnerName: data.winnerName },
+              }),
             })
               .then((r) => r.json())
-              .then((d) => {
-                if (d.battleshipWins !== undefined) {
-                  u.battleshipWins = d.battleshipWins;
-                  u.battleshipTotal = d.battleshipTotal;
-                  localStorage.setItem("game-portal-user", JSON.stringify(u));
-                }
+              .then((resData) => {
+                try {
+                  const stored = localStorage.getItem("game-portal-user");
+                  if (stored && resData.users) {
+                    const u = JSON.parse(stored);
+                    const updated = resData.users.find((x: any) => x.username === u.username);
+                    if (updated) {
+                      Object.assign(u, updated);
+                      localStorage.setItem("game-portal-user", JSON.stringify(u));
+                    }
+                  }
+                } catch {}
               })
               .catch(() => {});
           }
-        }
-
-        // Record 1v1 match
-        const currentRoom = (socket as any)._lastRoom || room;
-        const opp = currentRoom?.players?.find((p: any) => p.id !== data.winnerId);
-        const winPlayer = currentRoom?.players?.find((p: any) => p.id === data.winnerId);
-        if (winPlayer && opp) {
-          fetch("/api/matches", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              gameType: "battleship",
-              players: [
-                { username: winPlayer.username, result: "win", score: 1 },
-                { username: opp.username, result: "loss", score: 0 },
-              ],
-              duration: 0,
-              gameData: { winnerName: data.winnerName },
-            }),
-          }).catch(() => {});
         }
       } catch {
         // ignore
@@ -269,6 +268,7 @@ export function useBattleship(username: string) {
 
   const resetAllState = useCallback(() => {
     setRoom(null);
+    roomRef.current = null;
     setPlayerId(null);
     playerIdRef.current = null;
     setPhase('placement');

@@ -134,32 +134,10 @@ export function useMonopoly(username: string) {
       setGameState(gameState);
       setWinner({ id: winnerId, name: winnerName });
 
-      // Record score and match
+      // Record score and match (only winner submits to prevent duplicate entries)
       try {
         const isMeWinner = winnerId === playerIdRef.current;
-        const stored = localStorage.getItem("game-portal-user");
-        if (stored) {
-          const u = JSON.parse(stored);
-          if (u?.id) {
-            fetch(`/api/users/${u.id}/score`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ game: "monopoly", won: isMeWinner }),
-            })
-              .then((r) => r.json())
-              .then((d) => {
-                if (d.monopolyWins !== undefined) {
-                  u.monopolyWins = d.monopolyWins;
-                  u.monopolyTotal = d.monopolyTotal;
-                  localStorage.setItem("game-portal-user", JSON.stringify(u));
-                }
-              })
-              .catch(() => {});
-          }
-        }
-
-        // Record multiplayer match
-        if (gameState?.players && gameState.players.length >= 2) {
+        if (isMeWinner && gameState?.players && gameState.players.length >= 2) {
           fetch("/api/matches", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -173,7 +151,22 @@ export function useMonopoly(username: string) {
               duration: 0,
               gameData: { winnerName },
             }),
-          }).catch(() => {});
+          })
+            .then((r) => r.json())
+            .then((resData) => {
+              try {
+                const stored = localStorage.getItem("game-portal-user");
+                if (stored && resData.users) {
+                  const u = JSON.parse(stored);
+                  const updated = resData.users.find((x: any) => x.username === u.username);
+                  if (updated) {
+                    Object.assign(u, updated);
+                    localStorage.setItem("game-portal-user", JSON.stringify(u));
+                  }
+                }
+              } catch {}
+            })
+            .catch(() => {});
         }
       } catch {
         // ignore

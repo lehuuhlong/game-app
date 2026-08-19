@@ -38,6 +38,8 @@ export function GameCaro() {
   const myPlayerIdRef = useRef("");
   const mySymbolRef = useRef<Player | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const playersRef = useRef<{ id: string; username: string }[]>([]);
+  const moveCountRef = useRef(0);
 
   // Game state (kept in refs to avoid stale closure issues + also in state for rendering)
   const boardRef = useRef<CellValue[][]>(makeEmptyBoard());
@@ -98,67 +100,63 @@ export function GameCaro() {
     return socketRef.current;
   }, []);
 
-  const saveCaro = useCallback((won: boolean) => {
-    try {
-      const stored = localStorage.getItem("game-portal-user");
-      if (!stored) return;
-      const u = JSON.parse(stored);
-      if (!u?.id) return;
-      fetch(`/api/users/${u.id}/score`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game: "caro", won }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.caroWins !== undefined) {
-            u.caroWins = d.caroWins;
-            u.caroTotal = d.caroTotal;
-            localStorage.setItem("game-portal-user", JSON.stringify(u));
-          }
-        })
-        .catch(() => {});
-    } catch { /* ignore */ }
-  }, []);
-
-  const handleGameOver = useCallback((winnerSymbol: string | null, isTimeout = false) => {
+  const handleGameOver = useCallback((winnerSymbol: string | null, reason: "win" | "timeout" | "disconnect" = "win") => {
     stopTimer();
     setScreen("finished");
 
     const isDraw = !winnerSymbol || winnerSymbol === "draw";
     const isMe = !isDraw && winnerSymbol === mySymbolRef.current;
-    const suffix = isTimeout ? " (Time out)" : "";
+    
+    let suffix = "";
+    if (reason === "timeout") suffix = " (Time out)";
+    if (reason === "disconnect") suffix = " (Opponent left)";
 
     if (isDraw) {
       setWinnerMsg("🤝 It's a draw!");
-      saveCaro(false);
     } else {
       setWinnerMsg(isMe ? `🏆 You win${suffix}!` : `😔 You lose${suffix}`);
-      saveCaro(isMe);
     }
 
-    // Record match
-    if (players.length >= 2) {
-      const p1 = players[0];
-      const p2 = players[1];
+    // Record match to MongoDB for Match History, Head-to-Head stats & User totals
+    const currentPlayers = playersRef.current;
+    if (currentPlayers.length >= 2) {
+      const p1 = currentPlayers[0];
+      const p2 = currentPlayers[1];
       const p1Won = !isDraw && winnerSymbol === "X";
       const p2Won = !isDraw && winnerSymbol === "O";
-      fetch("/api/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameType: "caro",
-          players: [
-            { username: p1.username, result: isDraw ? "draw" : p1Won ? "win" : "loss", score: p1Won ? 1 : 0 },
-            { username: p2.username, result: isDraw ? "draw" : p2Won ? "win" : "loss", score: p2Won ? 1 : 0 },
-          ],
-          duration: 0,
-          gameData: { moves: moveCount, winner: isDraw ? "draw" : winnerSymbol },
-        }),
-      }).catch(() => {});
+      const shouldSubmit = isMe || (isDraw && mySymbolRef.current === "X");
+      if (shouldSubmit) {
+        fetch("/api/matches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameType: "caro",
+            players: [
+              { username: p1.username, result: isDraw ? "draw" : p1Won ? "win" : "loss", score: p1Won ? 1 : 0 },
+              { username: p2.username, result: isDraw ? "draw" : p2Won ? "win" : "loss", score: p2Won ? 1 : 0 },
+            ],
+            duration: 0,
+            gameData: { moves: moveCountRef.current, winner: isDraw ? "draw" : winnerSymbol, reason },
+          }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            try {
+              const stored = localStorage.getItem("game-portal-user");
+              if (stored && data.users) {
+                const u = JSON.parse(stored);
+                const updated = data.users.find((x: any) => x.username === u.username);
+                if (updated) {
+                  Object.assign(u, updated);
+                  localStorage.setItem("game-portal-user", JSON.stringify(u));
+                }
+              }
+            } catch {}
+          })
+          .catch(() => {});
+      }
     }
-
-  }, [stopTimer, saveCaro, players, moveCount]);
+  }, [stopTimer, setScreen]);
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")
@@ -167,23 +165,24 @@ export function GameCaro() {
     socket.on("room_joined", ({ room, playerId }: any) => {
       myPlayerIdRef.current = playerId;
       setPlayers(room.players);
+      playersRef.current = room.players;
       setStatusMsg(room.players.length < 2 ? "Waiting for opponent..." : "2/2 players connected");
       setScreen("waiting");
     });
 
     socket.on("player_joined", ({ room }: any) => {
       setPlayers(room.players);
+      playersRef.current = room.players;
       setStatusMsg("2/2 players connected");
     });
 
     socket.on("player_left", ({ room }: any) => {
       setPlayers(room.players);
+      playersRef.current = room.players;
       if (screenRef.current === "playing") {
         if (gameStartedRef.current) {
-          stopTimer();
-          saveCaro(true);
-          setWinnerMsg("🏃 Opponent left — you win!");
-          setScreen("finished");
+          const mySymbol = mySymbolRef.current;
+          handleGameOver(mySymbol, "disconnect");
           
           // Reset board
           const fresh = makeEmptyBoard();
@@ -195,6 +194,7 @@ export function GameCaro() {
           setWinningCells([]);
           setLastMove(null);
           setMoveCount(0);
+          moveCountRef.current = 0;
         } else {
           setScreen("waiting");
           setStatusMsg("Opponent left. Waiting for another player...");
@@ -209,6 +209,7 @@ export function GameCaro() {
       const idx = room.players.findIndex((p: any) => p.id === myPlayerIdRef.current);
       mySymbolRef.current = idx === 0 ? "X" : "O";
       setPlayers(room.players);
+      playersRef.current = room.players;
 
       // Reset board
       const fresh = makeEmptyBoard();
@@ -220,6 +221,7 @@ export function GameCaro() {
       setWinningCells([]);
       setLastMove(null);
       setMoveCount(0);
+      moveCountRef.current = 0;
       setWinnerMsg("");
       setScreen("playing");
       // Timer starts after first move — don't start yet
@@ -237,17 +239,17 @@ export function GameCaro() {
       setBoard(newBoard);
       setCurrentTurn(newTurn);
       setLastMove({ row: move.x, col: move.y });
-      setMoveCount((c) => c + 1);
+      setMoveCount((c) => {
+        const next = c + 1;
+        moveCountRef.current = next;
+        return next;
+      });
 
       // Check win
       const winning = checkWin(newBoard, move.x, move.y, move.player as Player);
       if (winning) {
-        stopTimer();
         setWinningCells(winning);
-        const isMe = move.player === mySymbolRef.current;
-        setWinnerMsg(isMe ? "🏆 You win!" : `😔 You lose!`);
-        setScreen("finished");
-        saveCaro(isMe);
+        handleGameOver(move.player, "win");
         return;
       }
 
@@ -257,13 +259,13 @@ export function GameCaro() {
     });
 
     socket.on("game_over", ({ winner }: any) => {
-      handleGameOver(winner, true);
+      handleGameOver(winner, "timeout");
     });
 
     socket.on("error", ({ message }: any) => {
       setJoinError(message);
     });
-  }, [players, stopTimer, startTimer, handleGameOver, saveCaro, setScreen]);
+  }, [stopTimer, startTimer, handleGameOver, setScreen]);
 
   useEffect(() => {
     return () => {
@@ -308,9 +310,6 @@ export function GameCaro() {
   };
 
   const handleLeaveRoom = () => {
-    if (screenRef.current === "playing" && gameStartedRef.current) {
-      saveCaro(false);
-    }
     stopTimer();
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();
@@ -345,6 +344,7 @@ export function GameCaro() {
     setWinningCells([]);
     setLastMove(null);
     setMoveCount(0);
+    moveCountRef.current = 0;
     setWinnerMsg("");
     setScreen("playing");
   };

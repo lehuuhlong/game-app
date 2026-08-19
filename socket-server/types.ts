@@ -301,7 +301,7 @@ export interface ServerToClientEvents {
   // Caro
   game_started: (data: { room: Room; gameState: CaroGameState }) => void;
   move_made: (data: { move: CaroMove; gameState: CaroGameState }) => void;
-  game_over: (data: { winner: string | null; gameState: CaroGameState }) => void;
+  game_over: (data: { winner: string | null; gameState?: CaroGameState; reason?: string }) => void;
 
   // Word Chain
   wc_game_started: (data: { room: Room; gameState: WordChainGameState }) => void;

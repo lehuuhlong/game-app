@@ -93,41 +93,10 @@ export function useChess(username: string) {
   const [timerActive, setTimerActive] = useState<boolean>(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Score tracking lock to prevent duplicate recordings
-  const scoreSavedRef = useRef<boolean>(false);
-
   // Keep screenRef in sync
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
-
-  const saveChessScore = useCallback((won: boolean) => {
-    if (scoreSavedRef.current) return;
-    scoreSavedRef.current = true;
-    try {
-      const stored = localStorage.getItem("game-portal-user");
-      if (!stored) return;
-      const u = JSON.parse(stored);
-      if (!u?.id) return;
-      fetch(`/api/users/${u.id}/score`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game: "chess", won }),
-        keepalive: true,
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.chessWins !== undefined) {
-            u.chessWins = d.chessWins;
-            u.chessTotal = d.chessTotal;
-            localStorage.setItem("game-portal-user", JSON.stringify(u));
-          }
-        })
-        .catch(() => {});
-    } catch {
-      // ignore
-    }
-  }, []);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -186,24 +155,16 @@ export function useChess(username: string) {
     return socketRef.current;
   }, []);
 
-  // Cleanup timers & record loss on abrupt page unload
+  // Cleanup timers on unmount
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (screenRef.current === "playing" && !gameStateRef.current?.winner) {
-        saveChessScore(false);
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
       stopTimer();
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
     };
-  }, [saveChessScore, stopTimer]);
+  }, [stopTimer]);
 
   const setupSocket = useCallback(
     (socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
@@ -242,7 +203,6 @@ export function useChess(username: string) {
       });
 
       socket.on("chess_game_started", ({ room: r, gameState: gs, whitePlayerId, blackPlayerId }) => {
-        scoreSavedRef.current = false;
         setRoom(r);
         setRoomId(r.id);
         roomIdRef.current = r.id;
@@ -317,19 +277,16 @@ export function useChess(username: string) {
         const myC = myColorRef.current;
         if (w === myC) {
           playVictorySound();
-          saveChessScore(true);
-        } else if (w === "draw") {
-          saveChessScore(false);
-        } else {
+        } else if (w !== "draw") {
           playDefeatSound();
-          saveChessScore(false);
         }
 
-        // Record 1v1 match in matches collection
+        // Record 1v1 match in matches collection (only winner or White on draw submits to prevent duplicates)
         try {
           const whiteP = gs.whitePlayer?.username;
           const blackP = gs.blackPlayer?.username;
-          if (whiteP && blackP) {
+          const isMeWinner = (w === myC) || (w === "draw" && myC === "w");
+          if (isMeWinner && whiteP && blackP) {
             const isDraw = w === "draw";
             const whiteWon = w === "w";
             const blackWon = w === "b";
@@ -358,7 +315,22 @@ export function useChess(username: string) {
                   winner: w,
                 },
               }),
-            }).catch(() => {});
+            })
+              .then((r) => r.json())
+              .then((resData) => {
+                try {
+                  const stored = localStorage.getItem("game-portal-user");
+                  if (stored && resData.users) {
+                    const u = JSON.parse(stored);
+                    const updated = resData.users.find((x: any) => x.username === u.username);
+                    if (updated) {
+                      Object.assign(u, updated);
+                      localStorage.setItem("game-portal-user", JSON.stringify(u));
+                    }
+                  }
+                } catch {}
+              })
+              .catch(() => {});
           }
         } catch {
           // ignore
@@ -378,7 +350,7 @@ export function useChess(username: string) {
         }
       });
     },
-    [saveChessScore, startTimer, stopTimer]
+    [startTimer, stopTimer]
   );
 
   const createRoom = useCallback(() => {
@@ -425,9 +397,6 @@ export function useChess(username: string) {
   );
 
   const leaveRoom = useCallback(() => {
-    if (screenRef.current === "playing" && !gameStateRef.current?.winner) {
-      saveChessScore(false);
-    }
     stopTimer();
     if (socketRef.current && roomIdRef.current) {
       socketRef.current.emit("leave_room", { roomId: roomIdRef.current });
@@ -451,7 +420,7 @@ export function useChess(username: string) {
     setLastMove(null);
     setError(null);
     setJoinError(null);
-  }, [saveChessScore, stopTimer]);
+  }, [stopTimer]);
 
   const resign = useCallback(() => {
     if (!roomIdRef.current || screenRef.current !== "playing") return;

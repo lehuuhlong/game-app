@@ -97,11 +97,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Auto-link user IDs if not provided
+    // Auto-link user IDs if not provided & load full user models to update stats
     const usernames = players.map((p: any) => p.username).filter(Boolean);
-    const existingUsers = await User.find({ username: { $in: usernames } })
-      .select("_id username")
-      .lean();
+    const existingUsers = await User.find({ username: { $in: usernames } });
     const userMap = new Map<string, any>(
       existingUsers.map((u) => [u.username, u._id])
     );
@@ -120,7 +118,32 @@ export async function POST(request: Request) {
       gameData: gameData || {},
     });
 
-    return NextResponse.json({ match }, { status: 201 });
+    // Update User total and wins for all participants in multiplayer/1v1 games
+    for (const p of formattedPlayers) {
+      const u = existingUsers.find((user) => user.username === p.username);
+      if (u) {
+        const isWin = p.result === "win";
+        if (gameType === "caro") {
+          u.caroTotal = (u.caroTotal || 0) + 1;
+          if (isWin) u.caroWins = (u.caroWins || 0) + 1;
+        } else if (gameType === "chess") {
+          u.chessTotal = (u.chessTotal || 0) + 1;
+          if (isWin) u.chessWins = (u.chessWins || 0) + 1;
+        } else if (gameType === "battleship") {
+          u.battleshipTotal = (u.battleshipTotal || 0) + 1;
+          if (isWin) u.battleshipWins = (u.battleshipWins || 0) + 1;
+        } else if (gameType === "wordchain") {
+          u.wordchainTotal = (u.wordchainTotal || 0) + 1;
+          if (isWin) u.wordchainWins = (u.wordchainWins || 0) + 1;
+        } else if (gameType === "monopoly") {
+          u.monopolyTotal = (u.monopolyTotal || 0) + 1;
+          if (isWin) u.monopolyWins = (u.monopolyWins || 0) + 1;
+        }
+        await u.save();
+      }
+    }
+
+    return NextResponse.json({ match, users: existingUsers }, { status: 201 });
   } catch (error) {
     console.error("POST /api/matches error:", error);
     return NextResponse.json(
