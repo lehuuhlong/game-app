@@ -1127,7 +1127,7 @@ export default function LeaderboardPage() {
                                 <span>Player</span>
                                 <span className="text-right">{wordleLevel === "1" ? "1st Try Wins" : `${wordleLevel}${wordleLevel === "2" ? "nd" : wordleLevel === "3" ? "rd" : "th"} Try`}</span>
                                 <span className="text-right">Total Wins</span>
-                                <span className="text-right">Share</span>
+                                <span className="text-right">Win %</span>
                               </TableHeader>
                               {dataWordle.length === 0 ? (
                                 <Empty text={`No players have solved Wordle on Try ${wordleLevel} yet!`} />
