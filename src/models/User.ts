@@ -16,6 +16,13 @@ export interface IUser extends Document {
   msBestIntermediate: number;  // Minesweeper Intermediate: best time
   msBestExpert: number;        // Minesweeper Expert: best time
   wordleWins: number;          // Wordle: total successful guesses
+  wordleTotal: number;         // Wordle: total games played
+  wordleGuesses1: number;      // Wordle: won on 1st guess
+  wordleGuesses2: number;      // Wordle: won on 2nd guess
+  wordleGuesses3: number;      // Wordle: won on 3rd guess
+  wordleGuesses4: number;      // Wordle: won on 4th guess
+  wordleGuesses5: number;      // Wordle: won on 5th guess
+  wordleGuesses6: number;      // Wordle: won on 6th guess
   bestScoreTrex: number;       // Trex: best score
   wordchainWins: number;       // Wordchain: total wins
   wordchainTotal: number;      // Wordchain: total games played
@@ -54,6 +61,13 @@ const UserSchema = new Schema<IUser>(
     msBestIntermediate:     { type: Number, default: 0 },
     msBestExpert:           { type: Number, default: 0 },
     wordleWins:             { type: Number, default: 0 },
+    wordleTotal:            { type: Number, default: 0 },
+    wordleGuesses1:         { type: Number, default: 0 },
+    wordleGuesses2:         { type: Number, default: 0 },
+    wordleGuesses3:         { type: Number, default: 0 },
+    wordleGuesses4:         { type: Number, default: 0 },
+    wordleGuesses5:         { type: Number, default: 0 },
+    wordleGuesses6:         { type: Number, default: 0 },
     bestScoreTrex:          { type: Number, default: 0 },
     wordchainWins:          { type: Number, default: 0 },
     wordchainTotal:         { type: Number, default: 0 },

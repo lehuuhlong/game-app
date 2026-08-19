@@ -20,7 +20,7 @@ export function GameWordle() {
     restart,
   } = useWordle();
 
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const scoreSavedRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
 
@@ -54,6 +54,8 @@ export function GameWordle() {
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
+    const finalGuessesCount = currentRow;
+
     // Record match history
     fetch("/api/matches", {
       method: "POST",
@@ -69,30 +71,40 @@ export function GameWordle() {
           },
         ],
         duration: 0,
-        gameData: { won: gameStatus === "won", solution, guessesCount: guesses.length },
+        gameData: { won: gameStatus === "won", solution, guessesCount: finalGuessesCount },
       }),
     }).catch((err) => console.error("Failed to save wordle match:", err));
 
-    if (!user || gameStatus !== "won") return;
+    if (!user) return;
 
     fetch(`/api/users/${user.id}/score`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "wordle", won: true }),
+      body: JSON.stringify({
+        game: "wordle",
+        won: gameStatus === "won",
+        guessesCount: gameStatus === "won" ? finalGuessesCount : undefined,
+      }),
     })
       .then((r) => r.json())
       .then((d) => {
         try {
-          const stored = localStorage.getItem("game-portal-user");
-          if (stored) {
-            const u = JSON.parse(stored);
-            if (d.wordleWins !== undefined) u.wordleWins = d.wordleWins;
-            localStorage.setItem("game-portal-user", JSON.stringify(u));
+          if (refreshUser) {
+            refreshUser({
+              wordleWins: d.wordleWins,
+              wordleTotal: d.wordleTotal,
+              wordleGuesses1: d.wordleGuesses1,
+              wordleGuesses2: d.wordleGuesses2,
+              wordleGuesses3: d.wordleGuesses3,
+              wordleGuesses4: d.wordleGuesses4,
+              wordleGuesses5: d.wordleGuesses5,
+              wordleGuesses6: d.wordleGuesses6,
+            });
           }
         } catch { /* ignore */ }
       })
       .catch((err) => console.error("Failed to save wordle score:", err));
-  }, [gameOver, gameStatus, user, solution, guesses.length]);
+  }, [gameOver, gameStatus, user, solution, currentRow, refreshUser]);
 
   const isRestartingRef = useRef(false);
 

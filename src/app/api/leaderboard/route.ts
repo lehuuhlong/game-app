@@ -102,20 +102,73 @@ export async function GET(request: Request) {
     }
 
     if (game === "wordle") {
-      const leaderboard = await User.find({ wordleWins: { $gt: 0 } })
-        .select("username avatarUrl wordleWins")
-        .sort({ wordleWins: -1 })
+      const level = searchParams.get("level") || "overall";
+
+      if (level === "overall") {
+        const leaderboard = await User.find({
+          $or: [{ wordleTotal: { $gt: 0 } }, { wordleWins: { $gt: 0 } }],
+        })
+          .select("username avatarUrl wordleWins wordleTotal wordleGuesses1 wordleGuesses2 wordleGuesses3 wordleGuesses4 wordleGuesses5 wordleGuesses6")
+          .sort({ wordleWins: -1, wordleTotal: -1 })
+          .limit(10)
+          .lean();
+
+        return NextResponse.json({
+          game: "wordle",
+          level: "overall",
+          leaderboard: leaderboard.map((u, i) => {
+            const wins = u.wordleWins || 0;
+            const total = Math.max(u.wordleTotal || 0, wins);
+            const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+            return {
+              rank: i + 1,
+              username: u.username,
+              avatarUrl: u.avatarUrl || null,
+              wins,
+              total,
+              winRate,
+              guesses1: u.wordleGuesses1 || 0,
+              guesses2: u.wordleGuesses2 || 0,
+              guesses3: u.wordleGuesses3 || 0,
+              guesses4: u.wordleGuesses4 || 0,
+              guesses5: u.wordleGuesses5 || 0,
+              guesses6: u.wordleGuesses6 || 0,
+            };
+          }),
+        });
+      }
+
+      // Specific guess count levels: "1", "2", "3", "4", "5", "6"
+      const guessNum = parseInt(level, 10);
+      if (isNaN(guessNum) || guessNum < 1 || guessNum > 6) {
+        return NextResponse.json({ error: "Invalid level" }, { status: 400 });
+      }
+
+      const field = `wordleGuesses${guessNum}` as "wordleGuesses1" | "wordleGuesses2" | "wordleGuesses3" | "wordleGuesses4" | "wordleGuesses5" | "wordleGuesses6";
+      const leaderboard = await User.find({ [field]: { $gt: 0 } })
+        .select(`username avatarUrl wordleWins wordleTotal ${field}`)
+        .sort({ [field]: -1, wordleWins: -1 })
         .limit(10)
         .lean();
 
       return NextResponse.json({
         game: "wordle",
-        leaderboard: leaderboard.map((u, i) => ({
-          rank: i + 1,
-          username: u.username,
-          avatarUrl: u.avatarUrl || null,
-          wins: u.wordleWins,
-        })),
+        level,
+        leaderboard: leaderboard.map((u, i) => {
+          const count = ((u as any)[field] as number) || 0;
+          const wins = u.wordleWins || 0;
+          const total = Math.max(u.wordleTotal || 0, wins);
+          const share = wins > 0 ? Math.round((count / wins) * 100) : 0;
+          return {
+            rank: i + 1,
+            username: u.username,
+            avatarUrl: u.avatarUrl || null,
+            count,
+            wins,
+            total,
+            share,
+          };
+        }),
       });
     }
 

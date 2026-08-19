@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useMemo, useCallback, useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useMinesweeper } from "./useMinesweeper";
-import { MinesweeperCell } from "./MinesweeperCell";
-import { DIFFICULTY_PRESETS, type Difficulty } from "./types";
-import { LoginModal } from "@/components/auth/LoginModal";
-import { useAuth } from "@/components/auth";
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMinesweeper } from './useMinesweeper';
+import { MinesweeperCell } from './MinesweeperCell';
+import { DIFFICULTY_PRESETS, type Difficulty } from './types';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { useAuth } from '@/components/auth';
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -14,12 +14,12 @@ import { useAuth } from "@/components/auth";
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 // ── Difficulty selector tab data (derived from DIFFICULTY_PRESETS) ─
 
-const DIFFICULTY_KEYS: Difficulty[] = ["beginner", "intermediate", "expert"];
+const DIFFICULTY_KEYS: Difficulty[] = ['beginner', 'intermediate', 'expert'];
 
 const DIFFICULTIES = DIFFICULTY_KEYS.map((id) => {
   const cfg = DIFFICULTY_PRESETS[id];
@@ -53,7 +53,7 @@ export function GameMinesweeper() {
     restart,
     changeDifficulty,
     isGameInProgress,
-  } = useMinesweeper("beginner");
+  } = useMinesweeper('beginner');
 
   const { user } = useAuth();
   const scoreSavedRef = useRef(false);
@@ -61,7 +61,7 @@ export function GameMinesweeper() {
 
   const config = DIFFICULTY_PRESETS[difficulty];
   const cellSize = useCellSize(config.cols);
-  const gameOver = gameStatus === "won" || gameStatus === "lost";
+  const gameOver = gameStatus === 'won' || gameStatus === 'lost';
 
   // ── Login prompt on game end (if not logged in) ─────────────────
   useEffect(() => {
@@ -73,7 +73,7 @@ export function GameMinesweeper() {
 
   // ── Save score and match history on game end ───────────────────
   useEffect(() => {
-    if (gameStatus === "playing") {
+    if (gameStatus === 'playing') {
       scoreSavedRef.current = false;
     }
 
@@ -82,31 +82,31 @@ export function GameMinesweeper() {
     scoreSavedRef.current = true;
 
     // Record match history
-    fetch("/api/matches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    fetch('/api/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        gameType: "minesweeper",
+        gameType: 'minesweeper',
         players: [
           {
             userId: user?.id,
-            username: user ? user.username : "Guest",
+            username: user ? user.username : 'Guest',
             score: elapsedTime,
-            result: gameStatus === "won" ? "win" : "loss",
+            result: gameStatus === 'won' ? 'win' : 'loss',
           },
         ],
         duration: elapsedTime,
         gameData: { difficulty, time: elapsedTime },
       }),
-    }).catch((err) => console.error("Failed to save minesweeper match:", err));
+    }).catch((err) => console.error('Failed to save minesweeper match:', err));
 
-    if (!user || gameStatus !== "won") return;
+    if (!user || gameStatus !== 'won') return;
 
     fetch(`/api/users/${user.id}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        game: "minesweeper",
+        game: 'minesweeper',
         difficulty,
         time: elapsedTime,
       }),
@@ -114,17 +114,19 @@ export function GameMinesweeper() {
       .then((r) => r.json())
       .then((d) => {
         try {
-          const stored = localStorage.getItem("game-portal-user");
+          const stored = localStorage.getItem('game-portal-user');
           if (stored) {
             const u = JSON.parse(stored);
             if (d.msBestBeginner !== undefined) u.msBestBeginner = d.msBestBeginner;
             if (d.msBestIntermediate !== undefined) u.msBestIntermediate = d.msBestIntermediate;
             if (d.msBestExpert !== undefined) u.msBestExpert = d.msBestExpert;
-            localStorage.setItem("game-portal-user", JSON.stringify(u));
+            localStorage.setItem('game-portal-user', JSON.stringify(u));
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       })
-      .catch((err) => console.error("Failed to save minesweeper score:", err));
+      .catch((err) => console.error('Failed to save minesweeper score:', err));
   }, [gameOver, gameStatus, user, difficulty, elapsedTime]);
 
   // ── Confirmation dialog state ───────────────────────────────────
@@ -139,7 +141,7 @@ export function GameMinesweeper() {
         changeDifficulty(d);
       }
     },
-    [difficulty, isGameInProgress, changeDifficulty]
+    [difficulty, isGameInProgress, changeDifficulty],
   );
 
   const confirmSwitch = useCallback(() => {
@@ -157,12 +159,12 @@ export function GameMinesweeper() {
 
   const statusEmoji = useMemo(() => {
     switch (gameStatus) {
-      case "won":
-        return "😎";
-      case "lost":
-        return "💀";
+      case 'won':
+        return '😎';
+      case 'lost':
+        return '💀';
       default:
-        return "🙂";
+        return '🙂';
     }
   }, [gameStatus]);
 
@@ -179,9 +181,7 @@ export function GameMinesweeper() {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground">
           Mine<span className="text-gradient">sweeper</span>
         </h1>
-        <p className="text-foreground-secondary text-sm mt-1">
-          Left-click to reveal · Right-click to flag · Click number to chord
-        </p>
+        <p className="text-foreground-secondary text-sm mt-1">Left-click to reveal · Right-click to flag · Click number to chord</p>
       </div>
 
       {/* ── Unified game card ──────────────────────────────────── */}
@@ -193,16 +193,14 @@ export function GameMinesweeper() {
               key={d.id}
               onClick={() => handleDifficultyClick(d.id)}
               className={`relative flex-1 px-3 sm:px-5 py-3 text-sm font-medium transition-colors ${
-                difficulty === d.id
-                  ? "text-accent"
-                  : "text-foreground-muted hover:text-foreground-secondary"
+                difficulty === d.id ? 'text-accent' : 'text-foreground-muted hover:text-foreground-secondary'
               }`}
             >
               {difficulty === d.id && (
                 <motion.div
                   layoutId="ms-tab"
                   className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
               <span className="relative z-10 flex flex-col items-center gap-0.5">
@@ -218,9 +216,7 @@ export function GameMinesweeper() {
           {/* Mine counter */}
           <div className="flex items-center gap-2">
             <span className="text-lg">💣</span>
-            <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[2ch] text-right">
-              {remainingMines}
-            </span>
+            <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[2ch] text-right">{remainingMines}</span>
           </div>
 
           {/* Smiley restart button */}
@@ -235,9 +231,7 @@ export function GameMinesweeper() {
           {/* Timer */}
           <div className="flex items-center gap-2">
             <span className="text-lg">⏱</span>
-            <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[5ch]">
-              {formatTime(elapsedTime)}
-            </span>
+            <span className="font-mono text-xl font-bold text-foreground tabular-nums min-w-[5ch]">{formatTime(elapsedTime)}</span>
           </div>
         </div>
 
@@ -262,54 +256,48 @@ export function GameMinesweeper() {
                   onChord={chordReveal}
                   cellSize={cellSize}
                 />
-              ))
+              )),
             )}
           </div>
 
-        {/* ── Win / Lose Overlay ───────────────────────────────── */}
-        <AnimatePresence>
-          {gameOver && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-              className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-black/50 backdrop-blur-sm"
-            >
+          {/* ── Win / Lose Overlay ───────────────────────────────── */}
+          <AnimatePresence>
+            {gameOver && (
               <motion.div
-                initial={{ scale: 0.8, y: 10 }}
-                animate={{ scale: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.5 }}
-                className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-surface border border-border shadow-xl max-w-xs mx-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-black/50 backdrop-blur-sm"
               >
-                <span className="text-5xl">{gameStatus === "won" ? "🏆" : "💥"}</span>
-                <div className="text-center">
-                  <h2 className="text-xl font-bold text-foreground">
-                    {gameStatus === "won" ? "You Win!" : "Game Over!"}
-                  </h2>
-                  <p className="text-sm text-foreground-secondary mt-1">
-                    {gameStatus === "won"
-                      ? `Cleared in ${formatTime(elapsedTime)}`
-                      : "You hit a mine!"}
-                  </p>
-                  {gameStatus === "won" && user && (
-                    <p className="text-xs text-emerald-500 mt-1">✓ Score saved</p>
-                  )}
-                </div>
-                <button
-                  onClick={handleRestart}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+                <motion.div
+                  initial={{ scale: 0.8, y: 10 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.5 }}
+                  className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-surface border border-border shadow-xl max-w-xs mx-4"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <polyline points="23 4 23 10 17 10" />
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                  </svg>
-                  Play Again
-                </button>
+                  <span className="text-5xl">{gameStatus === 'won' ? '🏆' : '💥'}</span>
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-foreground">{gameStatus === 'won' ? 'You Win!' : 'Game Over!'}</h2>
+                    <p className="text-sm text-foreground-secondary mt-1">
+                      {gameStatus === 'won' ? `Cleared in ${formatTime(elapsedTime)}` : 'You hit a mine!'}
+                    </p>
+                    {gameStatus === 'won' && user && <p className="text-xs text-emerald-500 mt-1">✓ Score saved</p>}
+                  </div>
+                  <button
+                    onClick={handleRestart}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <polyline points="23 4 23 10 17 10" />
+                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                    </svg>
+                    Play Again
+                  </button>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -327,21 +315,16 @@ export function GameMinesweeper() {
               initial={{ scale: 0.9, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 10 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-surface border border-border shadow-xl max-w-sm mx-4"
               onClick={(e) => e.stopPropagation()}
             >
               <span className="text-4xl">⚠️</span>
               <div className="text-center">
-                <h3 className="text-lg font-bold text-foreground">
-                  Game in progress
-                </h3>
+                <h3 className="text-lg font-bold text-foreground">Game in progress</h3>
                 <p className="text-sm text-foreground-secondary mt-1">
-                  Switching to{" "}
-                  <span className="font-semibold text-foreground">
-                    {DIFFICULTY_PRESETS[pendingDifficulty].label}
-                  </span>{" "}
-                  will end your current game. Continue?
+                  Switching to <span className="font-semibold text-foreground">{DIFFICULTY_PRESETS[pendingDifficulty].label}</span> will end your
+                  current game. Continue?
                 </p>
               </div>
               <div className="flex gap-3 w-full">
@@ -373,9 +356,7 @@ export function GameMinesweeper() {
       )}
 
       {/* ── Mobile Hint ──────────────────────────────────────── */}
-      <p className="text-xs text-foreground-muted text-center sm:hidden">
-        Long-press a cell to place a flag 🚩
-      </p>
+      <p className="text-xs text-foreground-muted text-center sm:hidden">Long-press a cell to place a flag 🚩</p>
     </div>
   );
 }

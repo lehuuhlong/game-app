@@ -21,6 +21,13 @@ export interface AuthUser {
   msBestIntermediate?: number;
   msBestExpert?: number;
   wordleWins?: number;
+  wordleTotal?: number;
+  wordleGuesses1?: number;
+  wordleGuesses2?: number;
+  wordleGuesses3?: number;
+  wordleGuesses4?: number;
+  wordleGuesses5?: number;
+  wordleGuesses6?: number;
   bestScoreTrex: number;
   wordchainWins: number;
   wordchainTotal: number;

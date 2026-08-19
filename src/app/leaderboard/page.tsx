@@ -50,11 +50,23 @@ interface EntryMinesweeper {
   time: number;
 }
 
+type WordleLevel = "overall" | "1" | "2" | "3" | "4" | "5" | "6";
+
 interface EntryWordle {
   rank: number;
   username: string;
   avatarUrl: string | null;
   wins: number;
+  total?: number;
+  winRate?: number;
+  count?: number;
+  share?: number;
+  guesses1?: number;
+  guesses2?: number;
+  guesses3?: number;
+  guesses4?: number;
+  guesses5?: number;
+  guesses6?: number;
 }
 
 interface EntryTrex {
@@ -199,6 +211,15 @@ const TAB_INDEX: Record<string, number> = {
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
 const SUDOKU_INDEX: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
+const WORDLE_INDEX: Record<WordleLevel, number> = {
+  overall: 0,
+  "1": 1,
+  "2": 2,
+  "3": 3,
+  "4": 4,
+  "5": 5,
+  "6": 6,
+};
 
 const MS_LEVELS: { id: MsLevel; label: string }[] = [
   { id: "beginner", label: "Beginner" },
@@ -210,6 +231,16 @@ const SUDOKU_LEVELS: { id: SudokuLevel; label: string }[] = [
   { id: "easy", label: "Easy" },
   { id: "medium", label: "Medium" },
   { id: "hard", label: "Hard" },
+];
+
+const WORDLE_LEVELS: { id: WordleLevel; label: string }[] = [
+  { id: "overall", label: "Overall" },
+  { id: "1", label: "1st Try ⚡" },
+  { id: "2", label: "2nd Try" },
+  { id: "3", label: "3rd Try" },
+  { id: "4", label: "4th Try" },
+  { id: "5", label: "5th Try" },
+  { id: "6", label: "6th Try" },
 ];
 
 const slideVariants = {
@@ -246,9 +277,9 @@ export default function LeaderboardPage() {
   const [mode, setMode] = useState<LeaderboardMode>("rankings");
   const [categoryFilter, setCategoryFilter] = useState<GameCategory>("all");
   const [activeGame, setActiveGame] = useState<GameTab>("caro");
-
   const [msLevel, setMsLevel] = useState<MsLevel>("beginner");
   const [sudokuLevel, setSudokuLevel] = useState<SudokuLevel>("easy");
+  const [wordleLevel, setWordleLevel] = useState<WordleLevel>("overall");
 
   // Direction ref for smooth horizontal slide animation between games
   const slideDirRef = useRef(1);
@@ -317,6 +348,12 @@ export default function LeaderboardPage() {
     setSudokuLevel(lv);
   };
 
+  const handleWordleLevelChange = (lv: WordleLevel) => {
+    if (lv === wordleLevel) return;
+    slideDirRef.current = WORDLE_INDEX[lv] > WORDLE_INDEX[wordleLevel] ? 1 : -1;
+    setWordleLevel(lv);
+  };
+
   // Update scroll bounds on mount, resize, and category filter change
   useEffect(() => {
     const el = pillsContainerRef.current;
@@ -345,6 +382,8 @@ export default function LeaderboardPage() {
           url += `&level=${msLevel}`;
         } else if (activeGame === "sudoku") {
           url += `&level=${sudokuLevel}`;
+        } else if (activeGame === "wordle") {
+          url += `&level=${wordleLevel}`;
         }
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch");
@@ -374,7 +413,7 @@ export default function LeaderboardPage() {
     return () => {
       active = false;
     };
-  }, [mode, activeGame, msLevel, sudokuLevel]);
+  }, [mode, activeGame, msLevel, sudokuLevel, wordleLevel]);
 
   const handleInspectH2H = (p1: string, p2: string) => {
     setH2HP1(p1);
@@ -395,6 +434,8 @@ export default function LeaderboardPage() {
       ? `ms-${msLevel}`
       : activeGame === "sudoku"
       ? `sudoku-${sudokuLevel}`
+      : activeGame === "wordle"
+      ? `wordle-${wordleLevel}`
       : activeGame;
 
   return (
@@ -641,6 +682,46 @@ export default function LeaderboardPage() {
                             {isLvActive && (
                               <motion.div
                                 layoutId="sudoku-level-pill"
+                                className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
+                                transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                              />
+                            )}
+                            <span className="relative z-10">{lv.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Wordle sub-tabs */}
+            <AnimatePresence initial={false}>
+              {activeGame === "wordle" && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden border-b border-border/60 bg-background-secondary/30"
+                >
+                  <div className="flex items-center gap-2 px-5 py-2.5 overflow-x-auto no-scrollbar">
+                    <span className="text-xs font-bold text-foreground-muted uppercase mr-1 whitespace-nowrap">Filter:</span>
+                    <div className="flex items-center gap-1">
+                      {WORDLE_LEVELS.map((lv) => {
+                        const isLvActive = wordleLevel === lv.id;
+                        return (
+                          <button
+                            key={lv.id}
+                            onClick={() => handleWordleLevelChange(lv.id)}
+                            className={`relative px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                              isLvActive ? "text-accent dark:text-white font-bold" : "text-foreground-secondary hover:text-foreground"
+                            }`}
+                          >
+                            {isLvActive && (
+                              <motion.div
+                                layoutId="wordle-level-pill"
                                 className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
                                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
                               />
@@ -1002,29 +1083,79 @@ export default function LeaderboardPage() {
                       {/* ── Wordle ── */}
                       {activeGame === "wordle" && (
                         <>
-                          <TableHeader cols="grid-cols-[56px_1fr_120px]">
-                            <span>Rank</span>
-                            <span>Player</span>
-                            <span className="text-right">Wins</span>
-                          </TableHeader>
-                          {dataWordle.length === 0 ? (
-                            <Empty text="No Wordle wins recorded yet. Guess the secret word!" />
+                          {wordleLevel === "overall" ? (
+                            <>
+                              <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
+                                <span>Rank</span>
+                                <span>Player</span>
+                                <span className="text-right">Wins</span>
+                                <span className="text-right">Games</span>
+                                <span className="text-right">Win %</span>
+                              </TableHeader>
+                              {dataWordle.length === 0 ? (
+                                <Empty text="No Wordle games recorded yet. Guess the secret word!" />
+                              ) : (
+                                dataWordle.map((e, i) => (
+                                  <TableRow
+                                    key={e.username}
+                                    index={i}
+                                    isLast={i === dataWordle.length - 1}
+                                    cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                    onClick={() => setSelectedPlayer(e.username)}
+                                  >
+                                    <RankBadge rank={e.rank} />
+                                    <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                    <span className="text-sm font-bold text-emerald-500 text-right tabular-nums">
+                                      {e.wins}
+                                    </span>
+                                    <span className="text-sm text-foreground-secondary text-right tabular-nums">
+                                      {e.total ?? e.wins}
+                                    </span>
+                                    <span className="text-sm text-right tabular-nums">
+                                      <span className={`font-semibold ${(e.winRate ?? 0) >= 60 ? "text-emerald-500" : (e.winRate ?? 0) >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
+                                        {e.winRate ?? 0}%
+                                      </span>
+                                    </span>
+                                  </TableRow>
+                                ))
+                              )}
+                            </>
                           ) : (
-                            dataWordle.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataWordle.length - 1}
-                                cols="grid-cols-[56px_1fr_120px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-emerald-500 text-right tabular-nums">
-                                  {e.wins}
-                                </span>
-                              </TableRow>
-                            ))
+                            <>
+                              <TableHeader cols="grid-cols-[56px_1fr_110px_110px_100px]">
+                                <span>Rank</span>
+                                <span>Player</span>
+                                <span className="text-right">{wordleLevel === "1" ? "1st Try Wins" : `${wordleLevel}${wordleLevel === "2" ? "nd" : wordleLevel === "3" ? "rd" : "th"} Try`}</span>
+                                <span className="text-right">Total Wins</span>
+                                <span className="text-right">Share</span>
+                              </TableHeader>
+                              {dataWordle.length === 0 ? (
+                                <Empty text={`No players have solved Wordle on Try ${wordleLevel} yet!`} />
+                              ) : (
+                                dataWordle.map((e, i) => (
+                                  <TableRow
+                                    key={e.username}
+                                    index={i}
+                                    isLast={i === dataWordle.length - 1}
+                                    cols="grid-cols-[56px_1fr_110px_110px_100px]"
+                                    onClick={() => setSelectedPlayer(e.username)}
+                                  >
+                                    <RankBadge rank={e.rank} />
+                                    <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                    <span className="text-sm font-bold text-amber-500 text-right tabular-nums flex items-center justify-end gap-1">
+                                      {wordleLevel === "1" && <span>⚡</span>}
+                                      {e.count}
+                                    </span>
+                                    <span className="text-sm text-foreground-secondary text-right tabular-nums">
+                                      {e.wins}
+                                    </span>
+                                    <span className="text-sm font-semibold text-emerald-500 text-right tabular-nums">
+                                      {e.share}%
+                                    </span>
+                                  </TableRow>
+                                ))
+                              )}
+                            </>
                           )}
                         </>
                       )}

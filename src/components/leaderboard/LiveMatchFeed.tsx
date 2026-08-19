@@ -92,10 +92,25 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
+function formatTime(seconds: number): string {
+  if (!seconds || seconds <= 0) return "--:--";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function capitalize(str: string): string {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const PAGE_SIZE = 10;
+
 export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps) {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterGame, setFilterGame] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -103,12 +118,15 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
 
     async function fetchMatches() {
       try {
-        let url = `/api/matches?limit=30`;
+        let url = `/api/matches?limit=50`;
         if (filterGame !== "all") url += `&gameType=${filterGame}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch matches");
         const json = await res.json();
-        if (active) setMatches(json.matches || []);
+        if (active) {
+          setMatches(json.matches || []);
+          setCurrentPage(1);
+        }
       } catch (err) {
         console.error("Error fetching match feed:", err);
       } finally {
@@ -121,6 +139,105 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       active = false;
     };
   }, [filterGame]);
+
+  const totalPages = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const paginatedMatches = matches.slice(startIndex, startIndex + PAGE_SIZE);
+
+  /** Helper to render clean, consistent outcome details for each game */
+  const renderSinglePlayerOutcome = (m: any, p: any) => {
+    const isWin = p.result === "win";
+    const isLoss = p.result === "loss";
+    const gameType = m.gameType;
+    const gameData = m.gameData || {};
+
+    // 1. Minesweeper & Sudoku
+    if (gameType === "minesweeper" || gameType === "sudoku") {
+      const difficulty = capitalize(gameData.difficulty || "Normal");
+      if (isWin) {
+        const timeVal = gameData.time || m.duration || p.score || 0;
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Won ({difficulty}) • {formatTime(timeVal)}
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          Lost ({difficulty})
+        </span>
+      );
+    }
+
+    // 2. Wordle
+    if (gameType === "wordle") {
+      const solution = gameData.solution ? `"${gameData.solution.toUpperCase()}"` : "";
+      if (isWin) {
+        const tries = gameData.guessesCount ? ` (${gameData.guessesCount}/6)` : "";
+        return (
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Won • {solution}{tries}
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          Lost • Word: {solution}
+        </span>
+      );
+    }
+
+    // 3. Score-based games: 2048, Trex, Aim Trainer
+    if (gameType === "2048") {
+      const score = (p.score ?? gameData.score ?? 0).toLocaleString();
+      const tile = gameData.highestTile ? ` • Tile ${gameData.highestTile}` : "";
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+          {score} pts{tile}
+        </span>
+      );
+    }
+
+    if (gameType === "trex") {
+      const score = (p.score ?? gameData.score ?? 0).toLocaleString();
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+          {score} pts
+        </span>
+      );
+    }
+
+    if (gameType === "aimtrainer") {
+      const score = (p.score ?? 0).toLocaleString();
+      const acc = gameData.accuracy !== undefined ? ` • ${gameData.accuracy}% acc` : "";
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+          {score} pts{acc}
+        </span>
+      );
+    }
+
+    // Default fallback
+    if (isWin) {
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          WIN
+        </span>
+      );
+    }
+    if (isLoss) {
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          LOSS
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+        {p.score !== undefined ? `${p.score} pts` : "Played"}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -151,7 +268,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
         </div>
 
         <div className="text-xs text-foreground-secondary">
-          Showing latest <strong className="text-foreground">{matches.length}</strong> recorded sessions
+          Showing latest <strong className="text-foreground">{matches.length}</strong> recorded sessions (Page {currentPage} of {totalPages})
         </div>
       </div>
 
@@ -167,7 +284,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
         </div>
       ) : (
         <div className="space-y-3">
-          {matches.map((m: any, i: number) => {
+          {paginatedMatches.map((m: any, i: number) => {
             const is1v1 = m.players && m.players.length === 2;
             const p1 = m.players?.[0];
             const p2 = m.players?.[1];
@@ -175,14 +292,14 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             return (
               <motion.div
                 key={m._id}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
+                transition={{ delay: i * 0.02 }}
                 className="p-4 rounded-2xl bg-surface border border-border shadow-sm hover:border-accent/40 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
                 {/* Game & Timestamp */}
                 <div className="flex items-center gap-3 min-w-[140px]">
-                  <div className="h-10 w-10 rounded-xl bg-background border border-border flex items-center justify-center text-xl shrink-0 shadow-inner">
+                  <div className="h-10 w-10 rounded-xl bg-background border border-border flex items-center justify-center text-foreground-secondary shrink-0 shadow-inner">
                     {GAME_ICONS[m.gameType] || "🎮"}
                   </div>
                   <div>
@@ -208,7 +325,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                         <Avatar avatarUrl={p1.avatarUrl} username={p1.username} />
                         <span>{p1.username}</span>
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-black ${
+                          className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
                             p1.result === "win"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : p1.result === "draw"
@@ -231,7 +348,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                         <Avatar avatarUrl={p2.avatarUrl} username={p2.username} />
                         <span>{p2.username}</span>
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-black ${
+                          className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
                             p2.result === "win"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : p2.result === "draw"
@@ -244,24 +361,19 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2.5 text-xs">
                       {m.players?.map((p: any, idx: number) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => onOpenPlayer?.(p.username)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-border text-foreground hover:border-accent transition-colors"
-                        >
-                          <Avatar avatarUrl={p.avatarUrl} username={p.username} />
-                          <span className="font-semibold">{p.username}</span>
-                          <span
-                            className={`text-[10px] font-bold ${
-                              p.result === "win" ? "text-emerald-400" : "text-foreground-muted"
-                            }`}
+                        <div key={idx} className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onOpenPlayer?.(p.username)}
+                            className="font-bold text-foreground hover:text-accent transition-colors flex items-center gap-1.5"
                           >
-                            ({p.result === "win" ? "Winner" : p.score !== undefined ? `${p.score} pts` : "Played"})
-                          </span>
-                        </button>
+                            <Avatar avatarUrl={p.avatarUrl} username={p.username} />
+                            <span>{p.username}</span>
+                          </button>
+                          {renderSinglePlayerOutcome(m, p)}
+                        </div>
                       ))}
                     </div>
                   )}
@@ -274,12 +386,53 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                     onClick={() => onInspectH2H(p1.username, p2.username)}
                     className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-surface-hover hover:border-accent/50 text-xs font-semibold text-foreground-secondary hover:text-foreground transition-all shadow-sm"
                   >
-                    <span>⚔️ View Rivalry</span>
+                    <span>View Rivalry</span>
                   </button>
                 )}
               </motion.div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination Controls (5 pages max, 10 per page) */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2 px-1">
+          <span className="text-xs text-foreground-muted font-medium">
+            Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, matches.length)} of {matches.length} matches
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-foreground-secondary hover:text-foreground hover:bg-surface disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                  currentPage === pageNum
+                    ? "bg-accent text-white shadow-xs"
+                    : "border border-border bg-surface text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-foreground-secondary hover:text-foreground hover:bg-surface disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>
