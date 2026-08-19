@@ -100,6 +100,8 @@ export function GameCaro() {
     return socketRef.current;
   }, []);
 
+  const matchSavedRef = useRef(false);
+
   const handleGameOver = useCallback((winnerSymbol: string | null, reason: "win" | "timeout" | "disconnect" = "win") => {
     stopTimer();
     setScreen("finished");
@@ -126,6 +128,9 @@ export function GameCaro() {
         setWinnerMsg("😔 You lose!");
       }
     }
+
+    if (matchSavedRef.current) return;
+    matchSavedRef.current = true;
 
     // Record match to MongoDB for Match History, Head-to-Head stats & User totals
     const currentPlayers = playersRef.current;
@@ -222,6 +227,7 @@ export function GameCaro() {
       playersRef.current = room.players;
 
       // Reset board
+      matchSavedRef.current = false;
       const fresh = makeEmptyBoard();
       boardRef.current = fresh;
       currentTurnRef.current = "X";

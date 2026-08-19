@@ -49,6 +49,7 @@ export function useBattleship(username: string) {
    */
   const [localShots, setLocalShots] = useState<Shot[]>([]);
   const localShotsRef = useRef<Shot[]>([]);
+  const matchSavedRef = useRef(false);
 
   // Placement local state
   const [placedShips, setPlacedShips] = useState<ShipPlacement[]>([]);
@@ -201,7 +202,8 @@ export function useBattleship(username: string) {
       try {
         const isMeWinner = data.winnerId === playerIdRef.current;
         const currentRoom = roomRef.current;
-        if (isMeWinner && currentRoom && currentRoom.players) {
+        if (!matchSavedRef.current && isMeWinner && currentRoom && currentRoom.players) {
+          matchSavedRef.current = true;
           const opp = currentRoom.players.find((p: any) => p.id !== data.winnerId);
           const winPlayer = currentRoom.players.find((p: any) => p.id === data.winnerId);
           if (winPlayer && opp) {
@@ -288,6 +290,7 @@ export function useBattleship(username: string) {
     setLocalShots([]);
     localShotsRef.current = [];
     setJoinError(null);
+    matchSavedRef.current = false;
     firedCoordsRef.current.clear();
     onJoinSuccessRef.current = null;
   }, []);

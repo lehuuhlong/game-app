@@ -69,6 +69,7 @@ export function useWordChain() {
   const socketRef = useRef<Socket | null>(null);
   const roomIdRef = useRef("");
   const myPlayerIdRef = useRef("");
+  const matchSavedRef = useRef(false);
 
   // ── Timer helpers ───────────────────────────────────────────────
 
@@ -184,6 +185,7 @@ export function useWordChain() {
         setRejectMsg("");
         setWinnerMsg("");
         setIsSubmitting(false);
+        matchSavedRef.current = false;
         setScreen("playing");
         // Timer starts visually when the first word is submitted
         setTimeLeft(20);
@@ -231,7 +233,8 @@ export function useWordChain() {
 
         // Record 1v1 match (only winner submits to prevent duplicate entries)
         try {
-          if (win && data.winnerName && data.loserName) {
+          if (!matchSavedRef.current && win && data.winnerName && data.loserName) {
+            matchSavedRef.current = true;
             fetch("/api/matches", {
               method: "POST",
               headers: { "Content-Type": "application/json" },

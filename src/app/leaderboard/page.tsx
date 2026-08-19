@@ -708,13 +708,12 @@ export default function LeaderboardPage() {
                       {/* ── Caro ── */}
                       {activeGame === "caro" && (
                         <>
-                          <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px_80px]">
+                          <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
                             <span>Rank</span>
                             <span>Player</span>
                             <span className="text-right">Wins</span>
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
-                            <span className="text-right">Action</span>
                           </TableHeader>
                           {dataCaro.length === 0 ? (
                             <Empty text="No Caro matches recorded yet. Jump in and play a match!" />
@@ -724,7 +723,7 @@ export default function LeaderboardPage() {
                                 key={e.username}
                                 index={i}
                                 isLast={i === dataCaro.length - 1}
-                                cols="grid-cols-[56px_1fr_80px_80px_80px_80px]"
+                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
                                 onClick={() => setSelectedPlayer(e.username)}
                               >
                                 <RankBadge rank={e.rank} />
@@ -736,22 +735,6 @@ export default function LeaderboardPage() {
                                     {e.winRate}%
                                   </span>
                                 </span>
-                                <div className="text-right">
-                                  {user && user.username.toLowerCase() !== e.username.toLowerCase() ? (
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        handleCompareWithMe(e.username);
-                                      }}
-                                      className="px-2 py-0.5 rounded-md bg-surface-hover hover:bg-accent hover:text-white text-[11px] font-semibold text-foreground-secondary transition-all"
-                                      title="Compare head-to-head"
-                                    >
-                                      vs Me
-                                    </button>
-                                  ) : (
-                                    <span className="text-[11px] text-foreground-muted">View</span>
-                                  )}
-                                </div>
                               </TableRow>
                             ))
                           )}
@@ -761,13 +744,12 @@ export default function LeaderboardPage() {
                       {/* ── Chess ── */}
                       {activeGame === "chess" && (
                         <>
-                          <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px_80px]">
+                          <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
                             <span>Rank</span>
                             <span>Player</span>
                             <span className="text-right">Wins</span>
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
-                            <span className="text-right">Action</span>
                           </TableHeader>
                           {dataChess.length === 0 ? (
                             <Empty text="No chess matches recorded yet. Play a game to rank up!" />
@@ -777,7 +759,7 @@ export default function LeaderboardPage() {
                                 key={e.username}
                                 index={i}
                                 isLast={i === dataChess.length - 1}
-                                cols="grid-cols-[56px_1fr_80px_80px_80px_80px]"
+                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
                                 onClick={() => setSelectedPlayer(e.username)}
                               >
                                 <RankBadge rank={e.rank} />
@@ -788,21 +770,6 @@ export default function LeaderboardPage() {
                                 </span>
                                 <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
                                 <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                                <div className="text-right">
-                                  {user && user.username.toLowerCase() !== e.username.toLowerCase() ? (
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        handleCompareWithMe(e.username);
-                                      }}
-                                      className="px-2 py-0.5 rounded-md bg-surface-hover hover:bg-accent hover:text-white text-[11px] font-semibold text-foreground-secondary transition-all"
-                                    >
-                                      vs Me
-                                    </button>
-                                  ) : (
-                                    <span className="text-[11px] text-foreground-muted">View</span>
-                                  )}
-                                </div>
                               </TableRow>
                             ))
                           )}
@@ -812,13 +779,12 @@ export default function LeaderboardPage() {
                       {/* ── Battleship ── */}
                       {activeGame === "battleship" && (
                         <>
-                          <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px_80px]">
+                          <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
                             <span>Rank</span>
                             <span>Player</span>
                             <span className="text-right">Wins</span>
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
-                            <span className="text-right">Action</span>
                           </TableHeader>
                           {dataBattleship.length === 0 ? (
                             <Empty text="No Battleship matches recorded yet. Sink opponent fleets to rank up!" />
@@ -828,7 +794,7 @@ export default function LeaderboardPage() {
                                 key={e.username}
                                 index={i}
                                 isLast={i === dataBattleship.length - 1}
-                                cols="grid-cols-[56px_1fr_80px_80px_80px_80px]"
+                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
                                 onClick={() => setSelectedPlayer(e.username)}
                               >
                                 <RankBadge rank={e.rank} />
@@ -836,21 +802,6 @@ export default function LeaderboardPage() {
                                 <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
                                 <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
                                 <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                                <div className="text-right">
-                                  {user && user.username.toLowerCase() !== e.username.toLowerCase() ? (
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        handleCompareWithMe(e.username);
-                                      }}
-                                      className="px-2 py-0.5 rounded-md bg-surface-hover hover:bg-accent hover:text-white text-[11px] font-semibold text-foreground-secondary transition-all"
-                                    >
-                                      vs Me
-                                    </button>
-                                  ) : (
-                                    <span className="text-[11px] text-foreground-muted">View</span>
-                                  )}
-                                </div>
                               </TableRow>
                             ))
                           )}
@@ -860,13 +811,12 @@ export default function LeaderboardPage() {
                       {/* ── Word Chain ── */}
                       {activeGame === "wordchain" && (
                         <>
-                          <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px_80px]">
+                          <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
                             <span>Rank</span>
                             <span>Player</span>
                             <span className="text-right">Wins</span>
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
-                            <span className="text-right">Action</span>
                           </TableHeader>
                           {dataWordChain.length === 0 ? (
                             <Empty text="No players yet. Be the first to win a Word Chain match!" />
@@ -876,7 +826,7 @@ export default function LeaderboardPage() {
                                 key={e.username}
                                 index={i}
                                 isLast={i === dataWordChain.length - 1}
-                                cols="grid-cols-[56px_1fr_80px_80px_80px_80px]"
+                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
                                 onClick={() => setSelectedPlayer(e.username)}
                               >
                                 <RankBadge rank={e.rank} />
@@ -884,21 +834,6 @@ export default function LeaderboardPage() {
                                 <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
                                 <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
                                 <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                                <div className="text-right">
-                                  {user && user.username.toLowerCase() !== e.username.toLowerCase() ? (
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        handleCompareWithMe(e.username);
-                                      }}
-                                      className="px-2 py-0.5 rounded-md bg-surface-hover hover:bg-accent hover:text-white text-[11px] font-semibold text-foreground-secondary transition-all"
-                                    >
-                                      vs Me
-                                    </button>
-                                  ) : (
-                                    <span className="text-[11px] text-foreground-muted">View</span>
-                                  )}
-                                </div>
                               </TableRow>
                             ))
                           )}
@@ -908,13 +843,12 @@ export default function LeaderboardPage() {
                       {/* ── Monopoly ── */}
                       {activeGame === "monopoly" && (
                         <>
-                          <TableHeader cols="grid-cols-[56px_1fr_80px_80px_80px_80px]">
+                          <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
                             <span>Rank</span>
                             <span>Player</span>
                             <span className="text-right">Wins</span>
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
-                            <span className="text-right">Action</span>
                           </TableHeader>
                           {dataMonopoly.length === 0 ? (
                             <Empty text="No Monopoly matches recorded yet. Dominate the board to rank up!" />
@@ -924,7 +858,7 @@ export default function LeaderboardPage() {
                                 key={e.username}
                                 index={i}
                                 isLast={i === dataMonopoly.length - 1}
-                                cols="grid-cols-[56px_1fr_80px_80px_80px_80px]"
+                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
                                 onClick={() => setSelectedPlayer(e.username)}
                               >
                                 <RankBadge rank={e.rank} />
@@ -932,21 +866,6 @@ export default function LeaderboardPage() {
                                 <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
                                 <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
                                 <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                                <div className="text-right">
-                                  {user && user.username.toLowerCase() !== e.username.toLowerCase() ? (
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        handleCompareWithMe(e.username);
-                                      }}
-                                      className="px-2 py-0.5 rounded-md bg-surface-hover hover:bg-accent hover:text-white text-[11px] font-semibold text-foreground-secondary transition-all"
-                                    >
-                                      vs Me
-                                    </button>
-                                  ) : (
-                                    <span className="text-[11px] text-foreground-muted">View</span>
-                                  )}
-                                </div>
                               </TableRow>
                             ))
                           )}

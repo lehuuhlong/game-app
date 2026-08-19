@@ -16,6 +16,7 @@ export function useMonopoly(username: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const roomIdRef = useRef('');
   const playerIdRef = useRef<string | null>(null);
+  const matchSavedRef = useRef(false);
 
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -98,6 +99,7 @@ export function useMonopoly(username: string) {
     socket.on('mp_game_started', ({ room, gameState }) => {
       setRoom(room);
       setGameState(gameState);
+      matchSavedRef.current = false;
       setBuyOffer(null);
       setUpgradeOffer(null);
       setWinner(null);
@@ -139,7 +141,8 @@ export function useMonopoly(username: string) {
       // Record score and match (only winner submits to prevent duplicate entries)
       try {
         const isMeWinner = winnerId === playerIdRef.current;
-        if (isMeWinner && gameState?.players && gameState.players.length >= 2) {
+        if (!matchSavedRef.current && isMeWinner && gameState?.players && gameState.players.length >= 2) {
+          matchSavedRef.current = true;
           fetch("/api/matches", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

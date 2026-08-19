@@ -24,7 +24,10 @@ export function useAimTrainer() {
     setTarget({ id: Date.now(), x, y });
   }, []);
 
+  const scoreSavedRef = useRef(false);
+
   const startGame = useCallback(() => {
+    scoreSavedRef.current = false;
     setGameState('playing');
     setScore(0);
     setMisses(0);
@@ -38,6 +41,9 @@ export function useAimTrainer() {
   missesRef.current = misses;
 
   const saveScore = useCallback((finalScore: number, finalMisses: number) => {
+    if (scoreSavedRef.current) return;
+    scoreSavedRef.current = true;
+
     try {
       const stored = localStorage.getItem("game-portal-user");
       if (!stored) return;
@@ -80,9 +86,12 @@ export function useAimTrainer() {
   }, []);
 
   const endGame = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     setGameState('finished');
     setTarget(null);
-    if (timerRef.current) clearInterval(timerRef.current);
     saveScore(scoreRef.current, missesRef.current);
   }, [saveScore]);
 
@@ -91,7 +100,6 @@ export function useAimTrainer() {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            endGame();
             return 0;
           }
           return prev - 1;
@@ -99,9 +107,18 @@ export function useAimTrainer() {
       }, 1000);
     }
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [gameState, endGame]);
+  }, [gameState]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft === 0) {
+      endGame();
+    }
+  }, [gameState, timeLeft, endGame]);
 
   const handleTargetClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // prevent miss click

@@ -111,6 +111,17 @@ export async function POST(request: Request) {
       result: p.result,
     }));
 
+    // Server-side duplicate match guard: Prevent saving identical match if posted within 3 seconds
+    const threeSecondsAgo = new Date(Date.now() - 3000);
+    const duplicateMatch = await Match.findOne({
+      gameType,
+      createdAt: { $gte: threeSecondsAgo },
+      "players.username": { $all: usernames },
+    });
+    if (duplicateMatch) {
+      return NextResponse.json(duplicateMatch, { status: 200 });
+    }
+
     const match = await Match.create({
       gameType,
       players: formattedPlayers,

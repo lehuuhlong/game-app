@@ -72,6 +72,7 @@ export function useChess(username: string) {
   const chessRef = useRef<Chess>(new Chess());
   const screenRef = useRef<Screen>("lobby");
   const gameStateRef = useRef<ChessGameState | null>(null);
+  const matchSavedRef = useRef<boolean>(false);
 
   const [screen, setScreen] = useState<Screen>("lobby");
   const [room, setRoom] = useState<Room | null>(null);
@@ -224,6 +225,7 @@ export function useChess(username: string) {
         setEndReason(null);
         setLastMove(null);
         setError(null);
+        matchSavedRef.current = false;
         setScreen("playing");
         screenRef.current = "playing";
         startTimer();
@@ -281,12 +283,15 @@ export function useChess(username: string) {
           playDefeatSound();
         }
 
+        const matchSaved = matchSavedRef.current;
+        matchSavedRef.current = true;
+
         // Record 1v1 match in matches collection (only winner or White on draw submits to prevent duplicates)
         try {
           const whiteP = gs.whitePlayer?.username;
           const blackP = gs.blackPlayer?.username;
           const isMeWinner = (w === myC) || (w === "draw" && myC === "w");
-          if (isMeWinner && whiteP && blackP) {
+          if (!matchSaved && isMeWinner && whiteP && blackP) {
             const isDraw = w === "draw";
             const whiteWon = w === "w";
             const blackWon = w === "b";
