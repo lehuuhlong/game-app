@@ -28,6 +28,7 @@ export function ChessBoard({
 }: ChessBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
+  const lastDropTimeRef = React.useRef<number>(0);
 
   // Reset selection when FEN changes or turn changes
   useEffect(() => {
@@ -103,6 +104,13 @@ export function ChessBoard({
   // Handle square click for click-to-move
   const handleSquareClick = useCallback(
     (square: string, pieceData: any) => {
+      // If user just finished dragging a piece, ignore click event
+      if (Date.now() - lastDropTimeRef.current < 350) {
+        setSelectedSquare(null);
+        setPossibleMoves([]);
+        return;
+      }
+
       if (disabled || !isMyTurn) {
         setSelectedSquare(null);
         setPossibleMoves([]);
@@ -111,6 +119,7 @@ export function ChessBoard({
 
       // If user clicked one of the possible move destinations, execute move!
       if (selectedSquare && possibleMoves.includes(square)) {
+        lastDropTimeRef.current = Date.now();
         const success = onPieceDrop(selectedSquare, square);
         setSelectedSquare(null);
         setPossibleMoves([]);
@@ -142,6 +151,7 @@ export function ChessBoard({
     <div className="w-full max-w-[540px] mx-auto select-none rounded-2xl p-2 sm:p-3 bg-surface border border-border shadow-xl transition-colors">
       <div className="w-full aspect-square relative rounded-xl overflow-hidden">
         <Chessboard
+          key={orientation}
           options={{
             position: fen,
             boardOrientation: orientation,
@@ -154,6 +164,7 @@ export function ChessBoard({
             },
             onPieceDrop: ({ sourceSquare, targetSquare, piece }) => {
               if (!targetSquare || disabled) return false;
+              lastDropTimeRef.current = Date.now();
               setSelectedSquare(null);
               setPossibleMoves([]);
               return onPieceDrop(sourceSquare, targetSquare, piece?.pieceType);

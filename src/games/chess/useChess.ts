@@ -147,7 +147,7 @@ export function useChess(username: string) {
   }, [stopTimer]);
 
   const getSocket = useCallback((): Socket<ServerToClientEvents, ClientToServerEvents> => {
-    if (!socketRef.current || !socketRef.current.connected) {
+    if (!socketRef.current) {
       socketRef.current = io(SOCKET_URL, {
         transports: ["websocket", "polling"],
         withCredentials: true,
@@ -217,7 +217,12 @@ export function useChess(username: string) {
         setBlackTime(gs.blackTime ?? CHESS_TOTAL_TIME);
 
         const currentPId = playerIdRef.current;
-        const assignedColor: ChessColor = currentPId === whitePlayerId ? "w" : "b";
+        const isWhite =
+          (currentPId && currentPId === whitePlayerId) ||
+          (gs.whitePlayer && gs.whitePlayer.username === username) ||
+          (r.players[0] && (r.players[0].id === currentPId || r.players[0].username === username));
+
+        const assignedColor: ChessColor = isWhite ? "w" : "b";
         setMyColor(assignedColor);
         myColorRef.current = assignedColor;
 
@@ -483,10 +488,20 @@ export function useChess(username: string) {
 
         // Apply optimistic local update
         const newFen = currentChess.fen();
+        const nextTurn = currentChess.turn() as ChessColor;
         chessRef.current = currentChess;
         fenRef.current = newFen;
         setFen(newFen);
         setLastMove({ from: sourceSquare, to: targetSquare });
+        setGameState((prev) =>
+          prev
+            ? {
+                ...prev,
+                fen: newFen,
+                currentTurn: nextTurn,
+              }
+            : null
+        );
 
         // Emit to server
         const socket = getSocket();
