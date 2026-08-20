@@ -1250,6 +1250,18 @@ export function registerSocketHandlers(io: GameIO): void {
             if (gs) {
               socket.emit("game_started", { room, gameState: gs });
             }
+          } else if (room.gameType === "battleship") {
+            broadcastBSGameState(roomId, io);
+          } else if (room.gameType === "monopoly") {
+            const gs = mpStates.get(roomId);
+            if (gs) {
+              socket.emit("mp_game_started", { room, gameState: gs });
+            }
+          } else if (room.gameType === "wordchain") {
+            const gs = wcStates.get(roomId);
+            if (gs) {
+              socket.emit("wc_game_started", { room, gameState: gs });
+            }
           }
         }
         return;

@@ -52,7 +52,7 @@ export function useMonopoly(username: string) {
   // ── Socket management ─────────────────────────────────────────
 
   const getSocket = useCallback((): Socket<ServerToClientEvents, ClientToServerEvents> => {
-    if (!socketRef.current || !socketRef.current.connected) {
+    if (!socketRef.current) {
       socketRef.current = io(SOCKET_URL, {
         transports: ['websocket', 'polling'],
         withCredentials: true,

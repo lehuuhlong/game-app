@@ -33,13 +33,21 @@ export function isValid(board: number[][], row: number, col: number, num: number
   return true;
 }
 
+function shuffleNumbers(): number[] {
+  const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // Backtracking solver
 export function solveSudoku(board: number[][]): boolean {
   for (let row = 0; row < BOARD_SIZE; row++) {
     for (let col = 0; col < BOARD_SIZE; col++) {
       if (board[row][col] === EMPTY_CELL) {
-        // Shuffle numbers 1-9 to randomize the generated board
-        const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+        const nums = shuffleNumbers();
         for (const num of nums) {
           if (isValid(board, row, col, num)) {
             board[row][col] = num;

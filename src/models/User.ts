@@ -86,6 +86,23 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
+// Indexes for Leaderboard & Stats queries
+UserSchema.index({ bestScore2048: -1 });
+UserSchema.index({ caroWins: -1, caroTotal: -1 });
+UserSchema.index({ chessWins: -1, chessTotal: -1 });
+UserSchema.index({ battleshipWins: -1, battleshipTotal: -1 });
+UserSchema.index({ monopolyWins: -1, monopolyTotal: -1 });
+UserSchema.index({ wordchainWins: -1, wordchainTotal: -1 });
+UserSchema.index({ bestScoreTrex: -1 });
+UserSchema.index({ aimTrainerBestScore: -1, aimTrainerBestAccuracy: -1 });
+UserSchema.index({ msBestBeginner: 1 });
+UserSchema.index({ msBestIntermediate: 1 });
+UserSchema.index({ msBestExpert: 1 });
+UserSchema.index({ sudokuBestEasy: 1 });
+UserSchema.index({ sudokuBestMedium: 1 });
+UserSchema.index({ sudokuBestHard: 1 });
+UserSchema.index({ wordleWins: -1, wordleTotal: -1 });
+
 // Always rebuild during dev to pick up schema changes
 if (process.env.NODE_ENV === "development" && mongoose.models.User) {
   delete mongoose.models.User;

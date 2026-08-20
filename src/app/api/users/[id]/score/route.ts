@@ -29,9 +29,15 @@ const SUDOKU_FIELD_MAP: Record<string, 'sudokuBestEasy' | 'sudokuBestMedium' | '
   hard: 'sudokuBestHard',
 };
 
+import mongoose from 'mongoose';
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
+    }
+
     const body = await request.json();
     const { game } = body;
 

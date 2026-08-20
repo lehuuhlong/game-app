@@ -101,7 +101,7 @@ export function useWordChain() {
   // ── Socket connection ───────────────────────────────────────────
 
   const getSocket = useCallback((): Socket => {
-    if (!socketRef.current || !socketRef.current.connected) {
+    if (!socketRef.current) {
       const socketUrl =
         process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
       socketRef.current = io(socketUrl, {

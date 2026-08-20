@@ -87,8 +87,13 @@ function placeMines(
     }
   }
 
+  const maxAvailable = rows * cols - excluded.size;
+  const targetMines = Math.min(mineCount, Math.max(0, maxAvailable));
   let placed = 0;
-  while (placed < mineCount) {
+  let attempts = 0;
+  const maxAttempts = rows * cols * 5;
+  while (placed < targetMines && attempts < maxAttempts) {
+    attempts++;
     const r = Math.floor(Math.random() * rows);
     const c = Math.floor(Math.random() * cols);
     if (excluded.has(`${r},${c}`) || board[r][c].isMine) continue;

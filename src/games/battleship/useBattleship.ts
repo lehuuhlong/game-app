@@ -57,7 +57,7 @@ export function useBattleship(username: string) {
   const [isVertical, setIsVertical] = useState(false);
 
   const getSocket = useCallback((): Socket<ServerToClientEvents, ClientToServerEvents> => {
-    if (!socketRef.current || !socketRef.current.connected) {
+    if (!socketRef.current) {
       socketRef.current = io(SOCKET_URL, {
         transports: ['websocket', 'polling'],
         withCredentials: true,
