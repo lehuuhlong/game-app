@@ -101,16 +101,22 @@ function handleChessMove(
   const gameState = chessStates.get(move.roomId);
   if (!gameState) return;
 
-  const player = room.players.find((p) => p.socketId === socket.id);
+  let player = room.players.find((p) => p.socketId === socket.id);
+  if (!player && socket.data.username) {
+    player = room.players.find((p) => p.username === socket.data.username);
+    if (player) {
+      player.socketId = socket.id;
+    }
+  }
   if (!player) return;
 
   // Verify it is this player's turn
-  const expectedPlayerId =
+  const expectedPlayer =
     gameState.currentTurn === "w"
-      ? gameState.whitePlayer.id
-      : gameState.blackPlayer.id;
+      ? gameState.whitePlayer
+      : gameState.blackPlayer;
 
-  if (player.id !== expectedPlayerId) {
+  if (player.id !== expectedPlayer.id && player.username !== expectedPlayer.username) {
     socket.emit("error", { message: "Not your turn." });
     return;
   }
@@ -1217,7 +1223,37 @@ export function registerSocketHandlers(io: GameIO): void {
         }
       }
 
-      if (room.players.find((p) => p.socketId === socket.id)) return;
+      // Check if existing player is reconnecting with new socket
+      const existingPlayer = room.players.find(
+        (p) => p.socketId === socket.id || p.username === username
+      );
+
+      if (existingPlayer) {
+        existingPlayer.socketId = socket.id;
+        socket.join(roomId);
+        socket.emit("room_joined", { room, playerId: existingPlayer.id });
+
+        // If game is playing, re-send game state so player is synced!
+        if (room.status === "playing") {
+          if (room.gameType === "chess") {
+            const gs = chessStates.get(roomId);
+            if (gs) {
+              socket.emit("chess_game_started", {
+                room,
+                gameState: gs,
+                whitePlayerId: gs.whitePlayer.id,
+                blackPlayerId: gs.blackPlayer.id,
+              });
+            }
+          } else if (room.gameType === "caro") {
+            const gs = caroStates.get(roomId);
+            if (gs) {
+              socket.emit("game_started", { room, gameState: gs });
+            }
+          }
+        }
+        return;
+      }
 
       const maxPlayers = room.gameType === "monopoly" ? MONOPOLY_MAX_PLAYERS : 2;
 
