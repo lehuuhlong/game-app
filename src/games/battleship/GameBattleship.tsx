@@ -7,29 +7,18 @@ import { LoginModal } from '@/components/auth/LoginModal';
 import { useBattleship, SHIPS_CONFIG } from './useBattleship';
 import { Grid } from './Grid';
 import { SHIP_COLORS } from './types';
-import { HeadToHeadBadge } from '@/components/shared/HeadToHeadBadge';
-
-type Screen = 'lobby' | 'waiting' | 'playing' | 'finished';
+import { HeadToHeadBadge, GameLobby1v1 } from '@/components/shared';
 
 export function GameBattleship() {
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
-  const [screenState, setScreenState] = useState<Screen>('lobby');
-  const screenRef = useRef<Screen>('lobby');
-  const screen = screenState;
-  const setScreen = useCallback((s: Screen) => {
-    screenRef.current = s;
-    setScreenState(s);
-  }, []);
-
-  const [joinInput, setJoinInput] = useState('');
-  const [joinError, setJoinError] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [statusMsg, setStatusMsg] = useState('Waiting for opponent...');
-  const [roomId, setRoomId] = useState('');
 
   const {
+    screen,
+    setScreen,
     room,
+    players,
+    roomId,
     playerId,
     phase,
     myState,
@@ -48,13 +37,16 @@ export function GameBattleship() {
     readyUp,
     fire,
     restart,
+    createRoom,
+    joinRoom,
     leaveRoom,
-    joinRoom: hookJoinRoom,
     sunkEnemyShips,
     enemySunkTypes,
     revealedEnemyShips,
     localShots,
-    joinError: hookJoinError,
+    joinError,
+    statusMsg,
+    copied,
     moveShip,
   } = useBattleship(user?.username || '');
 
@@ -86,67 +78,14 @@ export function GameBattleship() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [phase, myState?.ready, rotateShip]);
 
-  // ── Screen transitions (reactive, driven by hook state) ─────────
-
-  // lobby → waiting: fires as soon as server confirms room_joined
-  useEffect(() => {
-    if (room && playerId && screenRef.current === 'lobby') {
-      setScreen('waiting');
-    }
-  }, [room, playerId, setScreen]);
-
-  // waiting → playing: fires when 2nd player joins
-  useEffect(() => {
-    if (room && room.players.length >= 2 && screenRef.current === 'waiting') {
-      setScreen('playing');
-    }
-  }, [room, setScreen]);
-
-  // playing → finished
-  useEffect(() => {
-    if (phase === 'finished' && winner) {
-      setScreen('finished');
-    }
-  }, [phase, winner, setScreen]);
-
-  // finished → playing (Rematch initiated by either player)
-  useEffect(() => {
-    if (phase === 'placement' && screenRef.current === 'finished') {
-      setScreen('playing');
-    }
-  }, [phase, setScreen]);
-
-  // Status message
-  useEffect(() => {
-    if (room) {
-      setStatusMsg(room.players.length < 2 ? 'Waiting for opponent...' : '2/2 players connected');
-    }
-  }, [room?.players.length]);
-
   const handleCreateRoom = () => {
     if (!user) { setShowLogin(true); return; }
-    const newId = Math.random().toString(36).slice(2, 8).toUpperCase();
-    setRoomId(newId);
-    setJoinError('');
-    hookJoinRoom(newId, 'create');
+    createRoom();
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = (code: string) => {
     if (!user) { setShowLogin(true); return; }
-    const id = joinInput.trim().toUpperCase();
-    if (!id) { setJoinError('Please enter a room code.'); return; }
-    setJoinError('');
-    setRoomId(id);
-    hookJoinRoom(id, 'join');
-  };
-
-  const handleLeaveRoom = () => {
-    leaveRoom(roomId);
-    setScreen('lobby');
-    setRoomId('');
-    setJoinInput('');
-    setJoinError('');
-    setStatusMsg('Waiting for opponent...');
+    joinRoom(code);
   };
 
   const handleRematch = () => {
@@ -182,97 +121,25 @@ export function GameBattleship() {
           </p>
         </div>
 
-        {/* ── LOBBY ─────────────────────────────────────────────── */}
-        {screen === 'lobby' && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md mx-auto space-y-4"
-          >
-            <div className="rounded-2xl border border-border bg-surface p-6 space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Create a Room</h2>
-              <p className="text-sm text-foreground-secondary">Start a new game and share the room code with your friend.</p>
-              <button
-                onClick={handleCreateRoom}
-                className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 transition-all shadow-lg"
-              >
-                🚢 Create Room
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-surface p-6 space-y-3">
-              <h2 className="text-lg font-bold text-foreground">Join a Room</h2>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={joinInput}
-                  onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
-                  placeholder="Room code..."
-                  maxLength={6}
-                  className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none uppercase font-mono tracking-widest"
-                />
-                <button
-                  onClick={handleJoinRoom}
-                  className="rounded-xl bg-surface-hover border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-accent hover:text-white hover:border-accent transition-all"
-                >
-                  Join
-                </button>
-              </div>
-              {(joinError || hookJoinError) && <p className="text-sm text-red-500">{joinError || hookJoinError}</p>}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── WAITING ─────────────────────────────────────────────── */}
-        {screen === 'waiting' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md mx-auto text-center"
-          >
-            <div className="rounded-2xl border border-border bg-surface p-8 space-y-5">
-              <div className="h-12 w-12 rounded-full border-4 border-sky-500 border-t-transparent animate-spin mx-auto" />
-              <h2 className="text-xl font-bold text-foreground">{statusMsg}</h2>
-
-              <div className="rounded-xl bg-background border border-border p-5 relative">
-                <p className="text-xs text-foreground-muted mb-1">Room Code</p>
-                <div className="flex items-center justify-center gap-3">
-                  <p className="text-4xl font-extrabold text-sky-500 font-mono tracking-widest">{roomId}</p>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(roomId);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}
-                    className="p-2 rounded-lg bg-surface hover:bg-surface-hover text-foreground-secondary hover:text-foreground transition-colors border border-border"
-                    title="Copy Room Code"
-                  >
-                    {copied ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-foreground-muted mt-2">Share with your friend</p>
-              </div>
-
-              <div className="space-y-1 text-sm text-foreground-secondary">
-                {room?.players.map((p) => (
-                  <div key={p.id} className="flex items-center justify-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span>{p.username}</span>
-                    {p.id === playerId && <span className="text-xs text-foreground-muted">(you)</span>}
-                  </div>
-                ))}
-              </div>
-
-              <button onClick={handleLeaveRoom} className="text-sm text-foreground-muted hover:text-red-500 transition-colors underline">
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+        {/* ── LOBBY / WAITING ─────────────────────────────────────── */}
+        {(screen === 'lobby' || screen === 'waiting') && (
+          <GameLobby1v1
+            screen={screen}
+            roomId={roomId}
+            players={players && players.length > 0 ? players : (room?.players || [])}
+            statusMsg={statusMsg}
+            joinError={joinError}
+            copied={copied}
+            createButtonText="🚢 Create Room"
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onLeaveRoom={leaveRoom}
+            renderPlayerExtra={(p) =>
+              p.id === playerId ? (
+                <span className="text-xs text-foreground-muted">(you)</span>
+              ) : null
+            }
+          />
         )}
 
         {/* ── PLAYING / FINISHED ─────────────────────────────────── */}
@@ -640,7 +507,7 @@ export function GameBattleship() {
 
             {/* Leave button */}
             <button
-              onClick={handleLeaveRoom}
+              onClick={leaveRoom}
               className="rounded-xl border border-border px-6 py-2 text-sm text-foreground-muted hover:border-red-400 hover:text-red-400 transition-all"
             >
               Leave Room

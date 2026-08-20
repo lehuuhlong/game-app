@@ -182,18 +182,9 @@ export function GameSudoku() {
     goToMenu,
   } = useSudoku();
 
-  const [savedTime, setSavedTime] = useState<number | null>(null);
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const scoreSavedRef = useRef(false);
-
-  // Reset flags when game starts
-  useEffect(() => {
-    if (gameState === 'playing') {
-      scoreSavedRef.current = false;
-      setShowLogin(false);
-    }
-  }, [gameState]);
 
   // Show login if won and not logged in
   useEffect(() => {
@@ -203,10 +194,9 @@ export function GameSudoku() {
     }
   }, [gameState, user]);
 
-  // Save result and match history when won
+  // Save result and match history when won or gameover
   useEffect(() => {
     if (gameState === 'won') {
-      setSavedTime(elapsedSeconds);
       if (scoreSavedRef.current) return;
       scoreSavedRef.current = true;
 
@@ -274,8 +264,9 @@ export function GameSudoku() {
           gameData: { difficulty, time: elapsedSeconds },
         }),
       }).catch((err) => console.error('Failed to save sudoku match:', err));
+    } else {
+      scoreSavedRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, user, difficulty, elapsedSeconds]);
 
   // Compute remaining counts for each digit
@@ -453,14 +444,12 @@ export function GameSudoku() {
               <p className="text-foreground-secondary text-sm mb-1">
                 Difficulty: <span className={`font-bold ${cfg.textColor}`}>{cfg.label}</span>
               </p>
-              {savedTime !== null && (
-                <p className="text-foreground font-mono font-bold text-lg mb-5 flex items-center gap-1.5">
-                  <span className="text-foreground-muted">
-                    <ClockIcon />
-                  </span>
-                  {formatTime(savedTime)}
-                </p>
-              )}
+              <p className="text-foreground font-mono font-bold text-lg mb-5 flex items-center gap-1.5">
+                <span className="text-foreground-muted">
+                  <ClockIcon />
+                </span>
+                {formatTime(elapsedSeconds)}
+              </p>
               <div className="flex gap-3">
                 <button
                   onClick={goToMenu}

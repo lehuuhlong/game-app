@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useRef, useCallback, useEffect, useState } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import type {
   Dino,
   Obstacle,
@@ -289,7 +289,7 @@ function checkCollision(dino: Dino, obs: Obstacle): boolean {
 
 export function useTrexEngine(config: Partial<EngineConfig> = {}) {
   // Memoize config to prevent recreating gameLoop on every render
-  const cfg = useRef({ ...DEFAULT_CONFIG, ...config }).current;
+  const cfg = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config]);
 
   // React state (only updated on meaningful events, not every frame)
   const [gameState, setGameState] = useState<TrexGameState>({
@@ -414,6 +414,45 @@ export function useTrexEngine(config: Partial<EngineConfig> = {}) {
     obstacles.current.push(obs);
   }, [cfg.canvasWidth, cfg.groundY]);
 
+  // ── Render a single frame ──────────────────────────────────────
+  const renderFrame = useCallback(
+    (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+      ctx.clearRect(0, 0, w, h);
+
+      // Clouds
+      for (const c of clouds.current) drawCloud(ctx, c);
+
+      // Ground
+      drawGround(ctx, ground.current, cfg.groundY, cfg.canvasWidth);
+
+      // Obstacles
+      for (const o of obstacles.current) {
+        if (o.kind === "pterodactyl") drawPterodactyl(ctx, o);
+        else drawCactus(ctx, o);
+      }
+
+      // Dino
+      drawDino(ctx, dino.current);
+
+      // Score
+      drawScore(ctx, scoreRef.current, highScoreRef.current, cfg.canvasWidth);
+
+      // Game over text
+      if (isGameOverRef.current) {
+        ctx.fillStyle = "#535353";
+        ctx.font = "bold 20px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("G A M E   O V E R", w / 2, h / 2 - 20);
+
+        ctx.font = "14px monospace";
+        ctx.fillText("Press Space or Tap to restart", w / 2, h / 2 + 10);
+      }
+    },
+    [cfg.groundY, cfg.canvasWidth]
+  );
+
+  const loopRef = useRef<() => void>(() => {});
+
   // ── Game loop ──────────────────────────────────────────────────
   const gameLoop = useCallback(() => {
     const canvas = canvasRef.current;
@@ -522,21 +561,24 @@ export function useTrexEngine(config: Partial<EngineConfig> = {}) {
     }
 
     // ── Clouds ─────────────────────────────────────────────────
-    for (const c of clouds.current) {
-      c.x -= spd * 0.3;
-      if (c.x + c.width < -20) {
-        c.x = cfg.canvasWidth + randomBetween(20, 100);
-        c.y = randomBetween(20, 70);
+    clouds.current = clouds.current.map((c) => {
+      let nextX = c.x - spd * 0.3;
+      let nextY = c.y;
+      if (nextX + c.width < -20) {
+        nextX = cfg.canvasWidth + randomBetween(20, 100);
+        nextY = randomBetween(20, 70);
       }
-    }
+      return { ...c, x: nextX, y: nextY };
+    });
 
     // ── Ground scroll ──────────────────────────────────────────
-    for (const g of ground.current) {
-      g.x -= spd;
-      if (g.x < -30) {
-        g.x += cfg.canvasWidth + 60;
+    ground.current = ground.current.map((g) => {
+      let nextX = g.x - spd;
+      if (nextX < -30) {
+        nextX += cfg.canvasWidth + 60;
       }
-    }
+      return { x: nextX };
+    });
 
     // ── Speed increase ─────────────────────────────────────────
     if (speed.current < cfg.maxSpeed) {
@@ -556,45 +598,12 @@ export function useTrexEngine(config: Partial<EngineConfig> = {}) {
     // ── Render ─────────────────────────────────────────────────
     renderFrame(ctx, canvas.width, canvas.height);
 
-    animFrameRef.current = requestAnimationFrame(gameLoop);
-  }, [cfg, spawnObstacle]);
+    animFrameRef.current = requestAnimationFrame(() => loopRef.current());
+  }, [cfg, spawnObstacle, renderFrame]);
 
-  // ── Render a single frame ──────────────────────────────────────
-  const renderFrame = useCallback(
-    (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-      ctx.clearRect(0, 0, w, h);
-
-      // Clouds
-      for (const c of clouds.current) drawCloud(ctx, c);
-
-      // Ground
-      drawGround(ctx, ground.current, cfg.groundY, cfg.canvasWidth);
-
-      // Obstacles
-      for (const o of obstacles.current) {
-        if (o.kind === "pterodactyl") drawPterodactyl(ctx, o);
-        else drawCactus(ctx, o);
-      }
-
-      // Dino
-      drawDino(ctx, dino.current);
-
-      // Score
-      drawScore(ctx, scoreRef.current, highScoreRef.current, cfg.canvasWidth);
-
-      // Game over text
-      if (isGameOverRef.current) {
-        ctx.fillStyle = "#535353";
-        ctx.font = "bold 20px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("G A M E   O V E R", w / 2, h / 2 - 20);
-
-        ctx.font = "14px monospace";
-        ctx.fillText("Press Space or Tap to restart", w / 2, h / 2 + 10);
-      }
-    },
-    [cfg.groundY, cfg.canvasWidth]
-  );
+  useEffect(() => {
+    loopRef.current = gameLoop;
+  }, [gameLoop]);
 
   // ── Start / Restart ────────────────────────────────────────────
   const startGame = useCallback(() => {

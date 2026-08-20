@@ -2,7 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
-import { registerSocketHandlers } from "./handlers";
+import { registerSocketHandlers } from "./handlers/index";
+import type { GameIO } from "./stores";
 
 const app = express();
 const port = parseInt(process.env.PORT || "4000", 10);
@@ -36,7 +37,7 @@ app.get("/stats", (_req, res) => {
   res.json({ onlinePlayers });
 });
 
-registerSocketHandlers(io as any);
+registerSocketHandlers(io as GameIO);
 
 // ── Start ────────────────────────────────────────────────────────────
 httpServer.listen(port, () => {

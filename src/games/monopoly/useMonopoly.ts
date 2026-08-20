@@ -1,28 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useState, useCallback } from 'react';
+import type { Socket } from 'socket.io-client';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
+  Room,
   MonopolyGameState,
   MonopolyTokenColor,
-  Room,
 } from '@/types/socket';
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+import { useGameSocket } from '@/hooks/useGameSocket';
 
 export function useMonopoly(username: string) {
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const roomIdRef = useRef('');
-  const playerIdRef = useRef<string | null>(null);
-  const matchSavedRef = useRef(false);
-
-  const [room, setRoom] = useState<Room | null>(null);
-  const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<MonopolyGameState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [joinError, setJoinError] = useState<string | null>(null);
   const [buyOffer, setBuyOffer] = useState<{
     spaceIndex: number;
     spaceName: string;
@@ -46,281 +37,240 @@ export function useMonopoly(username: string) {
     propertyNames: string[];
   } | null>(null);
 
-  /** Callback fired when room_joined is confirmed by server */
-  const onJoinSuccessRef = useRef<(() => void) | null>(null);
+  const setupMPSocket = useCallback(
+    (socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
+      socket.off('mp_game_started');
+      socket.off('mp_game_update');
+      socket.off('mp_dice_rolled');
+      socket.off('mp_monopoly_completed');
+      socket.off('mp_offer_buy');
+      socket.off('mp_offer_upgrade');
+      socket.off('mp_game_over');
 
-  // ── Socket management ─────────────────────────────────────────
-
-  const getSocket = useCallback((): Socket<ServerToClientEvents, ClientToServerEvents> => {
-    if (!socketRef.current) {
-      socketRef.current = io(SOCKET_URL, {
-        transports: ['websocket', 'polling'],
-        withCredentials: true,
-      });
-    }
-    return socketRef.current;
-  }, []);
-
-  const setupSocket = useCallback((socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
-    // Clear old listeners
-    socket
-      .off('room_joined')
-      .off('player_joined')
-      .off('player_left')
-      .off('mp_game_started')
-      .off('mp_game_update')
-      .off('mp_dice_rolled')
-      .off('mp_monopoly_completed')
-      .off('mp_offer_buy')
-      .off('mp_offer_upgrade')
-      .off('mp_game_over')
-      .off('error');
-
-    // ── Shared room events ────────────────────────────────────────
-
-    socket.on('room_joined', ({ room, playerId }) => {
-      setRoom(room);
-      setPlayerId(playerId);
-      playerIdRef.current = playerId;
-      onJoinSuccessRef.current?.();
-      onJoinSuccessRef.current = null;
-    });
-
-    socket.on('player_joined' as any, ({ room }: { room: Room }) => {
-      setRoom(room);
-    });
-
-    socket.on('player_left' as any, ({ room }: { room: Room }) => {
-      setRoom(room);
-    });
-
-    // ── Monopoly-specific events ──────────────────────────────────
-
-    socket.on('mp_game_started', ({ room, gameState }) => {
-      setRoom(room);
-      setGameState(gameState);
-      matchSavedRef.current = false;
-      setBuyOffer(null);
-      setUpgradeOffer(null);
-      setWinner(null);
-      setMonopolyCelebration(null);
-    });
-
-    socket.on('mp_dice_rolled', ({ dice }) => {
-      setGameState((prev) => (prev ? { ...prev, lastDice: dice } : prev));
-    });
-
-    socket.on('mp_monopoly_completed', (data) => {
-      setMonopolyCelebration(data);
-    });
-
-    socket.on('mp_game_update', ({ gameState }) => {
-      setGameState(gameState);
-      // Clear offers when turn phase changes away from 'action'
-      if (gameState.turnPhase !== 'action') {
+      socket.on('mp_game_started', ({ room: r, gameState: gs }: { room: Room; gameState: MonopolyGameState }) => {
+        setRoom(r);
+        setGameState(gs);
         setBuyOffer(null);
         setUpgradeOffer(null);
-      }
-    });
+        setWinner(null);
+        setMonopolyCelebration(null);
+        setScreen('playing');
+      });
 
-    socket.on('mp_offer_buy', (offer) => {
-      setBuyOffer(offer);
-      setUpgradeOffer(null);
-    });
+      socket.on('mp_dice_rolled', ({ dice }: { playerId: string; username: string; dice: [number, number]; diceTotal: number; isDoubles: boolean }) => {
+        setGameState((prev) => (prev ? { ...prev, lastDice: dice } : prev));
+      });
 
-    socket.on('mp_offer_upgrade', (offer) => {
-      setUpgradeOffer(offer);
-      setBuyOffer(null);
-    });
+      socket.on('mp_monopoly_completed', (data: { playerId: string; username: string; tokenColor: MonopolyTokenColor; colorGroup: string; propertyNames: string[] }) => {
+        setMonopolyCelebration(data);
+      });
 
-    socket.on('mp_game_over', ({ winnerId, winnerName, gameState, reason }) => {
-      setGameState(gameState);
-      setWinner({ id: winnerId, name: winnerName });
-      setEndReason(reason || 'win');
-
-      // Record score and match (only winner submits to prevent duplicate entries)
-      try {
-        const isMeWinner = winnerId === playerIdRef.current;
-        if (!matchSavedRef.current && isMeWinner && gameState?.players && gameState.players.length >= 2) {
-          matchSavedRef.current = true;
-          fetch("/api/matches", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              gameType: "monopoly",
-              players: gameState.players.map((p: any) => ({
-                username: p.username,
-                result: p.playerId === winnerId ? "win" : "loss",
-                score: p.balance || 0,
-              })),
-              duration: 0,
-              gameData: { winnerName },
-            }),
-          })
-            .then((r) => r.json())
-            .then((resData) => {
-              try {
-                const stored = localStorage.getItem("game-portal-user");
-                if (stored && resData.users) {
-                  const u = JSON.parse(stored);
-                  const updated = resData.users.find((x: any) => x.username === u.username);
-                  if (updated) {
-                    Object.assign(u, updated);
-                    localStorage.setItem("game-portal-user", JSON.stringify(u));
-                  }
-                }
-              } catch {}
-            })
-            .catch(() => {});
+      socket.on('mp_game_update', ({ gameState: gs }: { gameState: MonopolyGameState }) => {
+        setGameState(gs);
+        if (gs.turnPhase !== 'action') {
+          setBuyOffer(null);
+          setUpgradeOffer(null);
         }
-      } catch {
-        // ignore
-      }
-    });
+      });
 
-    socket.on('error', (data) => {
-      setError(data.message);
-      setJoinError(data.message);
-      onJoinSuccessRef.current = null;
-      setTimeout(() => {
-        setError(null);
-        setJoinError(null);
-      }, 4000);
-    });
-  }, []);
+      socket.on('mp_offer_buy', (offer: { spaceIndex: number; spaceName: string; price: number }) => {
+        setBuyOffer(offer);
+        setUpgradeOffer(null);
+      });
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      socketRef.current?.disconnect();
-      socketRef.current = null;
-    };
-  }, []);
+      socket.on('mp_offer_upgrade', (offer: { spaceIndex: number; spaceName: string; currentLevel: number; upgradeCost: number; maxLevel: number; costs: number[] }) => {
+        setUpgradeOffer(offer);
+        setBuyOffer(null);
+      });
 
-  // ── Actions ───────────────────────────────────────────────────
+      socket.on('mp_game_over', ({ winnerId, winnerName, gameState: gs, reason }: { winnerId: string; winnerName: string; gameState: MonopolyGameState; reason?: string }) => {
+        setGameState(gs);
+        setWinner({ id: winnerId, name: winnerName });
+        setEndReason(reason || 'win');
+        setScreen('finished');
 
-  const joinRoom = useCallback(
-    (roomId: string, action: 'create' | 'join' = 'join', onSuccess?: () => void) => {
-      const socket = getSocket();
-      roomIdRef.current = roomId;
-      setupSocket(socket);
-      if (onSuccess) {
-        onJoinSuccessRef.current = onSuccess;
-      }
-      socket.emit('join_room', {
-        roomId,
-        gameType: 'monopoly',
-        username,
-        action,
+        const isMeWinner = winnerId === playerIdRef.current;
+        if (isMeWinner && gs?.players && gs.players.length >= 2) {
+          saveMatchResult({
+            gameType: 'monopoly',
+            players: gs.players.map((p) => ({
+              username: p.username,
+              result: p.playerId === winnerId ? 'win' : 'loss',
+              score: p.balance || 0,
+            })),
+            duration: 0,
+            gameData: { winnerName },
+          });
+        }
       });
     },
-    [username, getSocket, setupSocket]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
+  const gameSocket = useGameSocket({
+    gameType: 'monopoly',
+    username: username || '',
+    onSetupSocket: setupMPSocket,
+  });
+
+  const {
+    socketRef,
+    roomIdRef,
+    playerIdRef,
+    screen,
+    setScreen,
+    room,
+    setRoom,
+    roomId,
+    playerId,
+    players,
+    joinError,
+    statusMsg,
+    copied,
+    createRoom,
+    joinRoom,
+    leaveRoom: baseLeaveRoom,
+    requestRematch: baseRequestRematch,
+    copyRoomCode,
+    saveMatchResult,
+  } = gameSocket;
+
   const resetAllState = useCallback(() => {
-    setRoom(null);
-    setPlayerId(null);
-    playerIdRef.current = null;
     setGameState(null);
     setError(null);
-    setJoinError(null);
     setBuyOffer(null);
     setUpgradeOffer(null);
     setWinner(null);
     setEndReason(null);
-    onJoinSuccessRef.current = null;
+    setMonopolyCelebration(null);
   }, []);
 
   const leaveRoom = useCallback(
-    (roomId: string) => {
-      socketRef.current?.emit('leave_room', { roomId });
-      socketRef.current?.disconnect();
-      socketRef.current = null;
-      roomIdRef.current = '';
+    () => {
+      baseLeaveRoom();
       resetAllState();
     },
-    [resetAllState]
+    [baseLeaveRoom, resetAllState]
   );
 
   const startGame = useCallback(() => {
     if (!roomIdRef.current) return;
     socketRef.current?.emit('mp_start_game', { roomId: roomIdRef.current });
-  }, []);
+  }, [socketRef, roomIdRef]);
 
   const rollDice = useCallback(() => {
     if (!roomIdRef.current) return;
     socketRef.current?.emit('mp_roll_dice', { roomId: roomIdRef.current });
-  }, []);
+  }, [socketRef, roomIdRef]);
 
   const buyProperty = useCallback(() => {
     if (!roomIdRef.current) return;
     socketRef.current?.emit('mp_buy_property', { roomId: roomIdRef.current });
     setBuyOffer(null);
-  }, []);
+  }, [socketRef, roomIdRef]);
 
-  const upgradeProperty = useCallback((targetLevel: number) => {
-    if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_upgrade_property', { roomId: roomIdRef.current, targetLevel });
-    setUpgradeOffer(null);
-  }, []);
+  const upgradeProperty = useCallback(
+    (targetLevel: number) => {
+      if (!roomIdRef.current) return;
+      socketRef.current?.emit('mp_upgrade_property', {
+        roomId: roomIdRef.current,
+        targetLevel,
+      });
+      setUpgradeOffer(null);
+    },
+    [socketRef, roomIdRef]
+  );
 
   const endTurn = useCallback(() => {
     if (!roomIdRef.current) return;
     socketRef.current?.emit('mp_end_turn', { roomId: roomIdRef.current });
     setBuyOffer(null);
     setUpgradeOffer(null);
-  }, []);
+  }, [socketRef, roomIdRef]);
 
-  const sellProperty = useCallback((spaceIndex: number) => {
-    if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_sell_property', { roomId: roomIdRef.current, spaceIndex });
-  }, []);
+  const sellProperty = useCallback(
+    (spaceIndex: number) => {
+      if (!roomIdRef.current) return;
+      socketRef.current?.emit('mp_sell_property', {
+        roomId: roomIdRef.current,
+        spaceIndex,
+      });
+    },
+    [socketRef, roomIdRef]
+  );
 
   const payDebt = useCallback(() => {
     if (!roomIdRef.current) return;
     socketRef.current?.emit('mp_pay_debt', { roomId: roomIdRef.current });
-  }, []);
+  }, [socketRef, roomIdRef]);
 
   const declareBankruptcy = useCallback(() => {
     if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_declare_bankruptcy', { roomId: roomIdRef.current });
-  }, []);
+    socketRef.current?.emit('mp_declare_bankruptcy', {
+      roomId: roomIdRef.current,
+    });
+  }, [socketRef, roomIdRef]);
 
   const restart = useCallback(() => {
     if (!roomIdRef.current) return;
-    socketRef.current?.emit('restart_game', { roomId: roomIdRef.current });
+    baseRequestRematch();
     setBuyOffer(null);
     setUpgradeOffer(null);
     setWinner(null);
     setEndReason(null);
-  }, []);
+  }, [baseRequestRematch, roomIdRef]);
 
   const dismissMonopolyCelebration = useCallback(() => {
     setMonopolyCelebration(null);
   }, []);
 
-  const worldTourTravel = useCallback((targetSpaceIndex: number) => {
-    if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_world_tour_travel', { roomId: roomIdRef.current, targetSpaceIndex });
-  }, []);
+  const worldTourTravel = useCallback(
+    (targetSpaceIndex: number) => {
+      if (!roomIdRef.current) return;
+      socketRef.current?.emit('mp_world_tour_travel', {
+        roomId: roomIdRef.current,
+        targetSpaceIndex,
+      });
+    },
+    [socketRef, roomIdRef]
+  );
 
-  const hostWorldCup = useCallback((spaceIndex: number) => {
-    if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_host_world_cup', { roomId: roomIdRef.current, spaceIndex });
-  }, []);
+  const hostWorldCup = useCallback(
+    (spaceIndex: number) => {
+      if (!roomIdRef.current) return;
+      socketRef.current?.emit('mp_host_world_cup', {
+        roomId: roomIdRef.current,
+        spaceIndex,
+      });
+    },
+    [socketRef, roomIdRef]
+  );
 
-  const selectChanceTarget = useCallback((targetSpaceIndex: number) => {
-    if (!roomIdRef.current) return;
-    socketRef.current?.emit('mp_chance_select_target', { roomId: roomIdRef.current, targetSpaceIndex });
-  }, []);
+  const selectChanceTarget = useCallback(
+    (targetSpaceIndex: number) => {
+      if (!roomIdRef.current) return;
+      socketRef.current?.emit('mp_chance_select_target', {
+        roomId: roomIdRef.current,
+        targetSpaceIndex,
+      });
+    },
+    [socketRef, roomIdRef]
+  );
 
   return {
-    // State
+    screen,
+    setScreen,
     room,
+    roomId,
     playerId,
+    players,
     gameState,
     error,
     joinError,
+    statusMsg,
+    copied,
+    copyRoomCode,
     buyOffer,
     upgradeOffer,
     winner,
@@ -328,6 +278,7 @@ export function useMonopoly(username: string) {
     monopolyCelebration,
 
     // Actions
+    createRoom,
     joinRoom,
     leaveRoom,
     startGame,

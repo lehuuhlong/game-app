@@ -1,4 +1,4 @@
-import { MonopolyBoardSpace } from '../../types';
+import { MonopolyBoardSpace } from '../../../shared/types';
 
 export const MONOPOLY_BOARD: MonopolyBoardSpace[] = [
   // ── Bottom row (0-8) ────────────────────────────────────────────

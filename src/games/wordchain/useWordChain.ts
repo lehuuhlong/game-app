@@ -1,183 +1,59 @@
-/**
- * useWordChain — custom hook for the Word Chain (Nối Từ) game.
- *
- * Manages:
- *  - Socket.io connection to the Word Chain room
- *  - Lobby / waiting / playing / finished screen transitions
- *  - Client-side countdown timer (synced with server-authoritative timer)
- *  - Word submission, rejection feedback, and chain state
- *  - Language selection (English / Vietnamese)
- *
- * Validation is handled server-side (Free Dictionary API for EN,
- * mock word list for VI). This hook only sends words and reacts
- * to server events.
- */
-
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { io, type Socket } from "socket.io-client";
+import { useState, useCallback, useMemo, useRef } from "react";
+import type { Socket } from "socket.io-client";
 import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  Room,
+  WordChainGameState,
   WordChainLanguage,
   WordChainEntry,
-  WordChainGameState,
-  WordChainScreen,
-  WordChainPlayer,
-} from "./types";
+} from "@/types/socket";
+import type { WordChainPlayer } from "./types";
+import { useGameSocket } from "@/hooks/useGameSocket";
+import { useGameTimer } from "@/hooks/useGameTimer";
 
-const TURN_DURATION = 20; // seconds — matches server
+const TURN_DURATION = 20;
 
-// ── Hook ──────────────────────────────────────────────────────────
-
-export function useWordChain() {
-  // ── Screen state ────────────────────────────────────────────────
-  const [screen, _setScreen] = useState<WordChainScreen>("lobby");
-  const screenRef = useRef<WordChainScreen>("lobby");
-  const setScreen = useCallback((s: WordChainScreen) => {
-    screenRef.current = s;
-    _setScreen(s);
-  }, []);
-
-  // ── Lobby state ─────────────────────────────────────────────────
+export function useWordChain(username?: string) {
   const [language, setLanguage] = useState<WordChainLanguage>("en");
-  const [joinInput, setJoinInput] = useState("");
-  const [joinError, setJoinError] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("Waiting for opponent...");
-
-  // ── Game state ──────────────────────────────────────────────────
-  const [chain, setChain] = useState<WordChainEntry[]>([]);
-  const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState("");
-  const [players, setPlayers] = useState<WordChainPlayer[]>([]);
   const [gameLanguage, setGameLanguage] = useState<WordChainLanguage>("en");
-
-  // ── Input & feedback ────────────────────────────────────────────
-  const [wordInput, setWordInput] = useState("");
-  const [rejectMsg, setRejectMsg] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ── Timer ───────────────────────────────────────────────────────
-  const [timeLeft, setTimeLeft] = useState(TURN_DURATION);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // ── Result ──────────────────────────────────────────────────────
+  const [chain, setChain] = useState<WordChainEntry[]>([]);
+  const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string>("");
+  const [wordInput, setWordInput] = useState<string>("");
+  const [rejectMsg, setRejectMsg] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [winnerMsg, setWinnerMsg] = useState<string>("");
-  const [didIWin, setDidIWin] = useState(false);
+  const [didIWin, setDidIWin] = useState<boolean>(false);
 
-  // ── Refs for socket & identity ──────────────────────────────────
-  const socketRef = useRef<Socket | null>(null);
-  const roomIdRef = useRef("");
-  const myPlayerIdRef = useRef("");
-  const matchSavedRef = useRef(false);
+  const languageRef = useRef<WordChainLanguage>(language);
+  languageRef.current = language;
 
-  // ── Timer helpers ───────────────────────────────────────────────
+  const timer = useGameTimer({
+    duration: TURN_DURATION,
+    onTimeout: () => {
+      socketRef.current?.emit("wc_timeout", {
+        roomId: roomIdRef.current,
+      });
+    },
+  });
 
-  const stopTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+  const { startTimer, stopTimer, timeLeft, percent: timerPercent, colorClass: timerColor } = timer;
 
-  const startTimer = useCallback(() => {
-    stopTimer();
-    setTimeLeft(TURN_DURATION);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          stopTimer();
-          // Notify server of timeout (server also has its own timer)
-          socketRef.current?.emit("wc_timeout", {
-            roomId: roomIdRef.current,
-          });
-          return 0;
+  const setupWCSocket = useCallback(
+    (socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
+      socket.off("wc_game_started");
+      socket.off("wc_word_accepted");
+      socket.off("wc_word_rejected");
+      socket.off("wc_turn_changed");
+      socket.off("wc_game_over");
+
+      socket.on("wc_game_started", ({ room: r, gameState }: { room?: Room; gameState: WordChainGameState }) => {
+        if (r) {
+          gameSocket.setRoom(r);
+          gameSocket.setPlayers(r.players);
         }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [stopTimer]);
-
-  // ── Socket connection ───────────────────────────────────────────
-
-  const getSocket = useCallback((): Socket => {
-    if (!socketRef.current) {
-      const socketUrl =
-        process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
-      socketRef.current = io(socketUrl, {
-        transports: ["websocket", "polling"],
-      });
-    }
-    return socketRef.current;
-  }, []);
-
-  // ── Socket event handlers ──────────────────────────────────────
-
-  const setupSocket = useCallback(
-    (socket: Socket) => {
-      // Clear previous listeners
-      socket
-        .off("room_joined")
-        .off("player_joined")
-        .off("player_left")
-        .off("wc_game_started")
-        .off("wc_word_accepted")
-        .off("wc_word_rejected")
-        .off("wc_turn_changed")
-        .off("wc_game_over")
-        .off("error");
-
-      // ── Room joined ──────────────────────────────────────────
-      socket.on("room_joined", ({ room, playerId }: any) => {
-        myPlayerIdRef.current = playerId;
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
-        setStatusMsg(
-          room.players.length < 2
-            ? "Waiting for opponent..."
-            : "2/2 players connected"
-        );
-        setScreen("waiting");
-      });
-
-      // ── Another player joined ─────────────────────────────────
-      socket.on("player_joined", ({ room }: any) => {
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
-        setStatusMsg("2/2 players connected — starting soon!");
-      });
-
-      // ── Player left ───────────────────────────────────────────
-      socket.on("player_left", ({ room }: any) => {
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
-        if (screenRef.current === "playing") {
-          // Game ends — handled by wc_game_over from server
-        } else {
-          setStatusMsg("Opponent left. Waiting for another player...");
-        }
-      });
-
-      // ── Game started ──────────────────────────────────────────
-      socket.on("wc_game_started", ({ room, gameState }: any) => {
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
         setChain([]);
         setCurrentTurnPlayerId(gameState.currentTurnPlayerId);
         setGameLanguage(gameState.language);
@@ -185,182 +61,143 @@ export function useWordChain() {
         setRejectMsg("");
         setWinnerMsg("");
         setIsSubmitting(false);
-        matchSavedRef.current = false;
+        setDidIWin(false);
         setScreen("playing");
-        // Timer starts visually when the first word is submitted
-        setTimeLeft(20);
         stopTimer();
       });
 
-      // ── Word accepted ─────────────────────────────────────────
-      socket.on("wc_word_accepted", ({ entry, gameState }: any) => {
+      socket.on("wc_word_accepted", ({ gameState }: { gameState: WordChainGameState }) => {
         setChain(gameState.chain);
         setIsSubmitting(false);
         setRejectMsg("");
         setWordInput("");
       });
 
-      // ── Word rejected ─────────────────────────────────────────
-      socket.on("wc_word_rejected", ({ reason }: any) => {
+      socket.on("wc_word_rejected", ({ reason }: { reason: string }) => {
         setRejectMsg(reason);
         setIsSubmitting(false);
       });
 
-      // ── Turn changed ──────────────────────────────────────────
-      socket.on("wc_turn_changed", ({ currentTurnPlayerId: nextId }: any) => {
-        setCurrentTurnPlayerId(nextId);
-        startTimer(); // Reset countdown
-      });
-
-      // ── Game over ─────────────────────────────────────────────
-      socket.on("wc_game_over", (data: any) => {
-        stopTimer();
-        const win = data.winnerId === myPlayerIdRef.current;
-        setDidIWin(win);
-        
-        if (data.reason === "disconnect") {
-          setWinnerMsg(win ? "🏃 Opponent left the match — You win!" : "🚪 You left the match");
-        } else if (data.reason === "timeout") {
-          setWinnerMsg(win ? "⌛ Opponent timed out — You win!" : "⌛ Turn time expired — You lose!");
-        } else if (data.reason === "invalid_word") {
-          setWinnerMsg(win ? "❌ Opponent used invalid word — You win!" : "❌ Invalid word — You lose!");
-        } else {
-          setWinnerMsg(win ? "🏆 You win!" : "😔 You lose!");
+      socket.on(
+        "wc_turn_changed",
+        ({ currentTurnPlayerId: turnId }: { currentTurnPlayerId: string; turnStartedAt: number }) => {
+          setCurrentTurnPlayerId(turnId);
+          startTimer();
         }
+      );
 
-        setChain(data.gameState.chain);
-        setScreen("finished");
+      socket.on(
+        "wc_game_over",
+        ({
+          winnerId,
+          winnerName,
+          reason,
+          gameState,
+        }: {
+          winnerId: string;
+          winnerName: string;
+          reason: string;
+          gameState: WordChainGameState;
+        }) => {
+          stopTimer();
+          setScreen("finished");
+          const meWon = winnerId === playerIdRef.current;
+          setDidIWin(meWon);
 
-        // Record 1v1 match (only winner submits to prevent duplicate entries)
-        try {
-          if (!matchSavedRef.current && win && data.winnerName && data.loserName) {
-            matchSavedRef.current = true;
-            fetch("/api/matches", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                gameType: "wordchain",
-                players: [
-                  { username: data.winnerName, result: "win", score: 1 },
-                  { username: data.loserName, result: "loss", score: 0 },
-                ],
-                duration: 0,
-                gameData: {
-                  wordsCount: data.gameState?.chain?.length || 0,
-                  reason: data.reason,
-                  language: data.gameState?.language || "en",
-                },
-              }),
-            })
-              .then((r) => r.json())
-              .then((resData) => {
-                try {
-                  const stored = localStorage.getItem("game-portal-user");
-                  if (stored && resData.users) {
-                    const u = JSON.parse(stored);
-                    const updated = resData.users.find((x: any) => x.username === u.username);
-                    if (updated) {
-                      Object.assign(u, updated);
-                      localStorage.setItem("game-portal-user", JSON.stringify(u));
-                    }
-                  }
-                } catch {}
-              })
-              .catch(() => {});
+          let reasonDesc = "";
+          if (reason === "timeout") {
+            reasonDesc = meWon ? "Opponent ran out of time!" : "You ran out of time!";
+          } else if (reason === "disconnect") {
+            reasonDesc = meWon ? "Opponent disconnected!" : "You disconnected!";
+          } else {
+            reasonDesc = "Game Over!";
           }
-        } catch {
-          // ignore
+
+          setWinnerMsg(`${winnerName} won! (${reasonDesc})`);
+
+          if (meWon && gameState.chain.length > 0) {
+            saveMatchResult({
+              gameType: "wordchain",
+              players: [
+                { username: winnerName, result: "win", score: gameState.chain.length },
+                {
+                  username: username === winnerName ? "Opponent" : username || "Player",
+                  result: "loss",
+                  score: gameState.chain.length,
+                },
+              ],
+              duration: 0,
+              gameData: {
+                language: gameState.language,
+                wordsCount: gameState.chain.length,
+                winnerName,
+              },
+            });
+          }
         }
-      });
-
-      // ── Error ─────────────────────────────────────────────────
-      socket.on("error", ({ message }: any) => {
-        setJoinError(message);
-      });
+      );
     },
-    [setScreen, startTimer, stopTimer]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [startTimer, stopTimer, username]
   );
 
-  // ── Room actions ───────────────────────────────────────────────
+  const gameSocket = useGameSocket({
+    gameType: "wordchain",
+    username: username || "",
+    onSetupSocket: setupWCSocket,
+  });
 
-  const createRoom = useCallback(
-    (username: string) => {
-      const socket = getSocket();
-      const id = Math.random().toString(36).slice(2, 8).toUpperCase();
-      roomIdRef.current = id;
-      setRoomId(id);
-      setJoinError("");
-      setupSocket(socket);
-      socket.emit("join_room", {
-        roomId: id,
-        gameType: "wordchain",
-        username,
-        action: "create",
-        language,
-      });
-    },
-    [getSocket, setupSocket, language]
-  );
+  const {
+    socketRef,
+    roomIdRef,
+    playerIdRef,
+    screen,
+    setScreen,
+    roomId,
+    players,
+    joinError,
+    setJoinError,
+    statusMsg,
+    copied,
+    createRoom: baseCreateRoom,
+    joinRoom: baseJoinRoom,
+    leaveRoom: baseLeaveRoom,
+    requestRematch: baseRequestRematch,
+    copyRoomCode,
+    saveMatchResult,
+  } = gameSocket;
+
+  const createRoom = useCallback(() => {
+    baseCreateRoom({ language: languageRef.current });
+  }, [baseCreateRoom]);
 
   const joinRoom = useCallback(
-    (username: string, code?: string) => {
-      const id = (code || joinInput).trim().toUpperCase();
-      if (!id) {
-        setJoinError("Please enter a room code.");
-        return;
-      }
-      const socket = getSocket();
-      roomIdRef.current = id;
-      setRoomId(id);
-      setJoinError("");
-      setupSocket(socket);
-      socket.emit("join_room", {
-        roomId: id,
-        gameType: "wordchain",
-        username,
-        action: "join",
-        language,
-      });
+    (code: string) => {
+      baseJoinRoom(code, { language: languageRef.current });
     },
-    [getSocket, setupSocket, joinInput, language]
+    [baseJoinRoom]
   );
 
   const leaveRoom = useCallback(() => {
     stopTimer();
-    socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
-    socketRef.current?.disconnect();
-    socketRef.current = null;
-    roomIdRef.current = "";
-    myPlayerIdRef.current = "";
-
-    // Reset all state
-    setScreen("lobby");
+    baseLeaveRoom();
     setChain([]);
-    setCurrentTurnPlayerId("");
-    setPlayers([]);
-    setRoomId("");
     setWordInput("");
     setRejectMsg("");
     setWinnerMsg("");
     setIsSubmitting(false);
-    setJoinInput("");
-    setJoinError("");
-    setStatusMsg("Waiting for opponent...");
-    setCopied(false);
-  }, [stopTimer, setScreen]);
+  }, [stopTimer, baseLeaveRoom]);
 
   const requestRematch = useCallback(() => {
     stopTimer();
-    socketRef.current?.emit("restart_game", { roomId: roomIdRef.current });
+    baseRequestRematch();
     setChain([]);
     setWordInput("");
     setRejectMsg("");
     setWinnerMsg("");
     setIsSubmitting(false);
     setScreen("playing");
-  }, [stopTimer, setScreen]);
-
-  // ── Word submission ────────────────────────────────────────────
+  }, [stopTimer, baseRequestRematch, setScreen]);
 
   const submitWord = useCallback(
     (word: string) => {
@@ -374,64 +211,39 @@ export function useWordChain() {
         word: trimmed,
       });
     },
-    [isSubmitting]
+    [isSubmitting, socketRef, roomIdRef]
   );
 
-  // ── Clipboard helper ──────────────────────────────────────────
+  const myPlayerId = gameSocket.playerId || "";
+  const isMyTurn = useMemo(() => {
+    return !!myPlayerId && currentTurnPlayerId === myPlayerId;
+  }, [myPlayerId, currentTurnPlayerId]);
 
-  const copyRoomCode = useCallback(() => {
-    navigator.clipboard.writeText(roomId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [roomId]);
-
-  // ── Computed values ────────────────────────────────────────────
-
-  const isMyTurn = currentTurnPlayerId === myPlayerIdRef.current;
-  const myPlayerId = myPlayerIdRef.current;
-
-  // Get the required start for the next word
-  const nextStartHint = chain.length > 0 ? chain[chain.length - 1].connector : null;
-
-  const timerPercent = (timeLeft / TURN_DURATION) * 100;
-  const timerColor =
-    timeLeft <= 3 ? "bg-red-500" : timeLeft <= 6 ? "bg-amber-500" : "bg-green-500";
-
-  // ── Cleanup on unmount ─────────────────────────────────────────
-
-  useEffect(() => {
-    return () => {
-      // Note: We don't save loss on unmount here because if they just navigate away or close tab,
-      // the server will emit game over to the OTHER player. The other player will get the win.
-      // Explicitly leaving via button saves the loss right away.
-      stopTimer();
-      socketRef.current?.disconnect();
-      socketRef.current = null;
-    };
-  }, [stopTimer]);
+  const nextStartHint = useMemo(() => {
+    return chain.length > 0 ? chain[chain.length - 1].connector : null;
+  }, [chain]);
 
   return {
-    // Screen
     screen,
-
-    // Lobby
+    setScreen,
     language,
     setLanguage,
-    joinInput,
-    setJoinInput,
-    joinError,
+    gameLanguage,
     roomId,
-    copied,
+    players: players as WordChainPlayer[],
+    joinError,
+    setJoinError,
     statusMsg,
+    copied,
+    copyRoomCode,
     createRoom,
     joinRoom,
-    copyRoomCode,
+    leaveRoom,
+    requestRematch,
 
-    // Game
+    // Game State
     chain,
     currentTurnPlayerId,
-    players,
-    gameLanguage,
     isMyTurn,
     myPlayerId,
     nextStartHint,
@@ -451,9 +263,5 @@ export function useWordChain() {
     // Result
     winnerMsg,
     didIWin,
-
-    // Actions
-    leaveRoom,
-    requestRematch,
   };
 }

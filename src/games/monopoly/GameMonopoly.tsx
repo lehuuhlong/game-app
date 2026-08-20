@@ -36,7 +36,8 @@ export function GameMonopoly() {
     winner,
     endReason,
     monopolyCelebration,
-    joinRoom: hookJoinRoom,
+    createRoom,
+    joinRoom,
     leaveRoom,
     startGame,
     rollDice,
@@ -111,10 +112,7 @@ export function GameMonopoly() {
 
   const handleCreateRoom = () => {
     if (!user) { setShowLogin(true); return; }
-    const newId = Math.random().toString(36).slice(2, 8).toUpperCase();
-    setRoomId(newId);
-    setJoinError('');
-    hookJoinRoom(newId, 'create');
+    createRoom();
   };
 
   const handleJoinRoom = () => {
@@ -123,11 +121,11 @@ export function GameMonopoly() {
     if (!id) { setJoinError('Please enter a room code.'); return; }
     setJoinError('');
     setRoomId(id);
-    hookJoinRoom(id, 'join');
+    joinRoom(id);
   };
 
   const handleLeaveRoom = () => {
-    leaveRoom(roomId);
+    leaveRoom();
     setScreen('lobby');
     setRoomId('');
     setJoinInput('');
