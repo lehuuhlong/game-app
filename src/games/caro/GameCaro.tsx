@@ -483,40 +483,73 @@ export function GameCaro() {
                 onCellClick={handleCellClick}
                 disabled={!isMyTurn || screen === "finished"}
               />
-
-              <AnimatePresence>
-                {screen === "finished" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 flex items-center justify-center bg-background/75 backdrop-blur-[2px] rounded-xl"
-                  >
-                    <div className="text-center space-y-4 p-8">
-                      <p className="text-3xl font-extrabold text-foreground">{winnerMsg}</p>
-                      <div className="flex gap-3 justify-center">
-                        <button 
-                          onClick={handleRematch} 
-                          disabled={players.length < 2}
-                          className={`rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
-                            players.length < 2 
-                              ? "bg-surface-hover text-foreground-muted cursor-not-allowed" 
-                              : "bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700"
-                          }`}
-                        >
-                          {players.length < 2 ? "Waiting for opponent..." : "Rematch"}
-                        </button>
-                        <button onClick={handleLeaveRoom} className="rounded-xl border border-border px-6 py-2.5 text-sm font-semibold text-foreground-secondary hover:bg-surface-hover transition-all">
-                          Leave
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* Side panel */}
-            <div className="w-full lg:w-64 shrink-0 space-y-4">
+            <div className="w-full lg:w-72 shrink-0 space-y-4">
+              {/* Game Over / Result Card */}
+              {screen === "finished" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`rounded-2xl border p-5 text-center space-y-4 shadow-md ${
+                    winnerMsg.includes("win") || winnerMsg.includes("🏆")
+                      ? "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-950/30"
+                      : winnerMsg.includes("draw") || winnerMsg.includes("🤝")
+                      ? "border-border bg-surface"
+                      : "border-rose-500/40 bg-rose-500/10 dark:bg-rose-950/30"
+                  }`}
+                >
+                  <div className="text-4xl">
+                    {winnerMsg.includes("win") || winnerMsg.includes("🏆")
+                      ? "🏆"
+                      : winnerMsg.includes("draw") || winnerMsg.includes("🤝")
+                      ? "🤝"
+                      : "💔"}
+                  </div>
+                  <div>
+                    <h3
+                      className={`text-xl font-extrabold ${
+                        winnerMsg.includes("win") || winnerMsg.includes("🏆")
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : winnerMsg.includes("draw") || winnerMsg.includes("🤝")
+                          ? "text-foreground"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {winnerMsg.includes("win") || winnerMsg.includes("🏆")
+                        ? "Victory!"
+                        : winnerMsg.includes("draw") || winnerMsg.includes("🤝")
+                        ? "Draw Game"
+                        : "Defeat"}
+                    </h3>
+                    <p className="text-sm font-medium text-foreground-secondary mt-1">
+                      {winnerMsg}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button
+                      onClick={handleRematch}
+                      disabled={players.length < 2}
+                      className={`w-full rounded-xl py-3 text-sm font-bold transition-all shadow-md ${
+                        players.length < 2
+                          ? "bg-surface-hover text-foreground-muted cursor-not-allowed border border-border"
+                          : "bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700 hover:scale-[1.02] active:scale-[0.98]"
+                      }`}
+                    >
+                      {players.length < 2 ? "Waiting for opponent..." : "🔄 Rematch"}
+                    </button>
+                    <button
+                      onClick={handleLeaveRoom}
+                      className="w-full rounded-xl border border-border bg-surface hover:bg-surface-hover py-2.5 text-xs font-semibold text-foreground-secondary transition-all"
+                    >
+                      Leave Room
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Timer */}
               {timerActive && screen === "playing" && (
                 <div className={`rounded-xl border p-4 text-center transition-all ${
@@ -587,9 +620,11 @@ export function GameCaro() {
                 <p className="text-2xl font-extrabold text-foreground">{moveCount}</p>
               </div>
 
-              <button onClick={handleLeaveRoom} className="w-full rounded-xl border border-border py-2 text-sm text-foreground-muted hover:border-red-400 hover:text-red-400 transition-all">
-                Leave Room
-              </button>
+              {screen === "playing" && (
+                <button onClick={handleLeaveRoom} className="w-full rounded-xl border border-border py-2 text-sm text-foreground-muted hover:border-red-400 hover:text-red-400 transition-all">
+                  Leave Room
+                </button>
+              )}
             </div>
           </div>
         )}

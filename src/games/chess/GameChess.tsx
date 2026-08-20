@@ -366,68 +366,144 @@ export function GameChess() {
 
             {/* Right Column: Move History & Match Controls */}
             <div className="lg:col-span-4 flex flex-col space-y-4 w-full max-w-[540px] lg:max-w-none mx-auto self-stretch">
-              {/* Turn Status Banner */}
-              <div
-                className={`p-4 rounded-2xl border text-center transition-all ${
-                  gameState?.isCheck && !gameState?.isCheckmate && isMyTurn
-                    ? "bg-red-500/10 border-red-500/40 text-red-600 dark:text-red-400 shadow-sm"
-                    : isMyTurn
-                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                    : "bg-surface border-border text-foreground-secondary"
-                }`}
-              >
-                <div className="text-xs uppercase tracking-wider font-semibold text-foreground-muted">
-                  Current Status
-                </div>
-                <div className="text-base font-bold mt-1">
-                  {isMyTurn ? (
-                    gameState?.isCheck && !gameState?.isCheckmate ? (
-                      <span className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                        Your Turn — In Check! ⚠️
+              {/* Turn Status Banner / Game Over Result Card */}
+              {screen === "finished" ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-5 rounded-2xl border text-center space-y-4 shadow-md ${
+                    isWinner
+                      ? "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-950/30"
+                      : isDrawGame
+                      ? "border-border bg-surface"
+                      : "border-rose-500/40 bg-rose-500/10 dark:bg-rose-950/30"
+                  }`}
+                >
+                  <div className="text-4xl">
+                    {isWinner ? "🏆" : isDrawGame ? "🤝" : "💔"}
+                  </div>
+                  <div>
+                    <h2
+                      className={`text-2xl font-extrabold ${
+                        isWinner
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : isDrawGame
+                          ? "text-foreground"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {isWinner ? "Victory!" : isDrawGame ? "Draw Game" : "Defeat"}
+                    </h2>
+                    <p className="text-xs text-foreground-secondary font-medium mt-1.5 leading-relaxed">
+                      {formatEndReason(endReason, !!isWinner, !!isDrawGame)}
+                    </p>
+                  </div>
+
+                  {/* Match Result Details Card */}
+                  <div className="p-3 bg-surface/80 dark:bg-black/20 border border-border rounded-xl text-xs space-y-1.5 text-foreground-secondary text-left">
+                    <div className="flex justify-between">
+                      <span>White Player:</span>
+                      <span className="font-semibold text-foreground">
+                        {whitePlayer?.username || "Player 1"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Black Player:</span>
+                      <span className="font-semibold text-foreground">
+                        {blackPlayer?.username || "Player 2"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Moves:</span>
+                      <span className="font-semibold text-foreground">
+                        {gameState?.moveHistory.length || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2 pt-1">
+                    <button
+                      onClick={rematch}
+                      className="w-full py-3 px-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] text-xs flex items-center justify-center gap-2"
+                    >
+                      <span>🔄</span>
+                      <span>Rematch (Switch Colors)</span>
+                    </button>
+
+                    <button
+                      onClick={leaveRoom}
+                      className="w-full py-2.5 px-4 bg-surface hover:bg-surface-hover text-foreground font-semibold rounded-xl border border-border transition-all text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <span>🚪</span>
+                      <span>Back to Lobby</span>
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <div
+                  className={`p-4 rounded-2xl border text-center transition-all ${
+                    gameState?.isCheck && !gameState?.isCheckmate && isMyTurn
+                      ? "bg-red-500/10 border-red-500/40 text-red-600 dark:text-red-400 shadow-sm"
+                      : isMyTurn
+                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                      : "bg-surface border-border text-foreground-secondary"
+                  }`}
+                >
+                  <div className="text-xs uppercase tracking-wider font-semibold text-foreground-muted">
+                    Current Status
+                  </div>
+                  <div className="text-base font-bold mt-1">
+                    {isMyTurn ? (
+                      gameState?.isCheck && !gameState?.isCheckmate ? (
+                        <span className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                          Your Turn — In Check! ⚠️
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                          Your Turn — Make a Move
+                        </span>
+                      )
+                    ) : gameState?.isCheck && !gameState?.isCheckmate ? (
+                      <span className="text-foreground-secondary flex items-center justify-center gap-1.5">
+                        Waiting for Opponent (In Check ⚠️)
                       </span>
                     ) : (
-                      <span className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                        Your Turn — Make a Move
+                      <span className="text-foreground-secondary">
+                        Waiting for Opponent...
                       </span>
-                    )
-                  ) : gameState?.isCheck && !gameState?.isCheckmate ? (
-                    <span className="text-foreground-secondary flex items-center justify-center gap-1.5">
-                      Waiting for Opponent (In Check ⚠️)
-                    </span>
-                  ) : (
-                    <span className="text-foreground-secondary">
-                      Waiting for Opponent...
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Move History */}
               <div className="flex-1 min-h-[180px]">
                 <MoveHistory moves={gameState?.moveHistory || []} />
               </div>
 
-              {/* Actions Bar */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button
-                  onClick={() => setShowResignConfirm(true)}
-                  disabled={screen === "finished"}
-                  className="py-2.5 px-4 bg-surface hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/40 text-foreground-secondary font-semibold rounded-xl border border-border transition-all text-xs flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none shadow-sm"
-                >
-                  <span>🏳️</span>
-                  <span>Resign</span>
-                </button>
+              {/* Actions Bar (Playing Only) */}
+              {screen === "playing" && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => setShowResignConfirm(true)}
+                    className="py-2.5 px-4 bg-surface hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:border-red-500/40 text-foreground-secondary font-semibold rounded-xl border border-border transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <span>🏳️</span>
+                    <span>Resign</span>
+                  </button>
 
-                <button
-                  onClick={leaveRoom}
-                  className="py-2.5 px-4 bg-surface hover:bg-surface-hover text-foreground font-semibold rounded-xl border border-border transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <span>🚪</span>
-                  <span>Leave Game</span>
-                </button>
-              </div>
+                  <button
+                    onClick={leaveRoom}
+                    className="py-2.5 px-4 bg-surface hover:bg-surface-hover text-foreground font-semibold rounded-xl border border-border transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <span>🚪</span>
+                    <span>Leave Game</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -466,90 +542,6 @@ export function GameChess() {
                     className="py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl shadow-lg shadow-red-600/30 transition-all"
                   >
                     Yes, Resign
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── GAME OVER MODAL ─────────────────────────────────────── */}
-        <AnimatePresence>
-          {screen === "finished" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            >
-              <motion.div
-                initial={{ scale: 0.85, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.85, y: 20 }}
-                className="bg-surface border border-border rounded-2xl p-6 sm:p-8 max-w-md w-full text-center space-y-6 shadow-2xl"
-              >
-                <div className="text-5xl">
-                  {isWinner ? "🏆" : isDrawGame ? "🤝" : "💔"}
-                </div>
-
-                <div className="space-y-1">
-                  <h2
-                    className={`text-2xl font-extrabold ${
-                      isWinner
-                        ? "text-amber-500"
-                        : isDrawGame
-                        ? "text-foreground"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {isWinner
-                      ? "Victory!"
-                      : isDrawGame
-                      ? "Draw Game"
-                      : "Defeat"}
-                  </h2>
-                  <p className="text-sm text-foreground-secondary font-medium max-w-xs mx-auto">
-                    {formatEndReason(endReason, !!isWinner, !!isDrawGame)}
-                  </p>
-                </div>
-
-                {/* Match Result Details Card */}
-                <div className="p-4 bg-surface-hover/80 border border-border rounded-xl text-xs space-y-2 text-foreground-secondary">
-                  <div className="flex justify-between">
-                    <span>White Player:</span>
-                    <span className="font-semibold text-foreground">
-                      {whitePlayer?.username || "Player 1"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Black Player:</span>
-                    <span className="font-semibold text-foreground">
-                      {blackPlayer?.username || "Player 2"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Total Moves:</span>
-                    <span className="font-semibold text-foreground">
-                      {gameState?.moveHistory.length || 0}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={rematch}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-xl shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    <span>🔄</span>
-                    <span>Rematch (Switch Colors)</span>
-                  </button>
-
-                  <button
-                    onClick={leaveRoom}
-                    className="w-full py-3 px-4 bg-surface hover:bg-surface-hover text-foreground font-semibold rounded-xl border border-border transition-all text-xs"
-                  >
-                    Back to Lobby
                   </button>
                 </div>
               </motion.div>
