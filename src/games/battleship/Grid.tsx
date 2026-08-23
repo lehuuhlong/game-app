@@ -66,7 +66,7 @@ export function Grid({
       {/* Column Labels */}
       <div className="flex ml-7">
         {COLS.map(c => (
-          <div key={c} className="w-9 h-6 flex items-center justify-center text-[10px] font-bold text-foreground-muted">
+          <div key={c} className="w-9 h-6 flex items-center justify-center text-xs font-mono font-bold text-foreground-muted">
             {c}
           </div>
         ))}
@@ -76,7 +76,7 @@ export function Grid({
         {/* Row Labels */}
         <div className="flex flex-col">
           {ROWS.map(r => (
-            <div key={r} className="w-7 h-9 flex items-center justify-center text-[10px] font-bold text-foreground-muted">
+            <div key={r} className="w-7 h-9 flex items-center justify-center text-xs font-mono font-bold text-foreground-muted">
               {r}
             </div>
           ))}
@@ -230,13 +230,13 @@ export function Grid({
                       /* Sunk — skull on destroyed ship */
                       <div className="relative flex items-center justify-center">
                         <div className="w-5 h-5 rounded-sm bg-red-600/80 shadow-[0_0_12px_rgba(220,38,38,0.8)]" />
-                        <span className="absolute text-[10px]">💀</span>
+                        <span className="absolute text-xs">💀</span>
                       </div>
                     ) : (
                       /* Hit — fire */
                       <div className="relative flex items-center justify-center">
                         <div className="w-4 h-4 rounded-sm bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)] animate-pulse" />
-                        <span className="absolute text-[9px]">🔥</span>
+                        <span className="absolute text-xs">🔥</span>
                       </div>
                     )}
                   </motion.div>

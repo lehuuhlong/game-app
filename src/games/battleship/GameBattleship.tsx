@@ -356,11 +356,11 @@ export function GameBattleship() {
                     <div className="bg-sky-500/5 border border-sky-500/20 rounded-xl p-3.5 mb-2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-foreground">Placement Direction:</span>
-                        <span className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider ${isVertical ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+                        <span className={`px-2 py-1 rounded-md border text-xs font-semibold uppercase tracking-wider ${isVertical ? 'bg-sky-500/10 border-sky-500/20 text-sky-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
                           {isVertical ? '↕️ Vertical' : '↔️ Horizontal'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-foreground-muted leading-relaxed">
+                      <p className="text-xs text-foreground-muted leading-relaxed">
                         💡 <strong className="text-foreground">Tip:</strong> Press <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded font-mono shadow-sm mx-0.5">Space</kbd> or <strong className="text-foreground">Right-Click</strong> on the board to rotate ship orientation.
                       </p>
                     </div>
@@ -369,7 +369,7 @@ export function GameBattleship() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Unplaced Ships</p>
-                        <span className="text-[10px] text-foreground-muted">Drag to board or click board</span>
+                        <span className="text-xs text-foreground-muted">Drag to board or click board</span>
                       </div>
                       
                       <div className="flex flex-col gap-3 min-h-[160px]">

@@ -31,12 +31,14 @@ export function CaroBoard({
   }, [winningCells]);
 
   return (
-    <div className="relative overflow-auto">
+    <div className="relative overflow-x-auto overflow-y-hidden max-w-full pb-2 flex justify-center touch-pan-x">
       <div
-        className="inline-grid bg-surface border border-border rounded-lg shadow-lg"
+        role="grid"
+        aria-label="Caro Gomoku game board"
+        className="inline-grid bg-surface border border-border rounded-xl shadow-lg p-1"
         style={{
-          gridTemplateColumns: `repeat(${gridSize}, minmax(28px, 28px))`,
-          gridTemplateRows: `repeat(${gridSize}, minmax(28px, 28px))`,
+          gridTemplateColumns: `repeat(${gridSize}, minmax(30px, 34px))`,
+          gridTemplateRows: `repeat(${gridSize}, minmax(30px, 34px))`,
         }}
       >
         {board.map((row, r) =>

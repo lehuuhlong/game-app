@@ -35,7 +35,7 @@ function ScoreBox({
           : "bg-[#bbada0] dark:bg-[#4a4458] text-white"
       }`}
     >
-      <span className="text-[10px] font-bold tracking-widest uppercase opacity-80">
+      <span className="text-xs font-bold tracking-widest uppercase opacity-80">
         {label}
       </span>
       <motion.span
@@ -43,7 +43,7 @@ function ScoreBox({
         initial={{ scale: 1.3, opacity: 0.7 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="text-lg sm:text-xl font-extrabold tabular-nums"
+        className="text-lg sm:text-xl font-extrabold font-mono tabular-nums"
       >
         {value.toLocaleString()}
       </motion.span>

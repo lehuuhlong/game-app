@@ -246,11 +246,11 @@ export function GameWordChain() {
                             isMe ? "items-end" : "items-start"
                           } max-w-[80%] ${isMe ? "self-end" : "self-start"}`}
                         >
-                          <span className="text-[10px] text-foreground-muted mb-0.5 px-1">
+                          <span className="text-xs text-foreground-muted mb-0.5 px-1">
                             {entry.username}
                           </span>
                           <div
-                            className={`px-4 py-2.5 rounded-2xl text-[15px] shadow-sm ${
+                            className={`px-4 py-2.5 rounded-2xl text-sm font-medium shadow-sm ${
                               isMe
                                 ? "bg-accent text-white rounded-tr-sm"
                                 : "bg-background border border-border text-foreground rounded-tl-sm"
@@ -386,7 +386,7 @@ export function GameWordChain() {
                     {isMyTurn ? "Your turn" : "Opponent's turn"}
                   </p>
                   <p
-                    className={`text-4xl font-extrabold tabular-nums ${
+                    className={`text-4xl font-extrabold font-mono tabular-nums ${
                       timeLeft <= 5 ? "text-red-500 animate-pulse" : "text-foreground"
                     }`}
                   >

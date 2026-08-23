@@ -123,6 +123,16 @@ export const MinesweeperCell = memo(function MinesweeperCell({
       "bg-red-100 dark:bg-red-950/40 border-red-300 dark:border-red-800";
   }
 
+  let statusText = "hidden";
+  if (cell.isRevealed) {
+    if (cell.isMine) statusText = "mine exploded";
+    else if (cell.adjacentMines > 0) statusText = `${cell.adjacentMines} adjacent mines`;
+    else statusText = "empty";
+  } else if (cell.isFlagged) {
+    statusText = "flagged";
+  }
+  const cellAriaLabel = `Row ${cell.row + 1}, Column ${cell.col + 1}: ${statusText}`;
+
   return (
     <button
       type="button"
@@ -134,13 +144,14 @@ export const MinesweeperCell = memo(function MinesweeperCell({
       disabled={gameOver}
       style={{ width: cellSize, height: cellSize, fontSize: cellSize * 0.45 }}
       className={`
-        inline-flex items-center justify-center
-        border rounded-[3px]
-        transition-all duration-100
+        inline-flex items-center justify-center font-mono font-bold
+        border rounded-[3px] touch-manipulation
+        transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
         ${cellClasses}
         ${gameOver ? "cursor-default" : ""}
       `}
-      aria-label={`Cell ${cell.row},${cell.col}`}
+      aria-label={cellAriaLabel}
+      role="gridcell"
     >
       {content}
     </button>

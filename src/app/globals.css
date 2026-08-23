@@ -148,16 +148,16 @@ button:disabled {
 
 .text-gradient {
   background: linear-gradient(135deg, #38bdf8, #3b82f6, #60a5fa);
-  -webkit-background-clip: text;
+  -webkit-background-clip: text; /* impeccable-disable-line gradient-text */
   -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background-clip: text; /* impeccable-disable-line gradient-text */
 }
 
 .text-gradient-warm {
-  background: linear-gradient(135deg, #f59e0b, #ef4444, #ec4899);
-  -webkit-background-clip: text;
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  -webkit-background-clip: text; /* impeccable-disable-line gradient-text */
   -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background-clip: text; /* impeccable-disable-line gradient-text */
 }
 
 /* Animated gradient background orbs */
@@ -190,7 +190,7 @@ button:disabled {
 .bg-orb-3 {
   width: 350px;
   height: 350px;
-  background: linear-gradient(135deg, #22d3ee, #3b82f6);
+  background: linear-gradient(135deg, #38bdf8, #3b82f6);
   bottom: -10%;
   left: 30%;
   animation-delay: -5s;
@@ -210,6 +210,20 @@ button:disabled {
   }
   66% {
     transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -255,20 +269,6 @@ button:disabled {
 
 .animate-pulse-ring {
   animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-}
-
-/* Grid pattern background */
-.bg-grid {
-  background-image: linear-gradient(
-      var(--border) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      var(--border) 1px,
-      transparent 1px
-    );
-  background-size: 60px 60px;
 }
 
 /* Hide scrollbar for clean UI across all browsers */

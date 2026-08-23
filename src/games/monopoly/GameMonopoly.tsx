@@ -167,10 +167,10 @@ export function GameMonopoly() {
         {/* Main Header (Shown on lobby/waiting) */}
         {screen !== 'playing' && screen !== 'finished' && (
           <div className="w-full text-center sm:text-left">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Mono<span className="bg-gradient-to-r from-amber-500 via-red-500 to-amber-400 bg-clip-text text-transparent">poly</span>
+            <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
+              Mono<span className="text-amber-500 dark:text-amber-400">poly</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-foreground-secondary mt-1 font-medium">
               Real-time multiplayer property trading — 2 to 4 players
             </p>
           </div>

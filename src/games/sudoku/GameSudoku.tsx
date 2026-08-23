@@ -130,17 +130,20 @@ function LevelSelectScreen({ onStart }: { onStart: (diff: Difficulty) => void })
             const isActive = selected === diff;
             return (
               <button
+                type="button"
                 key={diff}
                 onClick={() => setSelected(diff)}
-                className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all duration-200 focus:outline-none ${
+                aria-pressed={isActive}
+                aria-label={`Difficulty ${c.label}: ${c.description}, average time ${c.time}`}
+                className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   isActive
                     ? `border-transparent bg-gradient-to-br ${c.gradient} text-white shadow-lg shadow-${c.color}-500/30 scale-[1.03]`
                     : 'border-border bg-surface text-foreground-secondary hover:bg-surface-hover hover:border-foreground-muted'
                 }`}
               >
                 <span className="text-lg font-black">{c.label}</span>
-                <span className="text-[11px] opacity-80 text-center leading-tight">{c.description}</span>
-                <span className={`text-[11px] font-medium opacity-70`}>⏱ {c.time}</span>
+                <span className="text-xs opacity-80 text-center leading-tight">{c.description}</span>
+                <span className="text-xs font-mono font-medium opacity-70">⏱ {c.time}</span>
               </button>
             );
           })}

@@ -217,7 +217,7 @@ function PlayerTokens({
             className={`
               w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full ${style.bg} ${style.glow}
               flex items-center justify-center shadow-md border border-white/90 dark:border-slate-900
-              text-[10px] sm:text-xs md:text-sm select-none z-20
+              text-xs sm:text-xs md:text-sm select-none z-20
             `}
             title={p.username}
           >
@@ -463,7 +463,7 @@ function BoardCell({
           <span className="text-xl sm:text-2xl md:text-3xl leading-none mb-1 drop-shadow-xs">
             {icon}
           </span>
-          <span className="text-[8.5px] sm:text-[10px] md:text-[11.5px] font-black uppercase tracking-tight text-center leading-tight line-clamp-2 text-amber-800 dark:text-amber-300">
+          <span className="text-xs sm:text-xs md:text-xs font-black uppercase tracking-tight text-center leading-tight line-clamp-2 text-amber-800 dark:text-amber-300">
             {space.name}
           </span>
         </div>
@@ -486,7 +486,7 @@ function BoardCell({
     const isTax = space.type === 'tax';
     const bgClasses = isTax
       ? 'border-rose-200 dark:border-rose-800/50 bg-gradient-to-br from-rose-50 to-rose-100/70 dark:from-rose-950/50 dark:to-slate-900/90'
-      : 'border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/70 dark:from-purple-950/50 dark:to-slate-900/90';
+      : 'border-sky-200 dark:border-sky-800/50 bg-gradient-to-br from-sky-50 to-sky-100/70 dark:from-sky-950/50 dark:to-slate-900/90';
 
     // 90-degree sideways rotation for Chance & Tax on left and right columns
     if (isRotatedSide) {
@@ -498,8 +498,8 @@ function BoardCell({
               className={`
                 uppercase tracking-tight leading-none [writing-mode:vertical-rl] rotate-180 whitespace-nowrap
                 ${isTax
-                  ? 'text-[8px] sm:text-[9.5px] md:text-[10px] font-black text-rose-800 dark:text-rose-300'
-                  : 'text-[8px] sm:text-[9.5px] md:text-[10px] font-black text-purple-800 dark:text-purple-300'
+                  ? 'text-xs sm:text-xs md:text-xs font-black text-rose-800 dark:text-rose-300'
+                  : 'text-xs sm:text-xs md:text-xs font-black text-purple-800 dark:text-purple-300'
                 }
               `}
             >
@@ -535,8 +535,8 @@ function BoardCell({
             className={`
               uppercase tracking-tight text-center truncate px-0.5 leading-none
               ${isTax
-                ? 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-rose-800 dark:text-rose-300'
-                : 'text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black text-purple-800 dark:text-purple-300'
+                ? 'text-xs sm:text-xs md:text-xs font-black text-rose-800 dark:text-rose-300'
+                : 'text-xs sm:text-xs md:text-xs font-black text-purple-800 dark:text-purple-300'
               }
             `}
           >
@@ -590,7 +590,7 @@ function BoardCell({
           {/* World Cup Host Badge */}
           {isWorldCupHost && (
             <div
-              className="absolute bottom-0.5 left-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-[7px] sm:text-[8px] px-1 py-0.2 rounded-full border border-yellow-100 shadow-md animate-bounce"
+              className="absolute bottom-0.5 left-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-xs sm:text-xs px-1 py-0.2 rounded-full border border-yellow-100 shadow-md animate-pulse"
               title="World Cup Host City: 2× Rent Active!"
             >
               <span>🏆</span>
@@ -601,7 +601,7 @@ function BoardCell({
           {/* Asset Shield Badge */}
           {isShielded && (
             <div
-              className="absolute top-0.5 right-0.5 z-20 flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-[7px] sm:text-[8px] p-0.5 rounded-full border border-emerald-100 shadow-md shadow-emerald-500/40"
+              className="absolute top-0.5 right-0.5 z-20 flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs sm:text-xs p-0.5 rounded-full border border-emerald-100 shadow-md shadow-emerald-500/40"
               title="Protected by Asset Shield 🛡️"
             >
               <span>🛡️</span>
@@ -611,7 +611,7 @@ function BoardCell({
           {/* Blackout Badge */}
           {isBlackout && (
             <div
-              className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
+              className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-xs sm:text-xs px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
               title="Blackout: Rent is $0!"
             >
               <span>⚡</span>
@@ -622,7 +622,7 @@ function BoardCell({
           <div className="w-4 h-full flex items-center justify-center flex-shrink-0">
             <span
               className={`
-                text-[8px] sm:text-[9.5px] md:text-[10px] font-black uppercase tracking-tight text-center leading-none [writing-mode:vertical-rl] rotate-180 whitespace-nowrap
+                text-xs sm:text-xs md:text-xs font-black uppercase tracking-tight text-center leading-none [writing-mode:vertical-rl] rotate-180 whitespace-nowrap
                 ${colorStyle ? colorStyle.text : 'text-slate-800 dark:text-slate-100'}
               `}
               title={space.name}
@@ -636,7 +636,7 @@ function BoardCell({
             {houseLevel > 0 ? (
               <HousePlotDisplay level={houseLevel} ownerColor={ownerColor} isRotated={true} />
             ) : icon ? (
-              <span className="text-[11px] sm:text-sm md:text-base leading-none opacity-85 -rotate-90">
+              <span className="text-xs sm:text-sm md:text-base leading-none opacity-85 -rotate-90">
                 {icon}
               </span>
             ) : null}
@@ -657,16 +657,16 @@ function BoardCell({
         <div className="w-[25%] h-full bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
           {currentRent !== null ? (
             <div className="flex items-center justify-center gap-0.5 [writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
-              <span className="text-[8px] sm:text-[9.5px] md:text-[14px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
+              <span className="text-xs sm:text-xs md:text-xs font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
                 {formatRentDisplay(currentRent)}
               </span>
               {isMonopolized && (
-                <span className="text-[7px] sm:text-[8px] font-black text-amber-600 dark:text-amber-400 leading-none" title="Monopoly Set 1.5× Rent Active">
+                <span className="text-xs sm:text-xs font-black text-amber-600 dark:text-amber-400 leading-none" title="Monopoly Set 1.5× Rent Active">
                   👑
                 </span>
               )}
               {isWorldCupHost && (
-                <span className="text-[7px] sm:text-[8px] font-black text-amber-500 dark:text-amber-300 leading-none" title="World Cup 2× Rent Active">
+                <span className="text-xs sm:text-xs font-black text-amber-500 dark:text-amber-300 leading-none" title="World Cup 2× Rent Active">
                   🏆
                 </span>
               )}
@@ -702,7 +702,7 @@ function BoardCell({
         {/* World Cup Host Badge */}
         {isWorldCupHost && (
           <div
-            className="absolute top-0.5 left-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-[7px] sm:text-[8px] px-1 py-0.2 rounded-full border border-yellow-100 shadow-md animate-bounce"
+            className="absolute top-0.5 left-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-xs sm:text-xs px-1 py-0.2 rounded-full border border-yellow-100 shadow-md animate-pulse"
             title="World Cup Host City: 2× Rent Active!"
           >
             <span>🏆</span>
@@ -712,7 +712,7 @@ function BoardCell({
         {/* Asset Shield Badge */}
         {isShielded && (
           <div
-            className="absolute top-0.5 right-0.5 z-20 flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-[7px] sm:text-[8px] p-0.5 rounded-full border border-emerald-100 shadow-md shadow-emerald-500/40"
+            className="absolute top-0.5 right-0.5 z-20 flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs sm:text-xs p-0.5 rounded-full border border-emerald-100 shadow-md shadow-emerald-500/40"
             title="Protected by Asset Shield 🛡️"
           >
             <span>🛡️</span>
@@ -722,7 +722,7 @@ function BoardCell({
         {/* Blackout Badge */}
         {isBlackout && (
           <div
-            className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
+            className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-xs sm:text-xs px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
             title="Blackout: Rent is $0!"
           >
             <span>⚡</span>
@@ -732,7 +732,7 @@ function BoardCell({
         {/* City / Space Name */}
         <span
           className={`
-            text-[8px] sm:text-[9.5px] md:text-[10.5px] font-black uppercase tracking-tight text-center truncate px-0.5 leading-none
+            text-xs sm:text-xs md:text-xs font-black uppercase tracking-tight text-center truncate px-0.5 leading-none
             ${colorStyle ? colorStyle.text : 'text-slate-800 dark:text-slate-100'}
           `}
           title={space.name}
@@ -745,7 +745,7 @@ function BoardCell({
           {houseLevel > 0 ? (
             <HousePlotDisplay level={houseLevel} ownerColor={ownerColor} isRotated={false} />
           ) : icon ? (
-            <span className="text-[11px] sm:text-sm md:text-base leading-none opacity-85">
+            <span className="text-xs sm:text-sm md:text-base leading-none opacity-85">
               {icon}
             </span>
           ) : null}
@@ -766,16 +766,16 @@ function BoardCell({
       <div className="h-[25%] w-full bg-white dark:bg-slate-900 border-t border-slate-300 dark:border-slate-700/60 flex items-center justify-center p-0.5 overflow-hidden">
         {currentRent !== null ? (
           <div className="flex items-center justify-center gap-1 text-center leading-none">
-            <span className="text-[8.5px] sm:text-[10px] md:text-[14px] font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
+            <span className="text-xs sm:text-xs md:text-xs font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none text-center">
               {formatRentDisplay(currentRent)}
             </span>
             {isMonopolized && (
-              <span className="text-[7.5px] sm:text-[9px] font-black text-amber-600 dark:text-amber-400 animate-pulse flex-shrink-0" title="Monopoly Set 1.5× Rent Active">
+              <span className="text-xs sm:text-xs font-black text-amber-600 dark:text-amber-400 animate-pulse flex-shrink-0" title="Monopoly Set 1.5× Rent Active">
                 👑
               </span>
             )}
             {isWorldCupHost && (
-              <span className="text-[7.5px] sm:text-[9px] font-black text-amber-500 dark:text-amber-300 animate-pulse flex-shrink-0" title="World Cup 2× Rent Active">
+              <span className="text-xs sm:text-xs font-black text-amber-500 dark:text-amber-300 animate-pulse flex-shrink-0" title="World Cup 2× Rent Active">
                 🏆
               </span>
             )}
@@ -830,13 +830,13 @@ function MonopolySetCelebrationModal({
 
         {/* Floating Crown / Stars */}
         <div className="relative flex items-center justify-center gap-2 mb-2">
-          <span className="text-3xl sm:text-4xl animate-bounce">👑</span>
+          <span className="text-3xl sm:text-4xl animate-pulse">👑</span>
           <span className="text-2xl sm:text-3xl animate-pulse">✨</span>
-          <span className="text-3xl sm:text-4xl animate-bounce">🏰</span>
+          <span className="text-3xl sm:text-4xl animate-pulse">🏰</span>
         </div>
 
         {/* Header */}
-        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-300 drop-shadow-sm">
+        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-amber-300 drop-shadow-sm">
           MONOPOLY COMPLETED!
         </h3>
 
@@ -846,7 +846,7 @@ function MonopolySetCelebrationModal({
           <span className="text-xs sm:text-sm font-black text-slate-100">
             {celebration.username}
           </span>
-          <span className="text-[10px] uppercase font-bold text-amber-400">
+          <span className="text-xs uppercase font-bold text-amber-400">
             OWNER
           </span>
         </div>
@@ -872,7 +872,7 @@ function MonopolySetCelebrationModal({
           ⚡ 1.5× RENT PENALTY ACTIVATED ON THIS SET! ⚡
         </div>
 
-        <p className="text-[10px] text-slate-400 mt-3 italic">
+        <p className="text-xs text-slate-400 mt-3 italic">
           Tap anywhere to continue
         </p>
       </motion.div>
@@ -908,13 +908,13 @@ function BankruptcyModal({
 
         {/* Skull & Shatter Icon */}
         <div className="relative flex items-center justify-center gap-2 mb-3">
-          <span className="text-4xl sm:text-5xl animate-bounce">💀</span>
+          <span className="text-4xl sm:text-5xl animate-pulse">💀</span>
           <span className="text-3xl sm:text-4xl animate-pulse">💸</span>
-          <span className="text-4xl sm:text-5xl animate-bounce">📉</span>
+          <span className="text-4xl sm:text-5xl animate-pulse">📉</span>
         </div>
 
         {/* Header */}
-        <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-red-300 to-amber-400 drop-shadow-md">
+        <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-rose-400 drop-shadow-md">
           BANKRUPT!
         </h3>
 
@@ -924,7 +924,7 @@ function BankruptcyModal({
           <span className="text-sm sm:text-base font-black text-rose-200">
             {player.username}
           </span>
-          <span className="text-[10px] uppercase font-bold text-rose-400 bg-rose-950 px-2 py-0.5 rounded-full border border-rose-800">
+          <span className="text-xs uppercase font-bold text-rose-400 bg-rose-950 px-2 py-0.5 rounded-full border border-rose-800">
             ELIMINATED
           </span>
         </div>
@@ -933,7 +933,7 @@ function BankruptcyModal({
           Ran out of funds to pay expenses and has gone bankrupt!
         </p>
 
-        <div className="mt-4 inline-block px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] font-mono font-bold animate-pulse">
+        <div className="mt-4 inline-block px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-mono font-bold animate-pulse">
           Declaring game outcome...
         </div>
       </motion.div>
@@ -1023,11 +1023,11 @@ function DiceDisplay({
       {/* Dice total indicator */}
       <div className="min-h-[16px] flex items-center justify-center">
         {isRolling ? (
-          <span className="text-[10px] sm:text-xs font-black tracking-widest text-amber-300 dark:text-amber-400 animate-pulse">
+          <span className="text-xs sm:text-xs font-black tracking-widest text-amber-300 dark:text-amber-400 animate-pulse">
             ROLLING...
           </span>
         ) : diceSum !== null ? (
-          <span className={`text-[10px] sm:text-xs font-black tracking-wider ${isDoubles ? 'text-amber-300 animate-bounce' : 'text-amber-200/90 dark:text-amber-300/80'}`}>
+          <span className={`text-xs sm:text-xs font-black tracking-wider ${isDoubles ? 'text-amber-300 animate-pulse' : 'text-amber-200/90 dark:text-amber-300/80'}`}>
             🎲 {diceSum} {isDoubles ? '✨ DOUBLES! ✨' : ''}
           </span>
         ) : null}
@@ -1092,9 +1092,9 @@ function AnimatedBalanceDisplay({
             animate={{ opacity: 1, y: -22, scale: 1.15 }}
             exit={{ opacity: 0, y: -34, scale: 0.8 }}
             transition={{ duration: 1.4, ease: 'easeOut' }}
-            className={`absolute -top-3 left-full ml-1 px-1.5 py-0.5 rounded-md text-[11px] sm:text-xs font-mono font-black shadow-lg pointer-events-none z-30 flex items-center gap-0.5 whitespace-nowrap ${
+            className={`absolute -top-3 left-full ml-1 px-1.5 py-0.5 rounded-md text-xs sm:text-xs font-mono font-black shadow-lg pointer-events-none z-30 flex items-center gap-0.5 whitespace-nowrap ${
               delta.amount > 0
-                ? 'bg-emerald-500 text-slate-950 border border-emerald-300 ring-2 ring-emerald-400/40'
+                ? 'bg-emerald-600 text-white border border-emerald-400 font-bold ring-2 ring-emerald-400/40'
                 : 'bg-rose-500 text-white border border-rose-300 ring-2 ring-rose-400/40'
             }`}
           >
@@ -1147,7 +1147,7 @@ function CompactPlayerCard({
             <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" title="You" />
           )}
           {player.inJail && (
-            <span className="text-[9px] bg-rose-100 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 px-1.5 py-0.2 rounded-md font-black border border-rose-300 dark:border-rose-800/50">
+            <span className="text-xs bg-rose-100 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 px-1.5 py-0.2 rounded-md font-black border border-rose-300 dark:border-rose-800/50">
               🔒 JAIL
             </span>
           )}
@@ -1164,7 +1164,7 @@ function CompactPlayerCard({
         </div>
       </div>
       {isCurrentTurn && (
-        <span className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 font-black animate-pulse px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60">
+        <span className="text-xs sm:text-xs text-amber-600 dark:text-amber-400 font-black animate-pulse px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60">
           🎲 TURN
         </span>
       )}
@@ -1226,7 +1226,7 @@ function BuildHouseModal({
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase tracking-wider block opacity-80">Your Cash</span>
+            <span className="text-xs uppercase tracking-wider block opacity-80">Your Cash</span>
             <span className="text-sm font-mono font-black text-amber-200">
               ${playerBalance.toLocaleString()}
             </span>
@@ -1256,7 +1256,7 @@ function BuildHouseModal({
                 >
                   <div className="flex items-start justify-between">
                     <span className="text-lg">{icon}</span>
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10">
+                    <span className="text-xs font-black uppercase px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10">
                       Lv.{level}
                     </span>
                   </div>
@@ -1271,11 +1271,11 @@ function BuildHouseModal({
                   </div>
 
                   {isAlreadyBuilt ? (
-                    <span className="text-[10px] font-bold text-slate-400 text-center py-1">
+                    <span className="text-xs font-bold text-slate-400 text-center py-1">
                       ✅ Built
                     </span>
                   ) : isLocked ? (
-                    <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 text-center py-1 bg-amber-100/60 dark:bg-amber-950/40 rounded-lg">
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 text-center py-1 bg-amber-100/60 dark:bg-amber-950/40 rounded-lg">
                       🔒 2nd Visit Only
                     </span>
                   ) : canAfford ? (
@@ -1283,12 +1283,12 @@ function BuildHouseModal({
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => onBuild(level)}
-                      className="w-full py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black rounded-xl text-[11px] shadow cursor-pointer transition-all"
+                      className="w-full py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black rounded-xl text-xs shadow cursor-pointer transition-all"
                     >
                       {isFirstPurchase ? `BUY LV.${level}` : `BUILD LV.${level}`}
                     </motion.button>
                   ) : (
-                    <span className="text-[10px] font-bold text-rose-500 text-center py-1 bg-rose-50 dark:bg-rose-950/40 rounded-lg">
+                    <span className="text-xs font-bold text-rose-500 text-center py-1 bg-rose-50 dark:bg-rose-950/40 rounded-lg">
                       ❌ Not enough cash
                     </span>
                   )}
@@ -1919,7 +1919,7 @@ export function MonopolyBoard({
             >
               {/* Title */}
               <div className="text-center z-10">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-[0.15em] bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 dark:from-amber-300 dark:via-yellow-200 dark:to-amber-400 bg-clip-text text-transparent drop-shadow-md">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-[0.15em] text-amber-400 dark:text-amber-300 drop-shadow-md">
                   MONOPOLY
                 </h2>
               </div>
@@ -1934,7 +1934,7 @@ export function MonopolyBoard({
                     initial={{ scale: 0.5, y: 15, opacity: 0 }}
                     animate={{ scale: 1.05, y: 0, opacity: 1 }}
                     exit={{ scale: 0.8, y: -15, opacity: 0 }}
-                    className="z-30 px-4 py-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-slate-950 font-black rounded-full text-xs sm:text-sm shadow-2xl border-2 border-emerald-200 animate-bounce flex items-center gap-1.5 pointer-events-none"
+                    className="z-30 px-4 py-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-slate-950 font-black rounded-full text-xs sm:text-sm shadow-2xl border-2 border-emerald-200 animate-pulse flex items-center gap-1.5 pointer-events-none"
                   >
                     <span>🚩</span>
                     <span>{startBonusPlayer} passed START: +$250 Salary!</span>
@@ -1950,11 +1950,11 @@ export function MonopolyBoard({
                     initial={{ scale: 0.5, y: 15, opacity: 0 }}
                     animate={{ scale: 1.05, y: 0, opacity: 1 }}
                     exit={{ scale: 0.8, y: -15, opacity: 0 }}
-                    className="z-30 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white font-black rounded-2xl text-xs sm:text-sm shadow-2xl border-2 border-purple-300 animate-bounce flex items-center gap-2.5 pointer-events-none text-center max-w-[320px]"
+                    className="z-30 px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-600 text-white font-black rounded-2xl text-xs sm:text-sm shadow-2xl border-2 border-sky-300 shadow-sky-500/30 flex items-center gap-2.5 pointer-events-none text-center max-w-[320px]"
                   >
                     <span className="text-xl sm:text-2xl flex-shrink-0">{chanceToast.icon}</span>
                     <div className="flex flex-col text-left leading-tight">
-                      <span className="text-amber-300 font-extrabold text-[10px] sm:text-[11px] uppercase tracking-wider">{chanceToast.title}</span>
+                      <span className="text-amber-300 font-extrabold text-xs sm:text-xs uppercase tracking-wider">{chanceToast.title}</span>
                       <span className="text-white text-xs sm:text-sm font-black">{chanceToast.description}</span>
                     </div>
                   </motion.div>
@@ -1969,7 +1969,7 @@ export function MonopolyBoard({
                   transition={{ type: 'spring', stiffness: 350, damping: 20 }}
                   className="flex flex-col items-center gap-2.5 z-20"
                 >
-                  <div className="px-6 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl border-2 border-amber-200 animate-bounce text-center">
+                  <div className="px-6 py-3 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black rounded-2xl text-base sm:text-lg shadow-2xl border-2 border-amber-200 animate-pulse text-center">
                     🏆 {players.find((p) => p.playerId === winner)?.username || gameState?.players?.find((p) => p.playerId === winner)?.username || room?.players?.find((p) => p.id === winner)?.username || 'WINNER'} WINS!
                     {endReason === 'disconnect' && (
                       <div className="text-xs font-bold mt-1 text-slate-900">🏃 Opponent left the match</div>
@@ -2008,7 +2008,7 @@ export function MonopolyBoard({
                   className="z-20 bg-slate-950/95 border-2 border-purple-400 p-3.5 rounded-2xl shadow-2xl text-center space-y-1.5 max-w-[300px] w-full select-none"
                 >
                   <div className="flex items-center justify-center gap-1.5 text-purple-400 font-black text-xs sm:text-sm tracking-wider">
-                    <span className="text-lg animate-bounce">
+                    <span className="text-lg animate-pulse">
                       {pendingChanceTarget.type === 'demolish'
                         ? '💣'
                         : pendingChanceTarget.type === 'blackout'
@@ -2019,10 +2019,10 @@ export function MonopolyBoard({
                     </span>
                     <span>{pendingChanceTarget.title}</span>
                   </div>
-                  <p className="text-[11px] text-slate-200 font-medium leading-tight">
+                  <p className="text-xs text-slate-200 font-medium leading-tight">
                     {pendingChanceTarget.description}
                   </p>
-                  <div className="text-[10px] text-purple-300 font-mono font-bold bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-500/40">
+                  <div className="text-xs text-purple-300 font-mono font-bold bg-purple-950/80 px-2 py-0.5 rounded-lg border border-purple-500/40">
                     🎯 Click a highlighted city on the board to apply!
                   </div>
                 </motion.div>
@@ -2036,13 +2036,13 @@ export function MonopolyBoard({
                   className="z-20 bg-slate-950/95 border-2 border-amber-400 p-3 rounded-2xl shadow-2xl text-center space-y-1.5 max-w-[290px] w-full select-none"
                 >
                   <div className="flex items-center justify-center gap-1.5 text-amber-400 font-black text-xs sm:text-sm tracking-wider">
-                    <span className="text-lg animate-bounce">🏆</span>
+                    <span className="text-lg animate-pulse">🏆</span>
                     <span>SELECT WORLD CUP HOST</span>
                   </div>
-                  <p className="text-[11px] text-slate-200 font-medium leading-tight">
+                  <p className="text-xs text-slate-200 font-medium leading-tight">
                     Click one of your highlighted properties on the board to host the World Cup!
                   </p>
-                  <div className="text-[10px] text-emerald-300 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded-lg border border-emerald-500/40">
+                  <div className="text-xs text-emerald-300 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded-lg border border-emerald-500/40">
                     💰 Rent on the host property will be DOUBLED (2×)!
                   </div>
                 </motion.div>
@@ -2056,13 +2056,13 @@ export function MonopolyBoard({
                   className="z-20 bg-slate-950/95 border-2 border-sky-400 p-3 rounded-2xl shadow-2xl text-center space-y-1.5 max-w-[290px] w-full select-none"
                 >
                   <div className="flex items-center justify-center gap-1.5 text-sky-400 font-black text-xs sm:text-sm tracking-wider">
-                    <span className="text-lg animate-bounce">✈️</span>
+                    <span className="text-lg animate-pulse">✈️</span>
                     <span>WORLD TOUR FLIGHT</span>
                   </div>
-                  <p className="text-[11px] text-slate-200 font-medium leading-tight">
+                  <p className="text-xs text-slate-200 font-medium leading-tight">
                     Click any highlighted city or beach on the board to travel!
                   </p>
-                  <div className="text-[10px] text-amber-300 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/40">
+                  <div className="text-xs text-amber-300 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-500/40">
                     💰 Passing START earns +$250 salary
                   </div>
                 </motion.div>
@@ -2095,7 +2095,7 @@ export function MonopolyBoard({
                   animate={{ scale: 1, opacity: 1 }}
                   className="z-20 bg-slate-900/95 border-2 border-emerald-400/80 p-3 rounded-2xl shadow-2xl text-center space-y-2 max-w-[280px] w-full"
                 >
-                  <div className="text-[10px] uppercase font-black tracking-wider text-emerald-400">
+                  <div className="text-xs uppercase font-black tracking-wider text-emerald-400">
                     LANDED ON UNOWNED PROPERTY
                   </div>
                   <div className="text-sm font-black text-white">{buyOffer.spaceName}</div>
@@ -2113,7 +2113,7 @@ export function MonopolyBoard({
                         🏠 BUY
                       </motion.button>
                     ) : (
-                      <span className="flex-1 py-2 bg-slate-800 text-slate-500 font-bold rounded-xl text-[11px]">
+                      <span className="flex-1 py-2 bg-slate-800 text-slate-500 font-bold rounded-xl text-xs">
                         CAN'T AFFORD
                       </span>
                     )}
@@ -2136,13 +2136,13 @@ export function MonopolyBoard({
                   animate={{ scale: 1, opacity: 1 }}
                   className="z-20 bg-rose-950/95 border-2 border-rose-500 p-3 rounded-2xl shadow-2xl text-center space-y-2 max-w-[280px] w-full"
                 >
-                  <div className="text-[10px] uppercase font-black tracking-wider text-rose-300 flex items-center justify-center gap-1">
+                  <div className="text-xs uppercase font-black tracking-wider text-rose-300 flex items-center justify-center gap-1">
                     <span>⚠️</span> DEBT PAYMENT REQUIRED
                   </div>
                   <div className="text-xs font-black text-white">
                     Owe ${gameState.pendingDebt.amount ? gameState.pendingDebt.amount.toLocaleString() : '0'} for {gameState.pendingDebt.spaceName}
                   </div>
-                  <div className="text-[11px] font-mono font-bold text-rose-200">
+                  <div className="text-xs font-mono font-bold text-rose-200">
                     Your Cash: ${(displayedBalances[myPlayer?.playerId ?? ''] ?? myPlayer?.balance ?? 0).toLocaleString()}
                   </div>
                   {myPlayer && gameState.pendingDebt.amount != null && (displayedBalances[myPlayer.playerId] ?? myPlayer.balance) >= gameState.pendingDebt.amount ? (
@@ -2156,14 +2156,14 @@ export function MonopolyBoard({
                     </motion.button>
                   ) : (
                     <div className="space-y-1.5">
-                      <div className="text-[10px] text-amber-200 font-bold bg-amber-950/80 p-1.5 rounded-lg border border-amber-700/60">
+                      <div className="text-xs text-amber-200 font-bold bg-amber-950/80 p-1.5 rounded-lg border border-amber-700/60">
                         Need ${((gameState.pendingDebt.amount ?? 0) - (displayedBalances[myPlayer?.playerId ?? ''] ?? myPlayer?.balance ?? 0)).toLocaleString()} more! Sell properties on right panel.
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={onDeclareBankruptcy}
-                        className="w-full py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-[11px] cursor-pointer"
+                        className="w-full py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs cursor-pointer"
                       >
                         💀 CONCEDE & BANKRUPT
                       </motion.button>
@@ -2197,7 +2197,7 @@ export function MonopolyBoard({
                       <span className="text-sm">{token.avatar}</span>
                       <div className="flex-1 min-w-0">
                         <div className="font-black text-white dark:text-slate-100 truncate text-xs">{p.username}</div>
-                        <div className="text-slate-200 dark:text-slate-300 truncate text-[11px] font-medium">📍 {space?.name || 'Unknown'}</div>
+                        <div className="text-slate-200 dark:text-slate-300 truncate text-xs font-medium">📍 {space?.name || 'Unknown'}</div>
                       </div>
                     </div>
                   );
@@ -2325,16 +2325,16 @@ export function MonopolyBoard({
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="truncate text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm">{space?.name}</span>
                               {level > 0 && (
-                                <span className="text-[10px] flex-shrink-0">{HOUSE_LEVEL_ICONS[level]}</span>
+                                <span className="text-xs flex-shrink-0">{HOUSE_LEVEL_ICONS[level]}</span>
                               )}
                               {isMonopolized && (
-                                <span className="text-[8px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-300 dark:border-amber-600/60 flex-shrink-0">
+                                <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded border border-amber-300 dark:border-amber-600/60 flex-shrink-0">
                                   👑
                                 </span>
                               )}
                             </div>
                             {space?.price ? (
-                              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                                 Val: ${space.price}
                               </span>
                             ) : null}

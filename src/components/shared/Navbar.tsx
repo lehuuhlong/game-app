@@ -318,16 +318,16 @@ function UserMenu() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 rounded-lg bg-background p-2">
                 <div className="text-center">
-                  <p className="text-[10px] text-foreground-muted">Best 2048</p>
-                  <p className="text-xs font-bold text-foreground">{user.bestScore2048.toLocaleString()}</p>
+                  <p className="text-xs text-foreground-muted">Best 2048</p>
+                  <p className="text-xs font-bold font-mono text-foreground">{user.bestScore2048.toLocaleString()}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-foreground-muted">Caro Wins</p>
-                  <p className="text-xs font-bold text-foreground">{user.caroWins}</p>
+                  <p className="text-xs text-foreground-muted">Caro Wins</p>
+                  <p className="text-xs font-bold font-mono text-foreground">{user.caroWins}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-foreground-muted">Win Rate</p>
-                  <p className="text-xs font-bold text-foreground">{winRate}%</p>
+                  <p className="text-xs text-foreground-muted">Win Rate</p>
+                  <p className="text-xs font-bold font-mono text-foreground">{winRate}%</p>
                 </div>
               </div>
             </div>

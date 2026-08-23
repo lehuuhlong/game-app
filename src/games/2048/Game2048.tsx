@@ -155,13 +155,15 @@ export function Game2048() {
 
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-foreground-muted">
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-[10px]">←↑↓→</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-xs">←↑↓→</kbd>
             <span>or</span>
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-[10px]">WASD</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-xs">WASD</kbd>
             <span>to move</span>
           </div>
           <button
+            type="button"
             onClick={handleRestart}
+            aria-label="Restart 2048 game"
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all hover:-translate-y-0.5"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

@@ -122,16 +122,16 @@ export function GameInfoPanel({
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-border bg-surface p-3 text-center">
-          <p className="text-2xl font-bold text-foreground">{moveCount}</p>
-          <p className="text-[10px] font-medium text-foreground-muted uppercase tracking-wider">
+          <p className="text-2xl font-bold font-mono text-foreground">{moveCount}</p>
+          <p className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">
             Moves
           </p>
         </div>
         <div className="rounded-lg border border-border bg-surface p-3 text-center">
-          <p className="text-2xl font-bold text-foreground">
+          <p className="text-2xl font-bold font-mono text-foreground">
             15×15
           </p>
-          <p className="text-[10px] font-medium text-foreground-muted uppercase tracking-wider">
+          <p className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">
             Grid
           </p>
         </div>

@@ -270,7 +270,7 @@ export function HeadToHeadExplorer({
         {/* Quick select your top rivals */}
         {myRivals.length > 0 && (
           <div className="space-y-2 pt-2 border-t border-border/60">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-foreground-muted">
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">
               Quick Pick: Your Top Rivals ({myRivals.length})
             </span>
             <div className="flex flex-wrap items-center gap-2">
@@ -292,7 +292,7 @@ export function HeadToHeadExplorer({
                   >
                     <Avatar avatarUrl={r.avatarUrl} username={r.username} />
                     <span>{r.username}</span>
-                    <span className="opacity-70 font-mono text-[11px]">
+                    <span className="opacity-70 font-mono text-xs">
                       ({r.wins}W-{r.losses}L)
                     </span>
                   </button>
@@ -412,21 +412,21 @@ export function HeadToHeadExplorer({
             <div className="space-y-2">
               <div className="h-4 w-full rounded-full bg-border overflow-hidden flex shadow-inner">
                 <div
-                  className="h-full bg-sky-500 transition-all duration-700 flex items-center justify-center text-[10px] font-bold text-white"
+                  className="h-full bg-sky-500 transition-all duration-700 flex items-center justify-center text-xs font-bold text-white"
                   style={{ width: `${(h2hData.player1.wins / h2hData.totalMatches) * 100}%` }}
                 >
                   {h2hData.player1.wins > 0 && `${Math.round((h2hData.player1.wins / h2hData.totalMatches) * 100)}%`}
                 </div>
                 {h2hData.draws > 0 && (
                   <div
-                    className="h-full bg-amber-500 transition-all duration-700 flex items-center justify-center text-[10px] font-bold text-white"
+                    className="h-full bg-amber-500 transition-all duration-700 flex items-center justify-center text-xs font-bold text-white"
                     style={{ width: `${(h2hData.draws / h2hData.totalMatches) * 100}%` }}
                   >
                     {`${Math.round((h2hData.draws / h2hData.totalMatches) * 100)}%`}
                   </div>
                 )}
                 <div
-                  className="h-full bg-rose-500 transition-all duration-700 flex items-center justify-center text-[10px] font-bold text-white"
+                  className="h-full bg-rose-500 transition-all duration-700 flex items-center justify-center text-xs font-bold text-white"
                   style={{ width: `${(h2hData.player2.wins / h2hData.totalMatches) * 100}%` }}
                 >
                   {h2hData.player2.wins > 0 && `${Math.round((h2hData.player2.wins / h2hData.totalMatches) * 100)}%`}
@@ -517,7 +517,7 @@ export function HeadToHeadExplorer({
                         <span className="text-xl">{GAME_ICONS[m.gameType] || "🎮"}</span>
                         <div>
                           <span className="font-bold text-foreground capitalize text-sm">{m.gameType}</span>
-                          <p className="text-[11px] text-foreground-muted">
+                          <p className="text-xs text-foreground-muted">
                             {new Date(m.createdAt).toLocaleDateString()} • {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
@@ -525,7 +525,7 @@ export function HeadToHeadExplorer({
 
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2.5 py-1 rounded-xl font-bold uppercase text-[11px] ${
+                          className={`px-2.5 py-1 rounded-xl font-bold uppercase text-xs ${
                             isP1Win
                               ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
                               : isP2Win
@@ -562,7 +562,7 @@ function Avatar({
   size?: "sm" | "md" | "lg";
 }) {
   const sizeClasses =
-    size === "lg" ? "h-12 w-12 text-base" : size === "sm" ? "h-5 w-5 text-[10px]" : "h-7 w-7 text-xs";
+    size === "lg" ? "h-12 w-12 text-base" : size === "sm" ? "h-5 w-5 text-xs" : "h-7 w-7 text-xs";
 
   if (avatarUrl) {
     return (
@@ -700,7 +700,7 @@ function UserSearchInput({
 
   return (
     <div ref={containerRef} className="flex-1 w-full relative">
-      <label className="block text-[11px] font-bold text-foreground-muted uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-bold text-foreground-muted uppercase tracking-wider mb-1.5">
         {label}
       </label>
       <div className="relative">
@@ -767,7 +767,7 @@ function UserSearchInput({
               </div>
             ) : (
               <div className="py-1.5 max-h-60 overflow-y-auto">
-                <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                <div className="px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-foreground-muted">
                   Matching Players ({visibleSuggestions.length})
                 </div>
                 {visibleSuggestions.map((u, idx) => {
@@ -788,7 +788,7 @@ function UserSearchInput({
                         <Avatar avatarUrl={u.avatarUrl} username={u.username} size="sm" />
                         <span className="font-bold truncate">{u.username}</span>
                       </div>
-                      <span className="text-[11px] text-foreground-muted font-normal">
+                      <span className="text-xs text-foreground-muted font-normal">
                         Select ↵
                       </span>
                     </button>
