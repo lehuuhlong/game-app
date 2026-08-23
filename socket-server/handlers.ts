@@ -62,7 +62,7 @@ function createInitialCaroState(): CaroGameState {
 // ── Chess helpers ─────────────────────────────────────────────────
 
 const DEFAULT_CHESS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const CHESS_TOTAL_TIME = 15 * 60; // 900 seconds (15 minutes per player)
+const CHESS_TOTAL_TIME = 30 * 60; // 1800 seconds (30 minutes per player)
 
 function createInitialChessState(p1: Player, p2: Player): ChessGameState {
   return {

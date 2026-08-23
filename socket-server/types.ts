@@ -220,8 +220,8 @@ export interface ChessGameState {
   currentTurn: ChessColor;
   whitePlayer: ChessPlayerInfo;
   blackPlayer: ChessPlayerInfo;
-  whiteTime: number; // in seconds (starts at 900 = 15m)
-  blackTime: number; // in seconds (starts at 900 = 15m)
+  whiteTime: number; // in seconds (starts at 1800 = 30m)
+  blackTime: number; // in seconds (starts at 1800 = 30m)
   lastMoveTimestamp: number; // unix timestamp ms
   moveHistory: ChessMoveRecord[];
   isCheck: boolean;
