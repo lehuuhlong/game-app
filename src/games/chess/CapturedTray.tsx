@@ -38,7 +38,7 @@ const PIECE_VALUES: Record<string, number> = {
 export function CapturedTray({ pieces }: CapturedTrayProps) {
   if (!pieces || pieces.length === 0) {
     return (
-      <div className="h-5 flex items-center text-[11px] text-foreground-muted italic">
+      <div className="h-5 flex items-center text-xs text-foreground-muted italic">
         No captures yet
       </div>
     );
@@ -61,7 +61,7 @@ export function CapturedTray({ pieces }: CapturedTrayProps) {
         ))}
       </div>
       {totalValue > 0 && (
-        <span className="text-[10px] font-bold px-1 py-0.2 rounded bg-accent/10 text-accent border border-accent/20 ml-1">
+        <span className="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 ml-1">
           +{totalValue}
         </span>
       )}

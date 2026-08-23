@@ -37,7 +37,7 @@ export function MoveHistory({ moves }: MoveHistoryProps) {
           <span>📜</span>
           <span>Move History</span>
         </h3>
-        <span className="text-[11px] font-medium text-foreground-muted">
+        <span className="text-xs font-mono font-medium text-foreground-muted">
           {moves.length} {moves.length === 1 ? "move" : "moves"}
         </span>
       </div>

@@ -115,18 +115,18 @@ export function GameTrex() {
           {/* Scoreboard */}
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
+              <span className="text-xs uppercase tracking-wider text-foreground-muted font-semibold">
                 Score
               </span>
-              <span className="text-lg font-bold text-foreground tabular-nums">
+              <span className="text-lg font-bold font-mono text-foreground tabular-nums">
                 {gameState.score}
               </span>
             </div>
             <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[80px]">
-              <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
+              <span className="text-xs uppercase tracking-wider text-foreground-muted font-semibold">
                 Best
               </span>
-              <span className="text-lg font-bold text-accent tabular-nums">
+              <span className="text-lg font-bold font-mono text-accent tabular-nums">
                 {displayHighScore}
               </span>
             </div>
@@ -136,22 +136,24 @@ export function GameTrex() {
         {/* ── Controls hint ───────────────────────────────────────── */}
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-foreground-muted">
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-xs">
               Space
             </kbd>
             <span>/</span>
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-xs">
               ↑
             </kbd>
             <span>jump</span>
             <span className="mx-1 text-border">|</span>
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface text-foreground-secondary font-mono text-xs">
               ↓
             </kbd>
             <span>duck</span>
           </div>
           <button
+            type="button"
             onClick={startGame}
+            aria-label="Restart T-Rex game"
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all hover:-translate-y-0.5"
           >
             <svg

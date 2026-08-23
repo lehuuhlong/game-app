@@ -27,51 +27,56 @@ export function Numpad({ onInput, onErase, onToggleNote, noteMode, remainingCoun
   return (
     <div className="w-full max-w-[460px] mx-auto mt-4 space-y-3">
       {/* Action buttons */}
-      <div className="flex items-center gap-2 justify-center">
+      <div className="flex items-center gap-3 justify-center">
         {/* Erase */}
         <button
+          type="button"
           onClick={onErase}
-          className="flex flex-col items-center gap-1 px-5 py-2 rounded-xl bg-white/[0.05] border border-white/10 text-foreground-secondary hover:bg-white/[0.09] hover:text-foreground transition-all hover:-translate-y-0.5 active:translate-y-0 focus:outline-none"
-          aria-label="Erase"
+          className="flex flex-col items-center justify-center gap-1 min-w-[72px] min-h-[44px] px-4 py-2 rounded-xl bg-surface border border-border text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all hover:-translate-y-0.5 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-accent touch-manipulation"
+          aria-label="Erase current cell number"
         >
           <EraseIcon />
-          <span className="text-[10px] font-medium">Erase</span>
+          <span className="text-xs font-semibold">Erase</span>
         </button>
 
         {/* Notes toggle */}
         <button
+          type="button"
           onClick={onToggleNote}
-          className={`flex flex-col items-center gap-1 px-5 py-2 rounded-xl border transition-all hover:-translate-y-0.5 active:translate-y-0 focus:outline-none ${
+          className={`flex flex-col items-center justify-center gap-1 min-w-[96px] min-h-[44px] px-4 py-2 rounded-xl border transition-all hover:-translate-y-0.5 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-accent touch-manipulation ${
             noteMode
-              ? "bg-sky-500/20 border-sky-500/50 text-sky-400"
-              : "bg-white/[0.05] border-white/10 text-foreground-secondary hover:bg-white/[0.09] hover:text-foreground"
+              ? "bg-sky-500/20 border-sky-500/50 text-sky-400 font-bold"
+              : "bg-surface border-border text-foreground-secondary hover:bg-surface-hover hover:text-foreground font-semibold"
           }`}
-          aria-label="Toggle notes mode"
+          aria-label={`Toggle pencil notes mode (currently ${noteMode ? "ON" : "OFF"})`}
+          aria-pressed={noteMode}
         >
           <PencilIcon />
-          <span className="text-[10px] font-medium">Notes {noteMode ? "ON" : "OFF"}</span>
+          <span className="text-xs">Notes {noteMode ? "ON" : "OFF"}</span>
         </button>
       </div>
 
       {/* Number buttons */}
-      <div className="grid grid-cols-9 gap-1 sm:gap-1.5">
+      <div className="grid grid-cols-9 gap-1 sm:gap-1.5" role="group" aria-label="Sudoku numeric keypad">
         {numbers.map((num) => {
           const remaining = remainingCounts[num] ?? 9;
           const isCompleted = remaining <= 0;
           return (
             <button
+              type="button"
               key={num}
               onClick={() => onInput(num)}
               disabled={isCompleted}
-              className={`relative flex flex-col items-center justify-center rounded-lg border py-2 px-0 transition-all focus:outline-none focus:ring-2 focus:ring-accent/50 ${
+              aria-label={`Number ${num}${isCompleted ? ", completed" : `, ${remaining} remaining`}`}
+              className={`relative flex flex-col items-center justify-center rounded-xl border min-h-[44px] py-1 px-0 transition-all font-mono touch-manipulation focus-visible:ring-2 focus-visible:ring-accent ${
                 isCompleted
                   ? "opacity-30 border-border/20 bg-transparent cursor-not-allowed"
-                  : "bg-white/[0.05] border-white/10 text-foreground font-extrabold hover:bg-white/[0.12] hover:-translate-y-0.5 active:translate-y-0"
+                  : "bg-surface border-border text-foreground font-bold hover:bg-surface-hover hover:border-accent hover:-translate-y-0.5 active:translate-y-0"
               }`}
             >
               <span className="text-base sm:text-lg font-bold leading-none">{num}</span>
               {!isCompleted && (
-                <span className="text-[9px] text-foreground-muted leading-none mt-0.5">{remaining}</span>
+                <span className="text-xs scale-75 text-foreground-muted leading-none mt-0.5">{remaining}</span>
               )}
             </button>
           );

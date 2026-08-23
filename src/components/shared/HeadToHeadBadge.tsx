@@ -71,7 +71,7 @@ export function HeadToHeadBadge({
 
   if (loading) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface border border-border/60 text-[11px] text-foreground-muted animate-pulse">
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface border border-border/60 text-xs text-foreground-muted animate-pulse">
         <span className="h-1.5 w-1.5 rounded-full bg-accent/50 animate-ping" />
         <span>Loading H2H...</span>
       </div>
@@ -84,7 +84,7 @@ export function HeadToHeadBadge({
     return (
       <div
         className={`inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium ${
-          compact ? "px-2.5 py-0.5 text-[11px]" : "px-3 py-1 text-xs"
+          compact ? "px-2.5 py-0.5 text-xs" : "px-3 py-1 text-xs"
         }`}
       >
         <span>⚔️</span>
@@ -98,7 +98,7 @@ export function HeadToHeadBadge({
   return (
     <div
       className={`inline-flex items-center gap-1.5 rounded-full border border-border bg-surface text-foreground font-semibold shadow-sm ${
-        compact ? "px-2.5 py-0.5 text-[11px]" : "px-3 py-1 text-xs"
+        compact ? "px-2.5 py-0.5 text-xs" : "px-3 py-1 text-xs"
       }`}
     >
       <span className="text-amber-400">⚔️</span>

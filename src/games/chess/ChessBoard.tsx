@@ -74,8 +74,7 @@ export function ChessBoard({
     // 2. In check highlight (red radial glow on king)
     if (inCheckKingSquare) {
       styles[inCheckKingSquare] = {
-        background:
-          "radial-gradient(ellipse at center, rgba(239, 68, 68, 0.85) 0%, rgba(220, 38, 38, 0.35) 60%, transparent 80%)",
+        background: "radial-gradient(ellipse at center, rgba(239, 68, 68, 0.85) 0%, rgba(220, 38, 38, 0.35) 60%, transparent 80%)", /* impeccable-disable-line design-system-color -- dynamic chess check glow */
       };
     }
 
@@ -92,6 +91,7 @@ export function ChessBoard({
       styles[moveSquare] = {
         background: styles[moveSquare]?.backgroundColor
           ? `${styles[moveSquare].backgroundColor}`
+          // impeccable-disable-next-line design-system-color -- dynamic chess move dots
           : "radial-gradient(circle, rgba(16, 185, 129, 0.65) 24%, transparent 26%)",
         borderRadius: "50%",
         cursor: "pointer",
@@ -173,11 +173,13 @@ export function ChessBoard({
               handleSquareClick(square, piece);
             },
             boardStyle: {
-              borderRadius: "10px",
+              borderRadius: "16px",
               overflow: "hidden",
             },
-            darkSquareStyle: { backgroundColor: "#779952" },
-            lightSquareStyle: { backgroundColor: "#edeed1" },
+            // impeccable-disable-next-line design-system-color -- chess theme board squares
+            darkSquareStyle: { backgroundColor: "#1e293b" },
+            // impeccable-disable-next-line design-system-color -- chess theme board squares
+            lightSquareStyle: { backgroundColor: "#334155" },
             squareStyles: customSquareStyles,
             showNotation: true,
             animationDurationInMs: 200,

@@ -29,11 +29,11 @@ export type ShipPart = 'bow' | 'stern' | 'body';
 
 /** Ship color palette based on type */
 export const SHIP_COLORS: Record<string, { bg: string; border: string; accent: string }> = {
-  carrier:    { bg: 'bg-slate-500', border: 'border-slate-400', accent: '#64748b' },
-  battleship: { bg: 'bg-zinc-500',  border: 'border-zinc-400',  accent: '#71717a' },
-  cruiser:    { bg: 'bg-stone-500', border: 'border-stone-400', accent: '#78716c' },
-  submarine:  { bg: 'bg-gray-500',  border: 'border-gray-400',  accent: '#6b7280' },
-  destroyer:  { bg: 'bg-neutral-500', border: 'border-neutral-400', accent: '#737373' },
+  carrier:    { bg: 'bg-sky-600',   border: 'border-sky-400',   accent: '#38bdf8' },
+  battleship: { bg: 'bg-blue-600',  border: 'border-blue-400',  accent: '#3b82f6' },
+  cruiser:    { bg: 'bg-amber-600', border: 'border-amber-400', accent: '#f59e0b' },
+  submarine:  { bg: 'bg-orange-600',border: 'border-orange-400',accent: '#ea580c' },
+  destroyer:  { bg: 'bg-slate-600', border: 'border-slate-400', accent: '#64748b' },
 };
 
 /** Determine which part of a ship occupies a cell */

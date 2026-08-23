@@ -44,7 +44,7 @@ export const GAMES: GameInfo[] = [
     minPlayers: 2,
     maxPlayers: 2,
     tags: ["Strategy", "Multiplayer", "Board Game"],
-    color: "from-violet-500 to-purple-600",
+    color: "from-sky-500 to-blue-600",
   },
   {
     id: "minesweeper",

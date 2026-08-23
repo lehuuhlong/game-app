@@ -76,7 +76,7 @@ export function PlayerCard({
 
           {/* Piece Color Indicator Badge on Avatar */}
           <div
-            className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md border ${
+            className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow-md border ${
               isWhite
                 ? "bg-white text-slate-900 border-amber-300"
                 : "bg-slate-900 text-white border-slate-700"
@@ -101,11 +101,11 @@ export function PlayerCard({
               {username}
             </span>
             {isMe && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-accent/15 text-accent border border-accent/30 uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-accent/15 text-accent border border-accent/30 uppercase tracking-wider">
                 You
               </span>
             )}
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-hover text-foreground-secondary border border-border">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-hover text-foreground-secondary border border-border">
               {isWhite ? "White" : "Black"}
             </span>
           </div>

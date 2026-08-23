@@ -1267,7 +1267,7 @@ function PlayerCell({
           {username}
         </span>
         {isCurrent && (
-          <span className="px-1.5 py-0.2 rounded bg-accent-light text-accent text-[10px] font-bold uppercase">
+          <span className="px-1.5 py-0.5 rounded bg-accent-light text-accent text-xs font-bold uppercase">
             You
           </span>
         )}

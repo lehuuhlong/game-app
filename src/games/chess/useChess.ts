@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { Chess, Square } from "chess.js";
 import type {
   ClientToServerEvents,
@@ -9,8 +9,10 @@ import type {
   Room,
   ChessGameState,
   ChessColor,
+  ChessMoveRecord,
   Player,
 } from "@/types/socket";
+import { useGameSocket } from "@/hooks/useGameSocket";
 import type { Screen, CapturedPieces } from "./types";
 import {
   playMoveSound,
@@ -20,15 +22,9 @@ import {
   playDefeatSound,
 } from "./soundEffects";
 
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
-
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const CHESS_TOTAL_TIME = 15 * 60; // 900 seconds (15 minutes)
 
-/**
- * Helper to derive captured pieces from the current FEN string.
- */
 export function deriveCapturedPieces(fen: string): CapturedPieces {
   const initial = { p: 8, r: 2, n: 2, b: 2, q: 1 };
   const currentWhite: Record<string, number> = { p: 0, r: 0, n: 0, b: 0, q: 0 };
@@ -64,27 +60,16 @@ export function deriveCapturedPieces(fen: string): CapturedPieces {
 }
 
 export function useChess(username: string) {
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const roomIdRef = useRef<string>("");
-  const playerIdRef = useRef<string | null>(null);
   const myColorRef = useRef<ChessColor | null>(null);
   const fenRef = useRef<string>(DEFAULT_FEN);
   const chessRef = useRef<Chess>(new Chess());
-  const screenRef = useRef<Screen>("lobby");
   const gameStateRef = useRef<ChessGameState | null>(null);
-  const matchSavedRef = useRef<boolean>(false);
 
-  const [screen, setScreen] = useState<Screen>("lobby");
-  const [room, setRoom] = useState<Room | null>(null);
-  const [roomId, setRoomId] = useState<string>("");
-  const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<ChessGameState | null>(null);
   const [fen, setFen] = useState<string>(DEFAULT_FEN);
   const [myColor, setMyColor] = useState<ChessColor | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [joinError, setJoinError] = useState<string | null>(null);
-  const [statusMsg, setStatusMsg] = useState<string>("");
   const [winner, setWinner] = useState<ChessColor | "draw" | null>(null);
   const [endReason, setEndReason] = useState<string | null>(null);
 
@@ -93,11 +78,6 @@ export function useChess(username: string) {
   const [blackTime, setBlackTime] = useState<number>(CHESS_TOTAL_TIME);
   const [timerActive, setTimerActive] = useState<boolean>(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Keep screenRef in sync
-  useEffect(() => {
-    screenRef.current = screen;
-  }, [screen]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -146,67 +126,22 @@ export function useChess(username: string) {
     }, 1000);
   }, [stopTimer]);
 
-  const getSocket = useCallback((): Socket<ServerToClientEvents, ClientToServerEvents> => {
-    if (!socketRef.current) {
-      socketRef.current = io(SOCKET_URL, {
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-      });
-    }
-    return socketRef.current;
-  }, []);
-
-  // Cleanup timers on unmount
+  // Clean timer on unmount
   useEffect(() => {
     return () => {
       stopTimer();
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
     };
   }, [stopTimer]);
 
-  const setupSocket = useCallback(
+  const setupChessSocket = useCallback(
     (socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
-      socket.off("room_joined");
-      socket.off("player_joined");
-      socket.off("player_left");
       socket.off("chess_game_started");
       socket.off("chess_game_update");
       socket.off("chess_game_over");
-      socket.off("error");
 
-      socket.on("room_joined", ({ room: r, playerId: pId }) => {
+      socket.on("chess_game_started", ({ room: r, gameState: gs, whitePlayerId }: { room: Room; gameState: ChessGameState; whitePlayerId: string; blackPlayerId: string }) => {
         setRoom(r);
-        setRoomId(r.id);
-        roomIdRef.current = r.id;
-        setPlayerId(pId);
-        playerIdRef.current = pId;
-        setJoinError(null);
-
-        if (r.players.length === 1) {
-          setScreen("waiting");
-          screenRef.current = "waiting";
-          setStatusMsg("Waiting for an opponent to join...");
-        }
-      });
-
-      socket.on("player_joined" as any, ({ room: r }: { room: Room }) => {
-        setRoom(r);
-      });
-
-      socket.on("player_left" as any, ({ room: r }: { room: Room }) => {
-        setRoom(r);
-        if (r.status === "waiting") {
-          setStatusMsg("Opponent left. Waiting for another player...");
-        }
-      });
-
-      socket.on("chess_game_started", ({ room: r, gameState: gs, whitePlayerId, blackPlayerId }) => {
-        setRoom(r);
-        setRoomId(r.id);
-        roomIdRef.current = r.id;
+        setPlayers(r.players);
         setGameState(gs);
         gameStateRef.current = gs;
         setFen(gs.fen);
@@ -230,13 +165,11 @@ export function useChess(username: string) {
         setEndReason(null);
         setLastMove(null);
         setError(null);
-        matchSavedRef.current = false;
         setScreen("playing");
-        screenRef.current = "playing";
         startTimer();
       });
 
-      socket.on("chess_game_update", ({ gameState: gs, lastMove: lm }) => {
+      socket.on("chess_game_update", ({ gameState: gs, lastMove: lm }: { gameState: ChessGameState; lastMove?: ChessMoveRecord }) => {
         setGameState(gs);
         gameStateRef.current = gs;
         setFen(gs.fen);
@@ -259,7 +192,6 @@ export function useChess(username: string) {
           playCheckSound();
         }
 
-        // Restart timer for next turn
         if (gs.winner === null) {
           startTimer();
         } else {
@@ -267,7 +199,7 @@ export function useChess(username: string) {
         }
       });
 
-      socket.on("chess_game_over", ({ winner: w, reason, gameState: gs }) => {
+      socket.on("chess_game_over", ({ winner: w, reason, gameState: gs }: { winner: ChessColor | "draw" | null; reason: string; gameState: ChessGameState }) => {
         stopTimer();
         setGameState(gs);
         gameStateRef.current = gs;
@@ -279,7 +211,6 @@ export function useChess(username: string) {
         setWinner(w);
         setEndReason(reason);
         setScreen("finished");
-        screenRef.current = "finished";
 
         const myC = myColorRef.current;
         if (w === myC) {
@@ -288,136 +219,75 @@ export function useChess(username: string) {
           playDefeatSound();
         }
 
-        const matchSaved = matchSavedRef.current;
-        matchSavedRef.current = true;
+        const whiteP = gs.whitePlayer?.username;
+        const blackP = gs.blackPlayer?.username;
+        const isMeWinner = w === myC || (w === "draw" && myC === "w");
 
-        // Record 1v1 match in matches collection (only winner or White on draw submits to prevent duplicates)
-        try {
-          const whiteP = gs.whitePlayer?.username;
-          const blackP = gs.blackPlayer?.username;
-          const isMeWinner = (w === myC) || (w === "draw" && myC === "w");
-          if (!matchSaved && isMeWinner && whiteP && blackP) {
-            const isDraw = w === "draw";
-            const whiteWon = w === "w";
-            const blackWon = w === "b";
+        if (isMeWinner && whiteP && blackP) {
+          const isDraw = w === "draw";
+          const whiteWon = w === "w";
+          const blackWon = w === "b";
 
-            fetch("/api/matches", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                gameType: "chess",
-                players: [
-                  {
-                    username: whiteP,
-                    result: isDraw ? "draw" : whiteWon ? "win" : "loss",
-                    score: whiteWon ? 1 : 0,
-                  },
-                  {
-                    username: blackP,
-                    result: isDraw ? "draw" : blackWon ? "win" : "loss",
-                    score: blackWon ? 1 : 0,
-                  },
-                ],
-                duration: 0,
-                gameData: {
-                  movesCount: gs.moveHistory?.length || 0,
-                  endReason: reason,
-                  winner: w,
-                },
-              }),
-            })
-              .then((r) => r.json())
-              .then((resData) => {
-                try {
-                  const stored = localStorage.getItem("game-portal-user");
-                  if (stored && resData.users) {
-                    const u = JSON.parse(stored);
-                    const updated = resData.users.find((x: any) => x.username === u.username);
-                    if (updated) {
-                      Object.assign(u, updated);
-                      localStorage.setItem("game-portal-user", JSON.stringify(u));
-                    }
-                  }
-                } catch {}
-              })
-              .catch(() => {});
-          }
-        } catch {
-          // ignore
-        }
-      });
-
-      socket.on("error", ({ message }) => {
-        setError(message);
-        if (screenRef.current === "lobby") {
-          setJoinError(message);
-        }
-        // Rollback local chess instance to match verified gameState if move rejected
-        if (gameStateRef.current) {
-          setFen(gameStateRef.current.fen);
-          fenRef.current = gameStateRef.current.fen;
-          chessRef.current = new Chess(gameStateRef.current.fen);
+          saveMatchResult({
+            gameType: "chess",
+            players: [
+              {
+                username: whiteP,
+                result: isDraw ? "draw" : whiteWon ? "win" : "loss",
+                score: whiteWon ? 1 : 0,
+              },
+              {
+                username: blackP,
+                result: isDraw ? "draw" : blackWon ? "win" : "loss",
+                score: blackWon ? 1 : 0,
+              },
+            ],
+            duration: 0,
+            gameData: {
+              movesCount: gs.moveHistory?.length || 0,
+              endReason: reason,
+              winner: w,
+            },
+          });
         }
       });
     },
-    [startTimer, stopTimer]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [username, startTimer, stopTimer]
   );
 
-  const createRoom = useCallback(() => {
-    setError(null);
-    setJoinError(null);
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    roomIdRef.current = code;
-    setRoomId(code);
+  const gameSocket = useGameSocket({
+    gameType: "chess",
+    username: username || "",
+    onSetupSocket: setupChessSocket,
+  });
 
-    const socket = getSocket();
-    setupSocket(socket);
-
-    socket.emit("join_room", {
-      roomId: code,
-      gameType: "chess",
-      username: username || "Guest",
-      action: "create",
-    });
-  }, [username, getSocket, setupSocket]);
-
-  const joinRoom = useCallback(
-    (code: string) => {
-      setError(null);
-      setJoinError(null);
-      const cleanCode = code.trim().toUpperCase();
-      if (!cleanCode) {
-        setJoinError("Please enter a room code.");
-        return;
-      }
-
-      roomIdRef.current = cleanCode;
-      setRoomId(cleanCode);
-      const socket = getSocket();
-      setupSocket(socket);
-
-      socket.emit("join_room", {
-        roomId: cleanCode,
-        gameType: "chess",
-        username: username || "Guest",
-        action: "join",
-      });
-    },
-    [username, getSocket, setupSocket]
-  );
+  const {
+    socketRef,
+    roomIdRef,
+    playerIdRef,
+    screen,
+    setScreen,
+    room,
+    setRoom,
+    players,
+    setPlayers,
+    roomId,
+    playerId,
+    joinError,
+    setJoinError,
+    statusMsg,
+    setStatusMsg,
+    createRoom,
+    joinRoom,
+    leaveRoom: baseLeaveRoom,
+    requestRematch: baseRequestRematch,
+    saveMatchResult,
+  } = gameSocket;
 
   const leaveRoom = useCallback(() => {
     stopTimer();
-    if (socketRef.current && roomIdRef.current) {
-      socketRef.current.emit("leave_room", { roomId: roomIdRef.current });
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-    setScreen("lobby");
-    screenRef.current = "lobby";
-    setRoom(null);
-    setRoomId("");
-    roomIdRef.current = "";
+    baseLeaveRoom();
     setGameState(null);
     gameStateRef.current = null;
     setFen(DEFAULT_FEN);
@@ -429,20 +299,17 @@ export function useChess(username: string) {
     setEndReason(null);
     setLastMove(null);
     setError(null);
-    setJoinError(null);
-  }, [stopTimer]);
+  }, [stopTimer, baseLeaveRoom]);
 
   const resign = useCallback(() => {
-    if (!roomIdRef.current || screenRef.current !== "playing") return;
-    const socket = getSocket();
-    socket.emit("chess_resign", { roomId: roomIdRef.current });
-  }, [getSocket]);
+    if (!roomIdRef.current || screen !== "playing") return;
+    socketRef.current?.emit("chess_resign", { roomId: roomIdRef.current });
+  }, [screen, socketRef, roomIdRef]);
 
   const rematch = useCallback(() => {
     if (!roomIdRef.current) return;
-    const socket = getSocket();
-    socket.emit("restart_game", { roomId: roomIdRef.current });
-  }, [getSocket]);
+    baseRequestRematch();
+  }, [baseRequestRematch, roomIdRef]);
 
   const isMyTurn = useMemo(() => {
     if (!gameState || !myColor || screen !== "playing") return false;
@@ -453,20 +320,14 @@ export function useChess(username: string) {
     return myColor === "b" ? "black" : "white";
   }, [myColor]);
 
-  /**
-   * Handle piece drop from react-chessboard.
-   * Performs client-side validation first, updates local state optimistically,
-   * then emits to server.
-   */
   const onPieceDrop = useCallback(
     (sourceSquare: string, targetSquare: string, _piece?: string): boolean => {
-      if (screenRef.current !== "playing") return false;
+      if (screen !== "playing") return false;
       if (!isMyTurn) return false;
 
       try {
         const currentChess = new Chess(fenRef.current);
 
-        // Check if move is a pawn promotion
         const pieceOnSource = currentChess.get(sourceSquare as Square);
         const isPromotion =
           pieceOnSource?.type === "p" &&
@@ -475,7 +336,6 @@ export function useChess(username: string) {
 
         const promotion = isPromotion ? "q" : undefined;
 
-        // Test if the move is legal locally
         const moveResult = currentChess.move({
           from: sourceSquare as Square,
           to: targetSquare as Square,
@@ -486,7 +346,6 @@ export function useChess(username: string) {
           return false;
         }
 
-        // Apply optimistic local update
         const newFen = currentChess.fen();
         const nextTurn = currentChess.turn() as ChessColor;
         chessRef.current = currentChess;
@@ -503,9 +362,7 @@ export function useChess(username: string) {
             : null
         );
 
-        // Emit to server
-        const socket = getSocket();
-        socket.emit("chess_move", {
+        socketRef.current?.emit("chess_move", {
           roomId: roomIdRef.current,
           from: sourceSquare,
           to: targetSquare,
@@ -517,12 +374,9 @@ export function useChess(username: string) {
         return false;
       }
     },
-    [isMyTurn, getSocket]
+    [screen, isMyTurn, socketRef, roomIdRef]
   );
 
-  /**
-   * Get all legal target squares for a selected piece (for visual move indicators).
-   */
   const getPossibleMoves = useCallback((square: string): string[] => {
     try {
       const chess = new Chess(fenRef.current);
@@ -556,10 +410,11 @@ export function useChess(username: string) {
   const timeLeft = isMyTurn ? myTime : opponentTime;
 
   return {
-    screen,
+    screen: screen as Screen,
     room,
     roomId: roomId || roomIdRef.current,
     playerId,
+    players,
     myColor,
     myInfo,
     opponentInfo,

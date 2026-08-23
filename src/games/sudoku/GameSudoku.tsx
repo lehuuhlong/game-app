@@ -130,17 +130,20 @@ function LevelSelectScreen({ onStart }: { onStart: (diff: Difficulty) => void })
             const isActive = selected === diff;
             return (
               <button
+                type="button"
                 key={diff}
                 onClick={() => setSelected(diff)}
-                className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all duration-200 focus:outline-none ${
+                aria-pressed={isActive}
+                aria-label={`Difficulty ${c.label}: ${c.description}, average time ${c.time}`}
+                className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   isActive
                     ? `border-transparent bg-gradient-to-br ${c.gradient} text-white shadow-lg shadow-${c.color}-500/30 scale-[1.03]`
                     : 'border-border bg-surface text-foreground-secondary hover:bg-surface-hover hover:border-foreground-muted'
                 }`}
               >
                 <span className="text-lg font-black">{c.label}</span>
-                <span className="text-[11px] opacity-80 text-center leading-tight">{c.description}</span>
-                <span className={`text-[11px] font-medium opacity-70`}>⏱ {c.time}</span>
+                <span className="text-xs opacity-80 text-center leading-tight">{c.description}</span>
+                <span className="text-xs font-mono font-medium opacity-70">⏱ {c.time}</span>
               </button>
             );
           })}
@@ -182,18 +185,9 @@ export function GameSudoku() {
     goToMenu,
   } = useSudoku();
 
-  const [savedTime, setSavedTime] = useState<number | null>(null);
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const scoreSavedRef = useRef(false);
-
-  // Reset flags when game starts
-  useEffect(() => {
-    if (gameState === 'playing') {
-      scoreSavedRef.current = false;
-      setShowLogin(false);
-    }
-  }, [gameState]);
 
   // Show login if won and not logged in
   useEffect(() => {
@@ -203,10 +197,9 @@ export function GameSudoku() {
     }
   }, [gameState, user]);
 
-  // Save result and match history when won
+  // Save result and match history when won or gameover
   useEffect(() => {
     if (gameState === 'won') {
-      setSavedTime(elapsedSeconds);
       if (scoreSavedRef.current) return;
       scoreSavedRef.current = true;
 
@@ -274,8 +267,9 @@ export function GameSudoku() {
           gameData: { difficulty, time: elapsedSeconds },
         }),
       }).catch((err) => console.error('Failed to save sudoku match:', err));
+    } else {
+      scoreSavedRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, user, difficulty, elapsedSeconds]);
 
   // Compute remaining counts for each digit
@@ -453,14 +447,12 @@ export function GameSudoku() {
               <p className="text-foreground-secondary text-sm mb-1">
                 Difficulty: <span className={`font-bold ${cfg.textColor}`}>{cfg.label}</span>
               </p>
-              {savedTime !== null && (
-                <p className="text-foreground font-mono font-bold text-lg mb-5 flex items-center gap-1.5">
-                  <span className="text-foreground-muted">
-                    <ClockIcon />
-                  </span>
-                  {formatTime(savedTime)}
-                </p>
-              )}
+              <p className="text-foreground font-mono font-bold text-lg mb-5 flex items-center gap-1.5">
+                <span className="text-foreground-muted">
+                  <ClockIcon />
+                </span>
+                {formatTime(elapsedSeconds)}
+              </p>
               <div className="flex gap-3">
                 <button
                   onClick={goToMenu}

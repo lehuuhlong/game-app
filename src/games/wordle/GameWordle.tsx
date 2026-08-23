@@ -32,8 +32,6 @@ export function GameWordle() {
     if (gameOver) {
       const t = setTimeout(() => setShowGameOverPopup(true), 1400);
       return () => clearTimeout(t);
-    } else {
-      setShowGameOverPopup(false);
     }
   }, [gameOver]);
 

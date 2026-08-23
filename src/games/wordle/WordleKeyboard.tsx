@@ -43,22 +43,34 @@ export const WordleKeyboard = memo(function WordleKeyboard({
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div key={rowIndex} className="flex gap-1 sm:gap-1.5 justify-center w-full">
           {row.map((key) => {
-            const status = keyboardStatus[key] || "unused";
+            const rawStatus = keyboardStatus[key];
+            const status: LetterStatus | "unused" = rawStatus || "unused";
             const isWide = key === "ENTER" || key === "BACKSPACE";
+
+            const keyAriaLabel =
+              key === "BACKSPACE"
+                ? "Backspace"
+                : key === "ENTER"
+                ? "Submit guess (Enter)"
+                : rawStatus
+                ? `Letter ${key}, ${rawStatus}`
+                : `Letter ${key}`;
 
             return (
               <button
+                type="button"
                 key={key}
                 onClick={() => handleClick(key)}
+                aria-label={keyAriaLabel}
                 className={`
                   ${isWide ? "px-2 sm:px-4 min-w-[52px] sm:min-w-[65px]" : "min-w-[28px] sm:min-w-[40px]"}
                   h-[50px] sm:h-[58px]
                   rounded-md sm:rounded-lg
                   border
                   text-xs sm:text-sm font-bold uppercase
-                  select-none
-                  transition-all duration-200
-                  active:scale-95
+                  select-none font-mono
+                  transition-all duration-200 touch-manipulation
+                  active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
                   ${KEY_STATUS_STYLES[status]}
                 `}
               >

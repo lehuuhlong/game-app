@@ -157,13 +157,13 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       if (isWin) {
         const timeVal = gameData.time || m.duration || p.score || 0;
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             Won ({difficulty}) • {formatTime(timeVal)}
           </span>
         );
       }
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
           Lost ({difficulty})
         </span>
       );
@@ -175,13 +175,13 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       if (isWin) {
         const tries = gameData.guessesCount ? ` (${gameData.guessesCount}/6)` : "";
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             Won • {solution}{tries}
           </span>
         );
       }
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
           Lost • Word: {solution}
         </span>
       );
@@ -192,7 +192,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
       const tile = gameData.highestTile ? ` • Tile ${gameData.highestTile}` : "";
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-surface-hover text-foreground-secondary border border-border">
           {score} pts{tile}
         </span>
       );
@@ -201,7 +201,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     if (gameType === "trex") {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-surface-hover text-foreground-secondary border border-border">
           {score} pts
         </span>
       );
@@ -211,7 +211,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       const score = (p.score ?? 0).toLocaleString();
       const acc = gameData.accuracy !== undefined ? ` • ${gameData.accuracy}% acc` : "";
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-surface-hover text-foreground-secondary border border-border">
           {score} pts{acc}
         </span>
       );
@@ -220,20 +220,20 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     // Default fallback
     if (isWin) {
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           WIN
         </span>
       );
     }
     if (isLoss) {
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+        <span className="px-2 py-0.5 rounded-md text-xs font-bold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
           LOSS
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
+      <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-surface-hover text-foreground-secondary border border-border">
         {p.score !== undefined ? `${p.score} pts` : "Played"}
       </span>
     );
@@ -306,7 +306,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                     <h4 className="text-sm font-bold text-foreground capitalize tracking-tight">
                       {m.gameType}
                     </h4>
-                    <p className="text-[11px] text-foreground-muted">
+                    <p className="text-xs text-foreground-muted">
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(m.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -325,7 +325,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                         <Avatar avatarUrl={p1.avatarUrl} username={p1.username} />
                         <span>{p1.username}</span>
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
+                          className={`px-2 py-0.5 rounded-md text-xs uppercase font-bold ${
                             p1.result === "win"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : p1.result === "draw"
@@ -348,7 +348,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                         <Avatar avatarUrl={p2.avatarUrl} username={p2.username} />
                         <span>{p2.username}</span>
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
+                          className={`px-2 py-0.5 rounded-md text-xs uppercase font-bold ${
                             p2.result === "win"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : p2.result === "draw"
@@ -450,7 +450,7 @@ function Avatar({ avatarUrl, username }: { avatarUrl?: string | null; username: 
     );
   }
   return (
-    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
+    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
       {username[0]?.toUpperCase()}
     </div>
   );

@@ -161,7 +161,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
               <div className="flex-1 text-center sm:text-left space-y-1.5">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
                   <h2 className="text-2xl font-extrabold text-foreground tracking-tight">{profile.username}</h2>
-                  {isCurrentUser && <span className="px-2 py-0.5 rounded-md bg-accent-light text-accent text-[11px] font-bold">YOU</span>}
+                  {isCurrentUser && <span className="px-2 py-0.5 rounded-md bg-accent-light text-accent text-xs font-bold">YOU</span>}
                 </div>
                 <p className="text-xs text-foreground-secondary">Active Player • {totalMultiplayerGames} multiplayer matches recorded</p>
 
@@ -183,22 +183,22 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
             {/* Quick Aggregate Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">Total 1v1 Wins</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">Total 1v1 Wins</span>
                 <p className="text-xl font-black text-sky-400 mt-0.5">{totalMultiplayerWins}</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">PvP Win Rate</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">PvP Win Rate</span>
                 <p className="text-xl font-black text-emerald-400 mt-0.5">{overallWinRate}%</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">2048 Best</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">2048 Best</span>
                 <p className="text-xl font-black text-amber-400 mt-0.5">{profile.bestScore2048 > 0 ? profile.bestScore2048.toLocaleString() : '-'}</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">Aim Trainer Best</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground-muted">Aim Trainer Best</span>
                 <p className="text-xl font-black text-rose-400 mt-0.5">
                   {profile.aimTrainerBestScore > 0 ? `${profile.aimTrainerBestScore} pts` : '-'}
                 </p>
@@ -296,7 +296,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     <span>💣</span>
                     <span className="font-semibold text-foreground">Minesweeper</span>
                   </div>
-                  <div className="text-right font-mono text-[11px]">
+                  <div className="text-right font-mono text-xs">
                     Beg: <strong className="text-foreground">{formatTime(profile.msBestBeginner)}</strong> • Exp:{' '}
                     <strong className="text-foreground">{formatTime(profile.msBestExpert)}</strong>
                   </div>
@@ -308,7 +308,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     <span>🔢</span>
                     <span className="font-semibold text-foreground">Sudoku</span>
                   </div>
-                  <div className="text-right font-mono text-[11px]">
+                  <div className="text-right font-mono text-xs">
                     Easy: <strong className="text-foreground">{formatTime(profile.sudokuBestEasy)}</strong> • Hard:{' '}
                     <strong className="text-foreground">{formatTime(profile.sudokuBestHard)}</strong>
                   </div>
@@ -320,7 +320,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     <span>🦖</span>
                     <span className="font-semibold text-foreground">T-Rex / Wordle</span>
                   </div>
-                  <div className="text-right font-mono text-[11px]">
+                  <div className="text-right font-mono text-xs">
                     T-Rex: <strong className="text-foreground">{profile.bestScoreTrex || 0}</strong> • Wordle:{' '}
                     <strong className="text-foreground">
                       {profile.wordleWins || 0}W
@@ -347,7 +347,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                       <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs">
                         <div className="flex items-center gap-2.5">
                           <span
-                            className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${
+                            className={`px-2 py-0.5 rounded-md font-bold text-xs uppercase ${
                               isWin
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                                 : isDraw
@@ -360,7 +360,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                           <span className="font-semibold text-foreground capitalize">{m.gameType}</span>
                           {/* Game Specific Details */}
                           {m.gameType === 'wordle' && m.gameData?.solution ? (
-                            <span className="text-[11px] font-mono">
+                            <span className="text-xs font-mono">
                               {isWin ? (
                                 <span className="text-emerald-400">
                                   "{m.gameData.solution.toUpperCase()}" ({m.gameData.guessesCount || 1}/6)
@@ -370,7 +370,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                               )}
                             </span>
                           ) : m.gameType === 'minesweeper' || m.gameType === 'sudoku' ? (
-                            <span className="text-[11px] font-mono text-foreground-secondary">
+                            <span className="text-xs font-mono text-foreground-secondary">
                               {isWin ? (
                                 <span>
                                   {capitalize(m.gameData?.difficulty || 'Normal')} •{' '}
@@ -381,11 +381,11 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                               )}
                             </span>
                           ) : m.gameType === '2048' || m.gameType === 'trex' || m.gameType === 'aimtrainer' ? (
-                            <span className="text-[11px] font-mono text-foreground-secondary">
+                            <span className="text-xs font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
                             </span>
                           ) : (
-                            <span className="text-foreground-muted text-[11px]">
+                            <span className="text-foreground-muted text-xs">
                               vs{' '}
                               {m.players
                                 ?.filter((p: any) => p.username.toLowerCase() !== username.toLowerCase())
@@ -394,7 +394,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-foreground-muted">{new Date(m.createdAt).toLocaleDateString()}</span>
+                        <span className="text-xs text-foreground-muted">{new Date(m.createdAt).toLocaleDateString()}</span>
                       </div>
                     );
                   })}

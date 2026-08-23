@@ -8,7 +8,7 @@ import { useChess } from "./useChess";
 import { ChessBoard } from "./ChessBoard";
 import { PlayerCard } from "./PlayerCard";
 import { MoveHistory } from "./MoveHistory";
-import { HeadToHeadBadge } from "@/components/shared/HeadToHeadBadge";
+import { HeadToHeadBadge, GameLobby1v1 } from "@/components/shared";
 
 function formatEndReason(
   reason: string | null,
@@ -148,146 +148,35 @@ export function GameChess() {
           </p>
         </div>
 
-        {/* ── LOBBY ─────────────────────────────────────────────── */}
-        {screen === "lobby" && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md mx-auto space-y-4"
-          >
-            <div className="rounded-2xl border border-border bg-surface p-6 space-y-4 shadow-sm">
-              <h2 className="text-lg font-bold text-foreground">Create a Room</h2>
-              <p className="text-sm text-foreground-secondary">
-                Start a new game and share the room code with your friend.
-              </p>
-              <button
-                onClick={handleCreateRoom}
-                className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-bold text-white hover:from-sky-600 hover:to-blue-700 hover:-translate-y-0.5 transition-all shadow-lg shadow-accent/25"
+        {/* ── LOBBY / WAITING ─────────────────────────────────────── */}
+        {(screen === "lobby" || screen === "waiting") && (
+          <GameLobby1v1
+            screen={screen}
+            roomId={roomId}
+            players={room?.players || []}
+            statusMsg={statusMsg || "Waiting for opponent..."}
+            joinError={joinError}
+            copied={copied}
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={(code) => {
+              if (!user) {
+                setShowLogin(true);
+                return;
+              }
+              joinRoom(code);
+            }}
+            onCopyRoomCode={handleCopyCode}
+            onLeaveRoom={leaveRoom}
+            renderPlayerExtra={(_p, i) => (
+              <span
+                className={`text-xs font-bold ${
+                  i === 0 ? "text-amber-500" : "text-slate-500"
+                }`}
               >
-                Create Room
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-surface p-6 space-y-3 shadow-sm">
-              <h2 className="text-lg font-bold text-foreground">Join a Room</h2>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={joinInput}
-                  onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
-                  placeholder="Room code..."
-                  maxLength={6}
-                  className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none uppercase font-mono tracking-widest"
-                />
-                <button
-                  onClick={handleJoinRoom}
-                  className="rounded-xl bg-surface-hover border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-accent hover:text-white hover:border-accent transition-all"
-                >
-                  Join
-                </button>
-              </div>
-              {joinError && <p className="text-sm text-red-500">{joinError}</p>}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── WAITING ─────────────────────────────────────────────── */}
-        {screen === "waiting" && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md mx-auto text-center"
-          >
-            <div className="rounded-2xl border border-border bg-surface p-8 space-y-5 shadow-sm">
-              <div className="h-12 w-12 rounded-full border-4 border-accent border-t-transparent animate-spin mx-auto" />
-              <h2 className="text-xl font-bold text-foreground">
-                {statusMsg || "Waiting for opponent..."}
-              </h2>
-
-              <div className="rounded-xl bg-background border border-border p-5 relative">
-                <p className="text-xs text-foreground-muted mb-1">Room Code</p>
-                <div className="flex items-center justify-center gap-3">
-                  <p className="text-4xl font-extrabold text-accent font-mono tracking-widest">
-                    {roomId}
-                  </p>
-                  <button
-                    onClick={handleCopyCode}
-                    className="p-2 rounded-lg bg-surface hover:bg-surface-hover text-foreground-secondary hover:text-foreground transition-colors border border-border shadow-sm"
-                    title="Copy Room Code"
-                  >
-                    {copied ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-green-500"
-                      >
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-foreground-muted mt-2">
-                  Share with your friend
-                </p>
-              </div>
-
-              <div className="space-y-1 text-sm text-foreground-secondary">
-                {room?.players.map((p, i) => (
-                  <div key={p.id} className="flex items-center justify-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="font-semibold text-foreground">{p.username}</span>
-                    <span
-                      className={`text-xs font-bold ${
-                        i === 0 ? "text-amber-500" : "text-slate-500"
-                      }`}
-                    >
-                      ({i === 0 ? "White ⚪" : "Black ⚫"})
-                    </span>
-                  </div>
-                ))}
-                {user?.username && room && room.players.length >= 2 && (
-                  <div className="pt-2 flex justify-center">
-                    <HeadToHeadBadge
-                      player1={user.username}
-                      player2={room.players.find((p) => p.username !== user.username)?.username || ""}
-                      gameType="chess"
-                      compact
-                    />
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={leaveRoom}
-                className="text-sm text-foreground-muted hover:text-red-500 transition-colors underline"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+                ({i === 0 ? "White ⚪" : "Black ⚫"})
+              </span>
+            )}
+          />
         )}
 
         {/* ── PLAYING & FINISHED SCREENS ──────────────────────────── */}

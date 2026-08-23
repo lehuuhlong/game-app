@@ -33,16 +33,16 @@ export function GameAimTrainer() {
         {gameState === 'playing' && (
           <div className="flex items-center gap-4 sm:gap-8 text-lg font-bold">
             <div className="flex flex-col items-center">
-              <span className="text-foreground-muted text-[10px] sm:text-xs uppercase tracking-wider">Score</span>
-              <span className="text-sky-400 tabular-nums">{score}</span>
+              <span className="text-foreground-muted text-xs font-semibold uppercase tracking-wider">Score</span>
+              <span className="text-sky-400 font-mono tabular-nums">{score}</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-foreground-muted text-[10px] sm:text-xs uppercase tracking-wider">Acc</span>
-              <span className="text-emerald-400 tabular-nums">{accuracy}%</span>
+              <span className="text-foreground-muted text-xs font-semibold uppercase tracking-wider">Acc</span>
+              <span className="text-emerald-400 font-mono tabular-nums">{accuracy}%</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-foreground-muted text-[10px] sm:text-xs uppercase tracking-wider">Time</span>
-              <span className="text-rose-400 tabular-nums">{timeLeft}s</span>
+              <span className="text-foreground-muted text-xs font-semibold uppercase tracking-wider">Time</span>
+              <span className="text-rose-400 font-mono tabular-nums">{timeLeft}s</span>
             </div>
           </div>
         )}

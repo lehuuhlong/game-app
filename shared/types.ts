@@ -1,11 +1,13 @@
 /**
- * Game types for the standalone Socket.io server.
- * (Duplicate of src/types/socket.ts — kept separate to avoid Next.js dependency)
+ * Shared Socket.io type definitions.
+ *
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  SINGLE SOURCE OF TRUTH — imported by both client and server.  ║
+ * ║  Do NOT create duplicate copies of these types.                ║
+ * ╚══════════════════════════════════════════════════════════════════╝
  */
 
-export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly" | "chess";
-
-export type WordChainLanguage = "en" | "vi";
+// ── Common ────────────────────────────────────────────────────────
 
 export interface Player {
   id: string;
@@ -23,6 +25,12 @@ export interface Room {
   language?: WordChainLanguage;
 }
 
+export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly" | "chess";
+
+export type WordChainLanguage = "en" | "vi";
+
+// ── Caro-specific ────────────────────────────────────────────────
+
 export interface CaroMove {
   roomId: string;
   x: number;
@@ -37,7 +45,7 @@ export interface CaroGameState {
   moveHistory: CaroMove[];
 }
 
-// ── Word Chain types ────────────────────────────────────────────────
+// ── Word Chain types ─────────────────────────────────────────────
 
 export interface WordChainEntry {
   word: string;
@@ -51,7 +59,7 @@ export interface WordChainGameState {
   language: WordChainLanguage;
   /** Ordered list of submitted words */
   chain: WordChainEntry[];
-  /** Set of used words (lowercased) for duplicate checking */
+  /** Array of used words (lowercased) for duplicate checking */
   usedWords: string[];
   /** Player ID whose turn it is */
   currentTurnPlayerId: string;
@@ -65,7 +73,7 @@ export interface WordChainGameState {
   endReason: "timeout" | "invalid" | "disconnect" | "forfeit" | null;
 }
 
-// ── Battleship types ──────────────────────────────────────────────
+// ── Battleship types ─────────────────────────────────────────────
 
 export type BattleshipPhase = "placement" | "battle" | "finished";
 export type ShipType = "carrier" | "battleship" | "cruiser" | "submarine" | "destroyer";
@@ -75,15 +83,15 @@ export interface ShipPlacement {
   x: number;
   y: number;
   vertical: boolean;
-  hits: number; // to track sinking
+  hits: number;
   length: number;
 }
 
 export interface BattleshipPlayerState {
   playerId: string;
   ready: boolean;
-  ships: ShipPlacement[]; // Hidden from opponent
-  shots: { x: number; y: number; result: "hit" | "miss" | "sunk" }[]; 
+  ships: ShipPlacement[];
+  shots: { x: number; y: number; result: "hit" | "miss" | "sunk" }[];
 }
 
 export interface BattleshipGameState {
@@ -93,7 +101,7 @@ export interface BattleshipGameState {
   winner: string | null;
 }
 
-// ── Monopoly types ──────────────────────────────────────────────
+// ── Monopoly types ───────────────────────────────────────────────
 
 export type MonopolySpaceType =
   | "go"
@@ -244,8 +252,9 @@ export interface ChessGameState {
 }
 
 
-// ── Socket Event Maps ───────────────────────────────────────────────
+// ── Socket Event Maps ────────────────────────────────────────────
 
+/** Events the client can emit to the server */
 export interface ClientToServerEvents {
   // Shared
   join_room: (data: {
@@ -259,7 +268,7 @@ export interface ClientToServerEvents {
   restart_game: (data: { roomId: string }) => void;
 
   // Caro
-  make_move: (data: CaroMove | ChessMove | any) => void;
+  make_move: (data: CaroMove | ChessMove) => void;
   timeout_turn: (data: { roomId: string; losingPlayer: "X" | "O" }) => void;
 
   // Word Chain
@@ -290,6 +299,7 @@ export interface ClientToServerEvents {
   chess_timeout: (data: { roomId: string; losingColor: ChessColor }) => void;
 }
 
+/** Events the server can emit to clients */
 export interface ServerToClientEvents {
   // Shared
   room_joined: (data: { room: Room; playerId: string }) => void;
@@ -318,8 +328,8 @@ export interface ServerToClientEvents {
   }) => void;
 
   // Battleship
-  bs_game_state: (data: { 
-    room: Room; 
+  bs_game_state: (data: {
+    room: Room;
     phase: BattleshipPhase;
     currentTurnPlayerId: string | null;
     myState: BattleshipPlayerState;
@@ -351,10 +361,12 @@ export interface ServerToClientEvents {
   chess_game_over: (data: { winner: ChessColor | "draw" | null; reason: string; gameState: ChessGameState }) => void;
 }
 
+/** Internal server-to-server events (for scaling with Redis adapter later) */
 export interface InterServerEvents {
   ping: () => void;
 }
 
+/** Per-socket custom data */
 export interface SocketData {
   username: string;
   currentRoom: string | null;

@@ -16,20 +16,30 @@ interface CellProps {
 
 export const Cell = memo(function Cell({
   value,
+  row,
+  col,
   isWinning,
   isLastMove,
   onClick,
   disabled,
 }: CellProps) {
+  const label = `Row ${row + 1}, Column ${col + 1}${
+    value ? `, marked ${value}` : ", empty"
+  }${isWinning ? ", winning line" : ""}${isLastMove ? ", last move" : ""}`;
+
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled || value !== null}
+      aria-label={label}
+      role="gridcell"
       className={`
         relative flex items-center justify-center
         w-full aspect-square
         border border-border/50
-        transition-colors duration-150
+        transition-colors duration-150 touch-manipulation
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:z-10
         ${value === null && !disabled ? "hover:bg-accent/10 cursor-pointer" : "cursor-default"}
         ${isWinning ? "bg-emerald-100 dark:bg-emerald-900/40" : ""}
         ${isLastMove && !isWinning ? "bg-amber-50 dark:bg-amber-900/20" : ""}

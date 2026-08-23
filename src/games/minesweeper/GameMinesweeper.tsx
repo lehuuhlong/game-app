@@ -192,8 +192,11 @@ export function GameMinesweeper() {
             <button
               key={d.id}
               onClick={() => handleDifficultyClick(d.id)}
+              role="tab"
+              aria-selected={difficulty === d.id}
+              aria-label={`Difficulty ${d.label}, ${d.sub}`}
               className={`relative flex-1 px-3 sm:px-5 py-3 text-sm font-medium transition-colors ${
-                difficulty === d.id ? 'text-accent' : 'text-foreground-muted hover:text-foreground-secondary'
+                difficulty === d.id ? 'text-accent font-bold' : 'text-foreground-muted hover:text-foreground-secondary'
               }`}
             >
               {difficulty === d.id && (
@@ -205,7 +208,7 @@ export function GameMinesweeper() {
               )}
               <span className="relative z-10 flex flex-col items-center gap-0.5">
                 <span>{d.label}</span>
-                <span className="text-[10px] opacity-60 hidden sm:block">{d.sub}</span>
+                <span className="text-xs opacity-60 hidden sm:block">{d.sub}</span>
               </span>
             </button>
           ))}
@@ -221,9 +224,10 @@ export function GameMinesweeper() {
 
           {/* Smiley restart button */}
           <button
+            type="button"
             onClick={handleRestart}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40 border border-emerald-300 dark:border-emerald-700/60 text-xl transition-transform hover:scale-110 active:scale-95 shadow-sm"
             aria-label="Restart game"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40 border border-emerald-300 dark:border-emerald-700/60 text-xl transition-transform hover:scale-110 active:scale-95 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {statusEmoji}
           </button>
