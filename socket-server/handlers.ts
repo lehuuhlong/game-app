@@ -1182,12 +1182,69 @@ function handleWCTimeout(roomId: string, io: GameIO) {
   console.log(`⏱ Word Chain timeout in room ${roomId}: ${loser.username} loses`);
 }
 
+// ── Active lobbies helper ─────────────────────────────────────────
+
+export interface ActiveLobbyInfo {
+  id: string;
+  gameId: string;
+  gameTitle: string;
+  roomCode: string;
+  hostName: string;
+  currentPlayers: number;
+  maxPlayers: number;
+  route: string;
+  status: "waiting" | "playing" | "finished";
+  createdAt: string;
+}
+
+export function getActiveLobbies(): ActiveLobbyInfo[] {
+  const list: ActiveLobbyInfo[] = [];
+  const gameTitles: Record<string, string> = {
+    chess: "Chess",
+    caro: "Caro 5-in-a-Row",
+    battleship: "Battleship",
+    monopoly: "Monopoly",
+    wordchain: "Word Chain",
+  };
+  const gameRoutes: Record<string, string> = {
+    chess: "/games/chess",
+    caro: "/games/caro",
+    battleship: "/games/battleship",
+    monopoly: "/games/monopoly",
+    wordchain: "/games/wordchain",
+  };
+
+  for (const [id, room] of rooms.entries()) {
+    if (room.players.length > 0 && room.status !== "finished") {
+      const maxPlayers = room.gameType === "monopoly" ? MONOPOLY_MAX_PLAYERS : 2;
+      list.push({
+        id: room.id,
+        gameId: room.gameType,
+        gameTitle: gameTitles[room.gameType] || room.gameType,
+        roomCode: room.id,
+        hostName: room.players[0]?.username || "Host",
+        currentPlayers: room.players.length,
+        maxPlayers,
+        route: gameRoutes[room.gameType] || `/games/${room.gameType}`,
+        status: room.status,
+        createdAt: room.createdAt ? new Date(room.createdAt).toISOString() : new Date().toISOString(),
+      });
+    }
+  }
+  return list;
+}
+
 // ── Main handler registration ────────────────────────────────────
 
 export function registerSocketHandlers(io: GameIO): void {
   io.on("connection", (socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
     io.emit("online_players_count", io.engine.clientsCount);
+    socket.emit("active_lobbies" as any, getActiveLobbies());
+
+    socket.on("get_active_lobbies" as any, () => {
+      socket.emit("active_lobbies" as any, getActiveLobbies());
+    });
 
     // ── Join Room ────────────────────────────────────────────────
     socket.on("join_room", ({ roomId, gameType, username, action, language }) => {
@@ -1332,6 +1389,8 @@ export function registerSocketHandlers(io: GameIO): void {
 
         console.log(`🎮 Game started in room ${roomId}`);
       }
+
+      io.emit("active_lobbies" as any, getActiveLobbies());
     });
 
     // ── Monopoly: manual start (host triggers when 2-4 players are in) ─
@@ -1356,6 +1415,7 @@ export function registerSocketHandlers(io: GameIO): void {
       );
       mpStates.set(roomId, gameState);
       io.to(roomId).emit("mp_game_started", { room, gameState });
+      io.emit("active_lobbies" as any, getActiveLobbies());
       console.log(`🎩 Monopoly started in room ${roomId} with ${room.players.length} players`);
     });
 
@@ -1992,7 +2052,7 @@ export function registerSocketHandlers(io: GameIO): void {
       const mpPlayer = state.players.find((p) => p.playerId === player.id);
       if (!mpPlayer || !mpPlayer.isActive) return;
 
-      if (player.id !== state.currentTurnPlayerId || (state.turnPhase !== "world_tour" && mpPlayer.position !== 24)) {
+      if (player.id !== state.currentTurnPlayerId || state.turnPhase !== "world_tour") {
         socket.emit("error", { message: "Cannot travel via World Tour right now." });
         return;
       }
@@ -2016,6 +2076,11 @@ export function registerSocketHandlers(io: GameIO): void {
       state.rollCount = (state.rollCount || 0) + 1;
       mpLog(state, `✈️ ${mpPlayer.username} flew via World Tour to ${targetSpace.name}!`);
 
+      // Reset turnPhase before resolving destination — the phase was "world_tour"
+      // from turn start; if we don't reset, the post-resolution check mistakenly
+      // detects it as a NEW world_tour entry and loops the player back indefinitely.
+      state.turnPhase = "roll";
+
       // Resolve the space they landed on
       const shouldOfferBuy = resolveSpace(state, mpPlayer, 0, io, roomId);
 
@@ -2032,19 +2097,19 @@ export function registerSocketHandlers(io: GameIO): void {
       }
 
       // Check if player entered World Cup hosting phase
-      if (state.turnPhase === "world_cup") {
+      if ((state.turnPhase as string) === "world_cup") {
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         return;
       }
 
       // Check if player entered Chance Target selection phase
-      if (state.turnPhase === "chance_target") {
+      if ((state.turnPhase as string) === "chance_target") {
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         return;
       }
 
       // Check if player entered World Tour phase
-      if (state.turnPhase === "world_tour") {
+      if ((state.turnPhase as string) === "world_tour") {
         io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         return;
       }
@@ -2746,6 +2811,7 @@ export function registerSocketHandlers(io: GameIO): void {
         console.log(`🧹 Cleaned up stale room: ${id}`);
       }
     }
+    io.emit("active_lobbies" as any, getActiveLobbies());
   }, 60_000);
 }
 
@@ -2922,4 +2988,6 @@ function handleLeaveRoom(
     }
     socket.to(roomId).emit("player_left", { playerId: socket.id, room });
   }
+
+  io.emit("active_lobbies" as any, getActiveLobbies());
 }
