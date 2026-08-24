@@ -79,20 +79,20 @@ export function ActiveRoomsBar() {
 
   return (
     <section className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl">
+      <div className="rounded-3xl border border-border bg-surface/90 p-6 sm:p-8 backdrop-blur-xl shadow-sm">
         {/* Header & Quick Code Entry */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-800/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border/80">
           <div>
             <div className="flex items-center gap-2.5">
               <span className="flex h-2.5 w-2.5 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
               </span>
-              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                 Live Multiplayer Lobbies
               </h3>
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-slate-400">
+            <p className="mt-1 text-xs sm:text-sm text-foreground-secondary">
               Jump directly into open 1v1 rooms or join with a friend’s room code.
             </p>
           </div>
@@ -115,13 +115,13 @@ export function ActiveRoomsBar() {
                 onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                 placeholder="Enter Room Code (e.g. CR-4309)"
                 maxLength={10}
-                className="w-full rounded-xl border border-slate-700/80 bg-slate-950 px-3.5 py-2.5 text-xs sm:text-sm font-mono uppercase tracking-wider text-white placeholder-slate-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs sm:text-sm font-mono uppercase tracking-wider text-foreground placeholder:text-foreground-muted transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
             <button
               type="submit"
               disabled={!roomCodeInput.trim()}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-500 px-4 text-xs font-bold text-white transition-colors hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-accent px-4 text-xs font-bold text-white transition-colors hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
             >
               Join
             </button>
@@ -137,29 +137,29 @@ export function ActiveRoomsBar() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: index * 0.06 }}
-              className="group relative flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition-all duration-200 hover:border-violet-500/40 hover:bg-slate-950/90"
+              className="group relative flex flex-col justify-between rounded-2xl border border-border bg-background/70 dark:bg-slate-950/70 p-4 transition-all duration-200 hover:border-violet-500/50 hover:bg-surface-hover/80 hover:shadow-md"
             >
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-800 text-sky-400">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/10 text-sky-500">
                       {getGameSvgIcon(lobby.gameId, '', 14)}
                     </span>
-                    <span className="text-sm font-bold text-white group-hover:text-violet-400 transition-colors">
+                    <span className="text-sm font-bold text-foreground group-hover:text-violet-500 transition-colors">
                       {lobby.gameTitle}
                     </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-xs font-mono font-semibold text-emerald-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                     {lobby.currentPlayers}/{lobby.maxPlayers}
                   </span>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                <div className="mt-3 flex items-center justify-between text-xs text-foreground-muted">
                   <span className="truncate max-w-[110px]">Host: {lobby.hostName}</span>
                   <button
                     onClick={(e) => handleCopyCode(lobby.roomCode, e)}
                     title="Copy Room Code"
-                    className="inline-flex items-center gap-1 font-mono text-xs text-slate-400 hover:text-sky-400 transition-colors"
+                    className="inline-flex items-center gap-1 font-mono text-xs text-foreground-secondary hover:text-accent transition-colors"
                   >
                     <span>{lobby.roomCode}</span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -170,16 +170,16 @@ export function ActiveRoomsBar() {
                 </div>
 
                 {copiedCode === lobby.roomCode && (
-                  <p className="mt-1 text-xs font-medium text-emerald-400 text-right">
+                  <p className="mt-1 text-xs font-medium text-emerald-500 text-right">
                     Code copied!
                   </p>
                 )}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-800/80">
+              <div className="mt-4 pt-3 border-t border-border/80">
                 <Link
                   href={`${lobby.route}?room=${lobby.roomCode}`}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-violet-600/90 py-2 text-xs font-bold text-white transition-all hover:bg-violet-500 hover:shadow-lg hover:shadow-violet-600/20"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-2 text-xs font-bold text-white transition-all hover:from-violet-500 hover:to-indigo-500 hover:shadow-md hover:shadow-violet-600/20"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                     <polygon points="5 3 19 12 5 21 5 3" />

@@ -50,7 +50,7 @@ export function ArcadeToolbar({
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       {/* Category Filter Pills */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800/90 backdrop-blur-xl">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-surface border border-border shadow-xs backdrop-blur-xl">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
           return (
@@ -58,7 +58,7 @@ export function ArcadeToolbar({
               key={cat.id}
               onClick={() => onSelectCategory(cat.id)}
               className={`relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold transition-colors duration-200 ${
-                isActive ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+                isActive ? 'text-white' : 'text-foreground-secondary hover:text-foreground hover:bg-surface-hover'
               }`}
             >
               {isActive && (
@@ -72,8 +72,8 @@ export function ArcadeToolbar({
               <span
                 className={`relative z-10 rounded-md px-1.5 py-0.5 text-xs font-mono font-bold ${
                   isActive
-                    ? 'bg-black/20 text-white'
-                    : 'bg-slate-800 text-slate-400'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-background border border-border text-foreground-muted'
                 }`}
               >
                 {cat.count}
@@ -86,7 +86,7 @@ export function ArcadeToolbar({
       {/* Search Input Bar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 md:w-72">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-muted">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -99,13 +99,13 @@ export function ArcadeToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search 11 games... (Press /)"
-            className="w-full rounded-xl border border-slate-800 bg-slate-900/90 pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-border bg-surface pl-10 pr-9 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-foreground-muted transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
 
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground"
               title="Clear search"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -116,7 +116,7 @@ export function ArcadeToolbar({
           )}
         </div>
 
-        <span className="hidden lg:inline-block font-mono text-xs text-slate-400">
+        <span className="hidden lg:inline-block font-mono text-xs text-foreground-muted">
           {totalFiltered} {totalFiltered === 1 ? 'game' : 'games'}
         </span>
       </div>

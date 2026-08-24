@@ -56,7 +56,7 @@ export function DailySpotlight() {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8"
     >
-      <div className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-sky-950/40 p-6 sm:p-8 md:p-10 backdrop-blur-xl shadow-2xl shadow-sky-950/30">
+      <div className="relative overflow-hidden rounded-3xl border border-sky-500/30 dark:border-sky-500/20 bg-gradient-to-r from-surface via-surface/90 to-sky-50/70 dark:from-slate-900/90 dark:via-slate-900/70 dark:to-sky-950/40 p-6 sm:p-8 md:p-10 backdrop-blur-xl shadow-xl shadow-sky-500/5 dark:shadow-sky-950/30">
         {/* Ambient radial glow */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-blue-600/10 blur-3xl" />
@@ -65,46 +65,46 @@ export function DailySpotlight() {
           {/* Left Column: Challenge Brief */}
           <div className="flex-1 space-y-4 text-left">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-300">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
                 </svg>
                 Game of the Day
               </span>
-              <span className="text-xs font-mono font-medium text-slate-400">
+              <span className="text-xs font-mono font-medium text-foreground-muted">
                 {formattedDate}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live Streak Active
               </span>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white flex items-center gap-3">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
                 <span>{featuredGame.title}</span>
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-sky-400">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-accent-light dark:bg-slate-800 border border-accent/20 dark:border-slate-700 text-accent dark:text-sky-400">
                   {getGameSvgIcon(featuredGame.id, '', 18)}
                 </span>
               </h3>
-              <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-                <strong className="text-sky-400 font-semibold">Today’s Challenge: </strong>
+              <p className="text-sm sm:text-base text-foreground-secondary max-w-2xl leading-relaxed">
+                <strong className="text-accent font-semibold">Today’s Challenge: </strong>
                 {challenge.goal}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3.5 py-2 text-xs text-slate-300">
-                <span className="text-slate-400">Difficulty:</span>
-                <span className="font-semibold text-amber-300">{challenge.difficulty}</span>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 dark:bg-slate-950/60 px-3.5 py-2 text-xs text-foreground-secondary">
+                <span className="text-foreground-muted">Difficulty:</span>
+                <span className="font-semibold text-amber-600 dark:text-amber-300">{challenge.difficulty}</span>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3.5 py-2 text-xs text-slate-300">
-                <span className="text-slate-400">Reward:</span>
-                <span className="font-mono font-semibold text-emerald-400">{challenge.reward}</span>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 dark:bg-slate-950/60 px-3.5 py-2 text-xs text-foreground-secondary">
+                <span className="text-foreground-muted">Reward:</span>
+                <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{challenge.reward}</span>
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3.5 py-2 text-xs text-slate-300">
-                <span className="text-slate-400">Players:</span>
-                <span className="font-mono font-semibold text-sky-400">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 dark:bg-slate-950/60 px-3.5 py-2 text-xs text-foreground-secondary">
+                <span className="text-foreground-muted">Players:</span>
+                <span className="font-mono font-semibold text-accent">
                   {featuredGame.minPlayers === featuredGame.maxPlayers
                     ? `${featuredGame.minPlayers}P`
                     : `${featuredGame.minPlayers}-${featuredGame.maxPlayers}P`}
@@ -116,7 +116,7 @@ export function DailySpotlight() {
           {/* Right Column: Visual Preview & Launch Action */}
           <div className="flex flex-col sm:flex-row lg:flex-col items-center gap-6 w-full lg:w-auto">
             {/* Visual Graphic preview */}
-            <div className="relative w-full sm:w-56 h-36 rounded-2xl border border-slate-800 bg-slate-950/80 p-3 overflow-hidden">
+            <div className="relative w-full sm:w-56 h-36 rounded-2xl border border-border bg-background dark:bg-slate-950/80 p-3 overflow-hidden shadow-inner">
               <GameVisualGraphic id={featuredGame.id} />
             </div>
 

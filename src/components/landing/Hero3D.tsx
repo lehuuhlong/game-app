@@ -21,8 +21,6 @@ export function Hero3D({ className = '' }: Hero3DProps) {
 
     // ── 1. Scene & Camera Setup ──────────────────────────────────
     const scene = new THREE.Scene();
-    // Subtle atmospheric depth fog matching deep dark background
-    scene.fog = new THREE.FogExp2(0x050a18, 0.035);
 
     const camera = new THREE.PerspectiveCamera(
       45,
