@@ -1,8 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/scripts
+# ==========================================
+# Dependencies & Package Managers
+# ==========================================
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,39 +10,81 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
+# ==========================================
+# Next.js & Build Outputs
+# ==========================================
+.next/
+out/
+build/
+dist/
 *.tsbuildinfo
 next-env.d.ts
 
-# socket-server (Railway deployment)
-/socket-server/node_modules
-/socket-server/dist
-
-# keep .env.example but ignore all other .env files
+# ==========================================
+# Environment Variables & Secrets
+# ==========================================
+.env*
 !.env.example
+!.env.template
+*.pem
+*.key
+*.cert
+
+# ==========================================
+# AI Agents & Assistants
+# ==========================================
+.agent/
+.agents/
+.claude/
+.gemini/
+.impeccable/
+.cursor/
+.windsurf/
+
+# ==========================================
+# IDE & Code Editors
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# Operating System & Temporary Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# ==========================================
+# Logs & Debugging
+# ==========================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==========================================
+# Testing & Coverage
+# ==========================================
+coverage/
+.nyc_output/
+
+# ==========================================
+# Deployments & Platforms
+# ==========================================
+.vercel/
+
+# ==========================================
+# Local / Custom Scripts (Contains private migration/credentials)
+# ==========================================
+/scripts/
