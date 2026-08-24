@@ -1680,7 +1680,7 @@ export function MonopolyBoard({
     hasMovementSettled &&
     isMyTurn &&
     Boolean(myPlayer) &&
-    (turnPhase === 'world_tour' || (turnPhase === 'roll' && myPlayer?.position === 24));
+    turnPhase === 'world_tour';
 
   // Check if World Cup host selection phase is active for current user
   const isWorldCupSelectionActive =

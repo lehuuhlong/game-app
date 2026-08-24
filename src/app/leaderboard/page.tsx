@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { HeadToHeadExplorer } from "@/components/leaderboard/HeadToHeadExplorer";
 import { LiveMatchFeed } from "@/components/leaderboard/LiveMatchFeed";
 import { PlayerProfileModal } from "@/components/leaderboard/PlayerProfileModal";
+import { ChampionsPodium } from "@/components/leaderboard/ChampionsPodium";
 import { useAuth } from "@/components/auth";
 
 type LeaderboardMode = "rankings" | "h2h" | "activity";
@@ -163,7 +165,7 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
   ),
   minesweeper: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-      <circle cx="12" cy="12" r="7.5" />
+      <circle cx="12" cy="7.5" />
       <line x1="12" y1="2" x2="12" y2="4.5" />
       <line x1="12" y1="19.5" x2="12" y2="22" />
       <line x1="2" y1="12" x2="4.5" y2="12" />
@@ -245,7 +247,7 @@ const WORDLE_LEVELS: { id: WordleLevel; label: string }[] = [
 
 const slideVariants = {
   enter: (dir: number) => ({
-    x: dir > 0 ? 50 : -50,
+    x: dir > 0 ? 40 : -40,
     opacity: 0,
   }),
   center: {
@@ -253,7 +255,7 @@ const slideVariants = {
     opacity: 1,
   },
   exit: (dir: number) => ({
-    x: dir > 0 ? -50 : 50,
+    x: dir > 0 ? -40 : 40,
     opacity: 0,
   }),
 };
@@ -280,6 +282,9 @@ export default function LeaderboardPage() {
   const [msLevel, setMsLevel] = useState<MsLevel>("beginner");
   const [sudokuLevel, setSudokuLevel] = useState<SudokuLevel>("easy");
   const [wordleLevel, setWordleLevel] = useState<WordleLevel>("overall");
+
+  // Username search filter on the table
+  const [playerSearchQuery, setPlayerSearchQuery] = useState("");
 
   // Direction ref for smooth horizontal slide animation between games
   const slideDirRef = useRef(1);
@@ -334,6 +339,7 @@ export default function LeaderboardPage() {
     if (tab === activeGame) return;
     slideDirRef.current = (TAB_INDEX[tab] ?? 0) > (TAB_INDEX[activeGame] ?? 0) ? 1 : -1;
     setActiveGame(tab);
+    setPlayerSearchQuery("");
   };
 
   const handleLevelChange = (lv: MsLevel) => {
@@ -429,6 +435,132 @@ export default function LeaderboardPage() {
     setMode("h2h");
   };
 
+  // Compute Top 3 Champions Podium Data
+  const podiumData = useMemo(() => {
+    if (activeGame === "2048") {
+      if (data2048.length === 0) return null;
+      return {
+        first: data2048[0] ? { rank: 1 as const, username: data2048[0].username, avatarUrl: data2048[0].avatarUrl, primaryStat: `${data2048[0].score.toLocaleString()} pts`, secondaryStat: `Tile ${data2048[0].highestTile}` } : null,
+        second: data2048[1] ? { rank: 2 as const, username: data2048[1].username, avatarUrl: data2048[1].avatarUrl, primaryStat: `${data2048[1].score.toLocaleString()} pts`, secondaryStat: `Tile ${data2048[1].highestTile}` } : null,
+        third: data2048[2] ? { rank: 3 as const, username: data2048[2].username, avatarUrl: data2048[2].avatarUrl, primaryStat: `${data2048[2].score.toLocaleString()} pts`, secondaryStat: `Tile ${data2048[2].highestTile}` } : null,
+        metricLabel: "Score",
+      };
+    }
+    if (activeGame === "caro") {
+      if (dataCaro.length === 0) return null;
+      return {
+        first: dataCaro[0] ? { rank: 1 as const, username: dataCaro[0].username, avatarUrl: dataCaro[0].avatarUrl, primaryStat: `${dataCaro[0].winRate}% Win Rate`, secondaryStat: `${dataCaro[0].wins}W / ${dataCaro[0].total}G` } : null,
+        second: dataCaro[1] ? { rank: 2 as const, username: dataCaro[1].username, avatarUrl: dataCaro[1].avatarUrl, primaryStat: `${dataCaro[1].winRate}% Win Rate`, secondaryStat: `${dataCaro[1].wins}W / ${dataCaro[1].total}G` } : null,
+        third: dataCaro[2] ? { rank: 3 as const, username: dataCaro[2].username, avatarUrl: dataCaro[2].avatarUrl, primaryStat: `${dataCaro[2].winRate}% Win Rate`, secondaryStat: `${dataCaro[2].wins}W / ${dataCaro[2].total}G` } : null,
+        metricLabel: "Win Rate",
+      };
+    }
+    if (activeGame === "chess") {
+      if (dataChess.length === 0) return null;
+      return {
+        first: dataChess[0] ? { rank: 1 as const, username: dataChess[0].username, avatarUrl: dataChess[0].avatarUrl, primaryStat: `${dataChess[0].winRate}% Win Rate`, secondaryStat: `${dataChess[0].wins} Wins` } : null,
+        second: dataChess[1] ? { rank: 2 as const, username: dataChess[1].username, avatarUrl: dataChess[1].avatarUrl, primaryStat: `${dataChess[1].winRate}% Win Rate`, secondaryStat: `${dataChess[1].wins} Wins` } : null,
+        third: dataChess[2] ? { rank: 3 as const, username: dataChess[2].username, avatarUrl: dataChess[2].avatarUrl, primaryStat: `${dataChess[2].winRate}% Win Rate`, secondaryStat: `${dataChess[2].wins} Wins` } : null,
+        metricLabel: "Win Rate",
+      };
+    }
+    if (activeGame === "battleship") {
+      if (dataBattleship.length === 0) return null;
+      return {
+        first: dataBattleship[0] ? { rank: 1 as const, username: dataBattleship[0].username, avatarUrl: dataBattleship[0].avatarUrl, primaryStat: `${dataBattleship[0].winRate}% Win Rate`, secondaryStat: `${dataBattleship[0].wins} Wins` } : null,
+        second: dataBattleship[1] ? { rank: 2 as const, username: dataBattleship[1].username, avatarUrl: dataBattleship[1].avatarUrl, primaryStat: `${dataBattleship[1].winRate}% Win Rate`, secondaryStat: `${dataBattleship[1].wins} Wins` } : null,
+        third: dataBattleship[2] ? { rank: 3 as const, username: dataBattleship[2].username, avatarUrl: dataBattleship[2].avatarUrl, primaryStat: `${dataBattleship[2].winRate}% Win Rate`, secondaryStat: `${dataBattleship[2].wins} Wins` } : null,
+        metricLabel: "Win Rate",
+      };
+    }
+    if (activeGame === "wordchain") {
+      if (dataWordChain.length === 0) return null;
+      return {
+        first: dataWordChain[0] ? { rank: 1 as const, username: dataWordChain[0].username, avatarUrl: dataWordChain[0].avatarUrl, primaryStat: `${dataWordChain[0].winRate}% Win Rate`, secondaryStat: `${dataWordChain[0].wins} Wins` } : null,
+        second: dataWordChain[1] ? { rank: 2 as const, username: dataWordChain[1].username, avatarUrl: dataWordChain[1].avatarUrl, primaryStat: `${dataWordChain[1].winRate}% Win Rate`, secondaryStat: `${dataWordChain[1].wins} Wins` } : null,
+        third: dataWordChain[2] ? { rank: 3 as const, username: dataWordChain[2].username, avatarUrl: dataWordChain[2].avatarUrl, primaryStat: `${dataWordChain[2].winRate}% Win Rate`, secondaryStat: `${dataWordChain[2].wins} Wins` } : null,
+        metricLabel: "Win Rate",
+      };
+    }
+    if (activeGame === "monopoly") {
+      if (dataMonopoly.length === 0) return null;
+      return {
+        first: dataMonopoly[0] ? { rank: 1 as const, username: dataMonopoly[0].username, avatarUrl: dataMonopoly[0].avatarUrl, primaryStat: `${dataMonopoly[0].winRate}% Win Rate`, secondaryStat: `${dataMonopoly[0].wins} Wins` } : null,
+        second: dataMonopoly[1] ? { rank: 2 as const, username: dataMonopoly[1].username, avatarUrl: dataMonopoly[1].avatarUrl, primaryStat: `${dataMonopoly[1].winRate}% Win Rate`, secondaryStat: `${dataMonopoly[1].wins} Wins` } : null,
+        third: dataMonopoly[2] ? { rank: 3 as const, username: dataMonopoly[2].username, avatarUrl: dataMonopoly[2].avatarUrl, primaryStat: `${dataMonopoly[2].winRate}% Win Rate`, secondaryStat: `${dataMonopoly[2].wins} Wins` } : null,
+        metricLabel: "Win Rate",
+      };
+    }
+    if (activeGame === "aimtrainer") {
+      if (dataAimTrainer.length === 0) return null;
+      return {
+        first: dataAimTrainer[0] ? { rank: 1 as const, username: dataAimTrainer[0].username, avatarUrl: dataAimTrainer[0].avatarUrl, primaryStat: `${dataAimTrainer[0].score} pts`, secondaryStat: `${dataAimTrainer[0].accuracy}% Acc` } : null,
+        second: dataAimTrainer[1] ? { rank: 2 as const, username: dataAimTrainer[1].username, avatarUrl: dataAimTrainer[1].avatarUrl, primaryStat: `${dataAimTrainer[1].score} pts`, secondaryStat: `${dataAimTrainer[1].accuracy}% Acc` } : null,
+        third: dataAimTrainer[2] ? { rank: 3 as const, username: dataAimTrainer[2].username, avatarUrl: dataAimTrainer[2].avatarUrl, primaryStat: `${dataAimTrainer[2].score} pts`, secondaryStat: `${dataAimTrainer[2].accuracy}% Acc` } : null,
+        metricLabel: "Score",
+      };
+    }
+    if (activeGame === "minesweeper") {
+      if (dataMs.length === 0) return null;
+      return {
+        first: dataMs[0] ? { rank: 1 as const, username: dataMs[0].username, avatarUrl: dataMs[0].avatarUrl, primaryStat: formatTime(dataMs[0].time), secondaryStat: "Clear Time" } : null,
+        second: dataMs[1] ? { rank: 2 as const, username: dataMs[1].username, avatarUrl: dataMs[1].avatarUrl, primaryStat: formatTime(dataMs[1].time), secondaryStat: "Clear Time" } : null,
+        third: dataMs[2] ? { rank: 3 as const, username: dataMs[2].username, avatarUrl: dataMs[2].avatarUrl, primaryStat: formatTime(dataMs[2].time), secondaryStat: "Clear Time" } : null,
+        metricLabel: "Time",
+      };
+    }
+    if (activeGame === "sudoku") {
+      if (dataSudoku.length === 0) return null;
+      return {
+        first: dataSudoku[0] ? { rank: 1 as const, username: dataSudoku[0].username, avatarUrl: dataSudoku[0].avatarUrl, primaryStat: formatTime(dataSudoku[0].time), secondaryStat: "Clear Time" } : null,
+        second: dataSudoku[1] ? { rank: 2 as const, username: dataSudoku[1].username, avatarUrl: dataSudoku[1].avatarUrl, primaryStat: formatTime(dataSudoku[1].time), secondaryStat: "Clear Time" } : null,
+        third: dataSudoku[2] ? { rank: 3 as const, username: dataSudoku[2].username, avatarUrl: dataSudoku[2].avatarUrl, primaryStat: formatTime(dataSudoku[2].time), secondaryStat: "Clear Time" } : null,
+        metricLabel: "Time",
+      };
+    }
+    if (activeGame === "trex") {
+      if (dataTrex.length === 0) return null;
+      return {
+        first: dataTrex[0] ? { rank: 1 as const, username: dataTrex[0].username, avatarUrl: dataTrex[0].avatarUrl, primaryStat: `${dataTrex[0].score.toLocaleString()} pts`, secondaryStat: "Distance" } : null,
+        second: dataTrex[1] ? { rank: 2 as const, username: dataTrex[1].username, avatarUrl: dataTrex[1].avatarUrl, primaryStat: `${dataTrex[1].score.toLocaleString()} pts`, secondaryStat: "Distance" } : null,
+        third: dataTrex[2] ? { rank: 3 as const, username: dataTrex[2].username, avatarUrl: dataTrex[2].avatarUrl, primaryStat: `${dataTrex[2].score.toLocaleString()} pts`, secondaryStat: "Distance" } : null,
+        metricLabel: "Score",
+      };
+    }
+    if (activeGame === "wordle") {
+      if (dataWordle.length === 0) return null;
+      return {
+        first: dataWordle[0] ? { rank: 1 as const, username: dataWordle[0].username, avatarUrl: dataWordle[0].avatarUrl, primaryStat: `${dataWordle[0].wins} Wins`, secondaryStat: dataWordle[0].winRate !== undefined ? `${dataWordle[0].winRate}% Win Rate` : undefined } : null,
+        second: dataWordle[1] ? { rank: 2 as const, username: dataWordle[1].username, avatarUrl: dataWordle[1].avatarUrl, primaryStat: `${dataWordle[1].wins} Wins`, secondaryStat: dataWordle[1].winRate !== undefined ? `${dataWordle[1].winRate}% Win Rate` : undefined } : null,
+        third: dataWordle[2] ? { rank: 3 as const, username: dataWordle[2].username, avatarUrl: dataWordle[2].avatarUrl, primaryStat: `${dataWordle[2].wins} Wins`, secondaryStat: dataWordle[2].winRate !== undefined ? `${dataWordle[2].winRate}% Win Rate` : undefined } : null,
+        metricLabel: "Wins",
+      };
+    }
+    return null;
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataWordle]);
+
+  const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
+  const gameRoute = `/games/${activeGame}`;
+
+  // Formatted sub-title with current level
+  const activeLevelLabel = useMemo(() => {
+    if (activeGame === "minesweeper") {
+      return ` (${MS_LEVELS.find((l) => l.id === msLevel)?.label || "Beginner"})`;
+    }
+    if (activeGame === "sudoku") {
+      return ` (${SUDOKU_LEVELS.find((l) => l.id === sudokuLevel)?.label || "Easy"})`;
+    }
+    if (activeGame === "wordle") {
+      return ` (${WORDLE_LEVELS.find((l) => l.id === wordleLevel)?.label || "Overall"})`;
+    }
+    return "";
+  }, [activeGame, msLevel, sudokuLevel, wordleLevel]);
+
+  const matchesSearch = (username: string) => {
+    if (!playerSearchQuery.trim()) return true;
+    return username.toLowerCase().includes(playerSearchQuery.trim().toLowerCase());
+  };
+
   const contentKey =
     activeGame === "minesweeper"
       ? `ms-${msLevel}`
@@ -444,10 +576,10 @@ export default function LeaderboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-            Leader<span className="text-gradient">board</span>
+            Leaderboard
           </h1>
           <p className="text-foreground-secondary text-sm mt-1">
-            Global rankings, head-to-head records, and match history.
+            Global rankings, top champions podium, head-to-head records, and match history.
           </p>
         </div>
 
@@ -486,7 +618,7 @@ export default function LeaderboardPage() {
       {/* ── VIEW 1: GLOBAL RANKINGS ───────────────────────────── */}
       {mode === "rankings" && (
         <div className="space-y-6">
-          {/* Category Filter + Game Selector Pill Bar */}
+          {/* Category Filter + Game Selector Pill Bar + Sub-Level Selectors */}
           <div className="rounded-2xl border border-border bg-surface shadow-sm p-4 sm:p-5 space-y-4">
             {/* Category Filter Segmented Control with layoutId Slide */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
@@ -525,8 +657,8 @@ export default function LeaderboardPage() {
                 </div>
               </div>
 
-              <span className="text-xs text-foreground-muted">
-                Showing <strong className="text-foreground">{filteredGameList.length}</strong> games
+              <span className="text-xs text-foreground-muted font-mono">
+                Showing {filteredGameList.length} games
               </span>
             </div>
 
@@ -612,129 +744,174 @@ export default function LeaderboardPage() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* ── Difficulty / Sub-Level Segmented Controls (Minesweeper / Sudoku / Wordle) ── */}
+            {activeGame === "minesweeper" && (
+              <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+                <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider mr-1">
+                  Difficulty:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {MS_LEVELS.map((lv) => {
+                    const isLvActive = msLevel === lv.id;
+                    return (
+                      <button
+                        key={lv.id}
+                        onClick={() => handleLevelChange(lv.id)}
+                        className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          isLvActive
+                            ? "text-accent dark:text-white font-bold"
+                            : "text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
+                        }`}
+                      >
+                        {isLvActive && (
+                          <motion.div
+                            layoutId="ms-level-pill"
+                            className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
+                            transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                          />
+                        )}
+                        <span className="relative z-10">{lv.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeGame === "sudoku" && (
+              <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+                <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider mr-1">
+                  Difficulty:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {SUDOKU_LEVELS.map((lv) => {
+                    const isLvActive = sudokuLevel === lv.id;
+                    return (
+                      <button
+                        key={lv.id}
+                        onClick={() => handleSudokuLevelChange(lv.id)}
+                        className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          isLvActive
+                            ? "text-accent dark:text-white font-bold"
+                            : "text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
+                        }`}
+                      >
+                        {isLvActive && (
+                          <motion.div
+                            layoutId="sudoku-level-pill"
+                            className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
+                            transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                          />
+                        )}
+                        <span className="relative z-10">{lv.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeGame === "wordle" && (
+              <div className="flex items-center gap-2 pt-2 border-t border-border/60 overflow-x-auto no-scrollbar">
+                <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider mr-1 whitespace-nowrap">
+                  Filter:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {WORDLE_LEVELS.map((lv) => {
+                    const isLvActive = wordleLevel === lv.id;
+                    return (
+                      <button
+                        key={lv.id}
+                        onClick={() => handleWordleLevelChange(lv.id)}
+                        className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                          isLvActive
+                            ? "text-accent dark:text-white font-bold"
+                            : "text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
+                        }`}
+                      >
+                        {isLvActive && (
+                          <motion.div
+                            layoutId="wordle-level-pill"
+                            className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
+                            transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                          />
+                        )}
+                        <span className="relative z-10">{lv.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* ── Main Rankings Card with Slide Transitions ──────── */}
+          {/* ── Champions Podium Hero Stage ────────────────────────── */}
+          <ChampionsPodium
+            first={podiumData?.first}
+            second={podiumData?.second}
+            third={podiumData?.third}
+            metricLabel={podiumData?.metricLabel || "Score"}
+            onSelectPlayer={(uname) => setSelectedPlayer(uname)}
+          />
+
+          {/* ── Main Rankings Card ─────────────────────────────────── */}
           <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
-            {/* Minesweeper sub-tabs */}
-            <AnimatePresence initial={false}>
-              {activeGame === "minesweeper" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden border-b border-border/60 bg-background-secondary/30"
-                >
-                  <div className="flex items-center gap-2 px-5 py-2.5">
-                    <span className="text-xs font-bold text-foreground-muted uppercase mr-1">Difficulty:</span>
-                    <div className="flex items-center gap-1">
-                      {MS_LEVELS.map((lv) => {
-                        const isLvActive = msLevel === lv.id;
-                        return (
-                          <button
-                            key={lv.id}
-                            onClick={() => handleLevelChange(lv.id)}
-                            className={`relative px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                              isLvActive ? "text-accent dark:text-white font-bold" : "text-foreground-secondary hover:text-foreground"
-                            }`}
-                          >
-                            {isLvActive && (
-                              <motion.div
-                                layoutId="ms-level-pill"
-                                className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
-                                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                              />
-                            )}
-                            <span className="relative z-10">{lv.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Game Header Banner with Launch CTA and Search Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border-b border-border/60 bg-background-secondary/20">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent">
+                  {GAME_ICONS[activeGame]}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                    <span>
+                      {currentGameDef.label}
+                      {activeLevelLabel} Standings
+                    </span>
+                  </h2>
+                  <p className="text-xs text-foreground-secondary">
+                    Global verified competition rankings
+                  </p>
+                </div>
+              </div>
 
-            {/* Sudoku sub-tabs */}
-            <AnimatePresence initial={false}>
-              {activeGame === "sudoku" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden border-b border-border/60 bg-background-secondary/30"
-                >
-                  <div className="flex items-center gap-2 px-5 py-2.5">
-                    <span className="text-xs font-bold text-foreground-muted uppercase mr-1">Difficulty:</span>
-                    <div className="flex items-center gap-1">
-                      {SUDOKU_LEVELS.map((lv) => {
-                        const isLvActive = sudokuLevel === lv.id;
-                        return (
-                          <button
-                            key={lv.id}
-                            onClick={() => handleSudokuLevelChange(lv.id)}
-                            className={`relative px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                              isLvActive ? "text-accent dark:text-white font-bold" : "text-foreground-secondary hover:text-foreground"
-                            }`}
-                          >
-                            {isLvActive && (
-                              <motion.div
-                                layoutId="sudoku-level-pill"
-                                className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
-                                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                              />
-                            )}
-                            <span className="relative z-10">{lv.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <div className="flex items-center gap-3">
+                {/* Search player input */}
+                <div className="relative flex-1 sm:w-56">
+                  <input
+                    type="text"
+                    value={playerSearchQuery}
+                    onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                    placeholder="Search player..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-border bg-background text-xs text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none"
+                  />
+                  <svg
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground-muted"
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
 
-            {/* Wordle sub-tabs */}
-            <AnimatePresence initial={false}>
-              {activeGame === "wordle" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden border-b border-border/60 bg-background-secondary/30"
+                {/* Direct Play CTA Link */}
+                <Link
+                  href={gameRoute}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-accent text-xs font-bold text-white shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap"
                 >
-                  <div className="flex items-center gap-2 px-5 py-2.5 overflow-x-auto no-scrollbar">
-                    <span className="text-xs font-bold text-foreground-muted uppercase mr-1 whitespace-nowrap">Filter:</span>
-                    <div className="flex items-center gap-1">
-                      {WORDLE_LEVELS.map((lv) => {
-                        const isLvActive = wordleLevel === lv.id;
-                        return (
-                          <button
-                            key={lv.id}
-                            onClick={() => handleWordleLevelChange(lv.id)}
-                            className={`relative px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                              isLvActive ? "text-accent dark:text-white font-bold" : "text-foreground-secondary hover:text-foreground"
-                            }`}
-                          >
-                            {isLvActive && (
-                              <motion.div
-                                layoutId="wordle-level-pill"
-                                className="absolute inset-0 rounded-lg bg-accent/15 border border-accent/30 dark:bg-accent dark:border-transparent shadow-xs"
-                                transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                              />
-                            )}
-                            <span className="relative z-10">{lv.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  <span>Play {currentGameDef.label}</span>
+                </Link>
+              </div>
+            </div>
 
             {/* Slide animated leaderboard body */}
             <div className="min-h-[380px] overflow-hidden">
@@ -761,27 +938,29 @@ export default function LeaderboardPage() {
                             <span className="text-right">Highest Tile</span>
                             <span className="text-right">Score</span>
                           </TableHeader>
-                          {data2048.length === 0 ? (
-                            <Empty text="No 2048 scores recorded yet. Be the first to reach 2048!" />
+                          {data2048.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No 2048 scores recorded yet. Be the first to reach 2048!"} />
                           ) : (
-                            data2048.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === data2048.length - 1}
-                                cols="grid-cols-[56px_1fr_110px_110px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-amber-500 text-right tabular-nums">
-                                  {e.highestTile > 0 ? e.highestTile : "-"}
-                                </span>
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums">
-                                  {e.score.toLocaleString()}
-                                </span>
-                              </TableRow>
-                            ))
+                            data2048
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === data2048.length - 1}
+                                  cols="grid-cols-[56px_1fr_110px_110px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-amber-500 text-right font-mono">
+                                    {e.highestTile > 0 ? e.highestTile : "-"}
+                                  </span>
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -796,28 +975,30 @@ export default function LeaderboardPage() {
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
                           </TableHeader>
-                          {dataCaro.length === 0 ? (
-                            <Empty text="No Caro matches recorded yet. Jump in and play a match!" />
+                          {dataCaro.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Caro matches recorded yet. Jump in and play a match!"} />
                           ) : (
-                            dataCaro.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataCaro.length - 1}
-                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
-                                <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
-                                <span className="text-sm text-right tabular-nums">
-                                  <span className={`font-semibold ${e.winRate >= 60 ? "text-emerald-500" : e.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
-                                    {e.winRate}%
+                            dataCaro
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataCaro.length - 1}
+                                  cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">{e.wins}</span>
+                                  <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
+                                  <span className="text-sm text-right font-mono">
+                                    <span className={`font-semibold ${e.winRate >= 60 ? "text-emerald-500" : e.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
+                                      {e.winRate}%
+                                    </span>
                                   </span>
-                                </span>
-                              </TableRow>
-                            ))
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -832,27 +1013,29 @@ export default function LeaderboardPage() {
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
                           </TableHeader>
-                          {dataChess.length === 0 ? (
-                            <Empty text="No chess matches recorded yet. Play a game to rank up!" />
+                          {dataChess.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No chess matches recorded yet. Play a game to rank up!"} />
                           ) : (
-                            dataChess.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataChess.length - 1}
-                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1">
-                                  <span className="text-amber-500">♔</span>
-                                  {e.wins}
-                                </span>
-                                <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
-                                <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                              </TableRow>
-                            ))
+                            dataChess
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataChess.length - 1}
+                                  cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono flex items-center justify-end gap-1">
+                                    <span className="text-amber-500">♔</span>
+                                    {e.wins}
+                                  </span>
+                                  <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
+                                  <span className="text-sm font-semibold text-accent text-right font-mono">{e.winRate}%</span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -867,24 +1050,26 @@ export default function LeaderboardPage() {
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
                           </TableHeader>
-                          {dataBattleship.length === 0 ? (
-                            <Empty text="No Battleship matches recorded yet. Sink opponent fleets to rank up!" />
+                          {dataBattleship.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Battleship matches recorded yet. Sink opponent fleets to rank up!"} />
                           ) : (
-                            dataBattleship.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataBattleship.length - 1}
-                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
-                                <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
-                                <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                              </TableRow>
-                            ))
+                            dataBattleship
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataBattleship.length - 1}
+                                  cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">{e.wins}</span>
+                                  <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
+                                  <span className="text-sm font-semibold text-accent text-right font-mono">{e.winRate}%</span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -899,24 +1084,26 @@ export default function LeaderboardPage() {
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
                           </TableHeader>
-                          {dataWordChain.length === 0 ? (
-                            <Empty text="No players yet. Be the first to win a Word Chain match!" />
+                          {dataWordChain.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No players yet. Be the first to win a Word Chain match!"} />
                           ) : (
-                            dataWordChain.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataWordChain.length - 1}
-                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
-                                <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
-                                <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                              </TableRow>
-                            ))
+                            dataWordChain
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataWordChain.length - 1}
+                                  cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">{e.wins}</span>
+                                  <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
+                                  <span className="text-sm font-semibold text-accent text-right font-mono">{e.winRate}%</span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -931,24 +1118,26 @@ export default function LeaderboardPage() {
                             <span className="text-right">Games</span>
                             <span className="text-right">Win %</span>
                           </TableHeader>
-                          {dataMonopoly.length === 0 ? (
-                            <Empty text="No Monopoly matches recorded yet. Dominate the board to rank up!" />
+                          {dataMonopoly.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Monopoly matches recorded yet. Dominate the board to rank up!"} />
                           ) : (
-                            dataMonopoly.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataMonopoly.length - 1}
-                                cols="grid-cols-[56px_1fr_100px_100px_100px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums">{e.wins}</span>
-                                <span className="text-sm text-foreground-secondary text-right tabular-nums">{e.total}</span>
-                                <span className="text-sm font-semibold text-accent text-right tabular-nums">{e.winRate}%</span>
-                              </TableRow>
-                            ))
+                            dataMonopoly
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataMonopoly.length - 1}
+                                  cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">{e.wins}</span>
+                                  <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
+                                  <span className="text-sm font-semibold text-accent text-right font-mono">{e.winRate}%</span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -962,27 +1151,29 @@ export default function LeaderboardPage() {
                             <span className="text-right">Accuracy</span>
                             <span className="text-right">High Score</span>
                           </TableHeader>
-                          {dataAimTrainer.length === 0 ? (
-                            <Empty text="No Aim Trainer records yet. Practice your mouse precision!" />
+                          {dataAimTrainer.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Aim Trainer records yet. Practice your mouse precision!"} />
                           ) : (
-                            dataAimTrainer.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataAimTrainer.length - 1}
-                                cols="grid-cols-[56px_1fr_110px_110px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-semibold text-emerald-500 text-right tabular-nums">
-                                  {e.accuracy > 0 ? `${e.accuracy}%` : "-"}
-                                </span>
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums">
-                                  {e.score} pts
-                                </span>
-                              </TableRow>
-                            ))
+                            dataAimTrainer
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataAimTrainer.length - 1}
+                                  cols="grid-cols-[56px_1fr_110px_110px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-semibold text-emerald-500 text-right font-mono">
+                                    {e.accuracy > 0 ? `${e.accuracy}%` : "-"}
+                                  </span>
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">
+                                    {e.score} pts
+                                  </span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -995,25 +1186,27 @@ export default function LeaderboardPage() {
                             <span>Player</span>
                             <span className="text-right">Best Time</span>
                           </TableHeader>
-                          {dataMs.length === 0 ? (
-                            <Empty text={`No records yet for ${msLevel}. Be the first to sweep the board!`} />
+                          {dataMs.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : `No records yet for ${msLevel}. Be the first to sweep the board!`} />
                           ) : (
-                            dataMs.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataMs.length - 1}
-                                cols="grid-cols-[56px_1fr_120px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
-                                  <span className="text-foreground-muted">⏱</span>
-                                  {formatTime(e.time)}
-                                </span>
-                              </TableRow>
-                            ))
+                            dataMs
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataMs.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span className="text-foreground-muted">⏱</span>
+                                    {formatTime(e.time)}
+                                  </span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -1026,25 +1219,27 @@ export default function LeaderboardPage() {
                             <span>Player</span>
                             <span className="text-right">Best Time</span>
                           </TableHeader>
-                          {dataSudoku.length === 0 ? (
-                            <Empty text={`No records yet for ${sudokuLevel}. Be the first to solve a Sudoku!`} />
+                          {dataSudoku.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : `No records yet for ${sudokuLevel}. Be the first to solve a Sudoku!`} />
                           ) : (
-                            dataSudoku.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataSudoku.length - 1}
-                                cols="grid-cols-[56px_1fr_120px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
-                                  <span className="text-foreground-muted">⏱</span>
-                                  {formatTime(e.time)}
-                                </span>
-                              </TableRow>
-                            ))
+                            dataSudoku
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataSudoku.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span className="text-foreground-muted">⏱</span>
+                                    {formatTime(e.time)}
+                                  </span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -1057,25 +1252,27 @@ export default function LeaderboardPage() {
                             <span>Player</span>
                             <span className="text-right">Score</span>
                           </TableHeader>
-                          {dataTrex.length === 0 ? (
-                            <Empty text="No runner scores recorded yet. Run as far as you can!" />
+                          {dataTrex.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No runner scores recorded yet. Run as far as you can!"} />
                           ) : (
-                            dataTrex.map((e, i) => (
-                              <TableRow
-                                key={e.username}
-                                index={i}
-                                isLast={i === dataTrex.length - 1}
-                                cols="grid-cols-[56px_1fr_120px]"
-                                onClick={() => setSelectedPlayer(e.username)}
-                              >
-                                <RankBadge rank={e.rank} />
-                                <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                <span className="text-sm font-bold text-foreground text-right tabular-nums flex items-center justify-end gap-1.5">
-                                  <span className="text-amber-500">⭐</span>
-                                  {e.score.toLocaleString()}
-                                </span>
-                              </TableRow>
-                            ))
+                            dataTrex
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataTrex.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span className="text-amber-500">⭐</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}
@@ -1092,32 +1289,34 @@ export default function LeaderboardPage() {
                                 <span className="text-right">Games</span>
                                 <span className="text-right">Win %</span>
                               </TableHeader>
-                              {dataWordle.length === 0 ? (
-                                <Empty text="No Wordle games recorded yet. Guess the secret word!" />
+                              {dataWordle.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                                <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Wordle games recorded yet. Guess the secret word!"} />
                               ) : (
-                                dataWordle.map((e, i) => (
-                                  <TableRow
-                                    key={e.username}
-                                    index={i}
-                                    isLast={i === dataWordle.length - 1}
-                                    cols="grid-cols-[56px_1fr_100px_100px_100px]"
-                                    onClick={() => setSelectedPlayer(e.username)}
-                                  >
-                                    <RankBadge rank={e.rank} />
-                                    <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                    <span className="text-sm font-bold text-emerald-500 text-right tabular-nums">
-                                      {e.wins}
-                                    </span>
-                                    <span className="text-sm text-foreground-secondary text-right tabular-nums">
-                                      {e.total ?? e.wins}
-                                    </span>
-                                    <span className="text-sm text-right tabular-nums">
-                                      <span className={`font-semibold ${(e.winRate ?? 0) >= 60 ? "text-emerald-500" : (e.winRate ?? 0) >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
-                                        {e.winRate ?? 0}%
+                                dataWordle
+                                  .filter((e) => matchesSearch(e.username))
+                                  .map((e, i) => (
+                                    <TableRow
+                                      key={e.username}
+                                      index={i}
+                                      isLast={i === dataWordle.length - 1}
+                                      cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                      onClick={() => setSelectedPlayer(e.username)}
+                                    >
+                                      <RankBadge rank={e.rank} />
+                                      <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                      <span className="text-sm font-bold text-emerald-500 text-right font-mono">
+                                        {e.wins}
                                       </span>
-                                    </span>
-                                  </TableRow>
-                                ))
+                                      <span className="text-sm text-foreground-secondary text-right font-mono">
+                                        {e.total ?? e.wins}
+                                      </span>
+                                      <span className="text-sm text-right font-mono">
+                                        <span className={`font-semibold ${(e.winRate ?? 0) >= 60 ? "text-emerald-500" : (e.winRate ?? 0) >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
+                                          {e.winRate ?? 0}%
+                                        </span>
+                                      </span>
+                                    </TableRow>
+                                  ))
                               )}
                             </>
                           ) : (
@@ -1129,31 +1328,33 @@ export default function LeaderboardPage() {
                                 <span className="text-right">Total Wins</span>
                                 <span className="text-right">Win %</span>
                               </TableHeader>
-                              {dataWordle.length === 0 ? (
-                                <Empty text={`No players have solved Wordle on Try ${wordleLevel} yet!`} />
+                              {dataWordle.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                                <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : `No players have solved Wordle on Try ${wordleLevel} yet!`} />
                               ) : (
-                                dataWordle.map((e, i) => (
-                                  <TableRow
-                                    key={e.username}
-                                    index={i}
-                                    isLast={i === dataWordle.length - 1}
-                                    cols="grid-cols-[56px_1fr_110px_110px_100px]"
-                                    onClick={() => setSelectedPlayer(e.username)}
-                                  >
-                                    <RankBadge rank={e.rank} />
-                                    <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
-                                    <span className="text-sm font-bold text-amber-500 text-right tabular-nums flex items-center justify-end gap-1">
-                                      {wordleLevel === "1" && <span>⚡</span>}
-                                      {e.count}
-                                    </span>
-                                    <span className="text-sm text-foreground-secondary text-right tabular-nums">
-                                      {e.wins}
-                                    </span>
-                                    <span className="text-sm font-semibold text-emerald-500 text-right tabular-nums">
-                                      {e.share}%
-                                    </span>
-                                  </TableRow>
-                                ))
+                                dataWordle
+                                  .filter((e) => matchesSearch(e.username))
+                                  .map((e, i) => (
+                                    <TableRow
+                                      key={e.username}
+                                      index={i}
+                                      isLast={i === dataWordle.length - 1}
+                                      cols="grid-cols-[56px_1fr_110px_110px_100px]"
+                                      onClick={() => setSelectedPlayer(e.username)}
+                                    >
+                                      <RankBadge rank={e.rank} />
+                                      <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                      <span className="text-sm font-bold text-amber-500 text-right font-mono flex items-center justify-end gap-1">
+                                        {wordleLevel === "1" && <span>⚡</span>}
+                                        {e.count}
+                                      </span>
+                                      <span className="text-sm text-foreground-secondary text-right font-mono">
+                                        {e.wins}
+                                      </span>
+                                      <span className="text-sm font-semibold text-emerald-500 text-right font-mono">
+                                        {e.share}%
+                                      </span>
+                                    </TableRow>
+                                  ))
                               )}
                             </>
                           )}
@@ -1267,7 +1468,7 @@ function PlayerCell({
           {username}
         </span>
         {isCurrent && (
-          <span className="px-1.5 py-0.2 rounded bg-accent-light text-accent text-[10px] font-bold uppercase">
+          <span className="px-1.5 py-0.5 rounded bg-accent-light text-accent text-xs font-bold uppercase">
             You
           </span>
         )}
@@ -1286,18 +1487,19 @@ function RankBadge({ rank }: { rank: number }) {
             : rank === 2
             ? "from-slate-300 to-slate-400"
             : "from-amber-600 to-orange-700"
-        } text-xs font-bold text-white shadow-sm`}
+        } font-mono text-xs font-bold text-white shadow-sm`}
       >
         {rank}
       </div>
     );
   }
-  return <span className="text-sm font-semibold text-foreground-muted pl-2">{rank}</span>;
+  return <span className="text-sm font-mono font-semibold text-foreground-muted pl-2">{rank}</span>;
 }
 
 function Avatar({ avatarUrl, username }: { avatarUrl: string | null; username: string }) {
   if (avatarUrl) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={avatarUrl}
         alt={username}

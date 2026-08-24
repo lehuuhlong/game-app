@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
-import { registerSocketHandlers } from "./handlers";
+import { registerSocketHandlers, getActiveLobbies } from "./handlers";
 
 const app = express();
 const port = parseInt(process.env.PORT || "4000", 10);
@@ -34,6 +34,11 @@ const io = new SocketIOServer(httpServer, {
 app.get("/stats", (_req, res) => {
   const onlinePlayers = io.engine.clientsCount;
   res.json({ onlinePlayers });
+});
+
+// Active lobbies endpoint for the frontend
+app.get("/lobbies", (_req, res) => {
+  res.json({ lobbies: getActiveLobbies() });
 });
 
 registerSocketHandlers(io as any);
