@@ -1475,7 +1475,7 @@ export function MonopolyBoard({
 
           // Special direct warp (e.g. Go to jail teleport where stepsToMove !== dice roll)
           const diceTotal = (gameState?.lastDice?.[0] || 0) + (gameState?.lastDice?.[1] || 0);
-          const isTeleport = targetPos === 8 && stepsToMove !== diceTotal && diceTotal > 0;
+          const isTeleport = (targetPos === 8 || targetPos === 24) && stepsToMove !== diceTotal && diceTotal > 0;
           if (stepsToMove === 0 || isTeleport) {
             setDisplayedPositions((prev) => ({ ...prev, [p.playerId]: targetPos }));
             const settleTimer = setTimeout(() => {
