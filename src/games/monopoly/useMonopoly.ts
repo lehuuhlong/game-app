@@ -178,6 +178,24 @@ export function useMonopoly(username: string) {
       }
     });
 
+    socket.on('room_expired', (data) => {
+      setRoom(null);
+      setPlayerId(null);
+      playerIdRef.current = null;
+      setGameState(null);
+      setBuyOffer(null);
+      setUpgradeOffer(null);
+      setWinner(null);
+      setEndReason(null);
+      onJoinSuccessRef.current = null;
+      setError(data.message || 'Room expired: Game was not started within 3 minutes.');
+      setJoinError(data.message || 'Room expired: Game was not started within 3 minutes.');
+      setTimeout(() => {
+        setError(null);
+        setJoinError(null);
+      }, 6000);
+    });
+
     socket.on('error', (data) => {
       setError(data.message);
       setJoinError(data.message);

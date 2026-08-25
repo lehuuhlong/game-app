@@ -295,6 +295,7 @@ export interface ServerToClientEvents {
   room_joined: (data: { room: Room; playerId: string }) => void;
   player_joined: (data: { player: Player; room: Room }) => void;
   player_left: (data: { playerId: string; room: Room }) => void;
+  room_expired: (data: { roomId: string; message: string }) => void;
   error: (data: { message: string }) => void;
   online_players_count: (count: number) => void;
 

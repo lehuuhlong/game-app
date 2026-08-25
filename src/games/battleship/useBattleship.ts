@@ -242,6 +242,31 @@ export function useBattleship(username: string) {
       }
     });
 
+    socket.on('room_expired', (data) => {
+      setRoom(null);
+      roomRef.current = null;
+      setPlayerId(null);
+      playerIdRef.current = null;
+      setPhase('placement');
+      setMyState(null);
+      setEnemyShots([]);
+      setCurrentTurnPlayerId(null);
+      setWinner(null);
+      setEndReason(null);
+      setPlacedShips([]);
+      setCurrentShipIndex(0);
+      setIsVertical(false);
+      setEnemySunkTypes([]);
+      setRevealedEnemyShips([]);
+      setLocalShots([]);
+      localShotsRef.current = [];
+      firedCoordsRef.current.clear();
+      onJoinSuccessRef.current = null;
+      setError(data.message || 'Room expired: Game was not started within 3 minutes.');
+      setJoinError(data.message || 'Room expired: Game was not started within 3 minutes.');
+      setTimeout(() => { setError(null); setJoinError(null); }, 6000);
+    });
+
     socket.on('error', (data) => {
       setError(data.message);
       // Also surface as joinError for lobby flow

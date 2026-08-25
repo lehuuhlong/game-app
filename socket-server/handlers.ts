@@ -43,6 +43,70 @@ const chessStates = new Map<string, ChessGameState>();
 // Timers for Word Chain turns (server-authoritative)
 const wcTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+// Timers for rooms waiting to start (auto-delete after 3 minutes if not started)
+const ROOM_START_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+const roomStartTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function startRoomStartTimer(roomId: string, io: GameIO) {
+  clearRoomStartTimer(roomId);
+  const timer = setTimeout(() => {
+    handleRoomExpired(roomId, io);
+  }, ROOM_START_TIMEOUT_MS);
+  roomStartTimers.set(roomId, timer);
+}
+
+function clearRoomStartTimer(roomId: string) {
+  const existing = roomStartTimers.get(roomId);
+  if (existing) {
+    clearTimeout(existing);
+    roomStartTimers.delete(roomId);
+  }
+}
+
+function handleRoomExpired(roomId: string, io: GameIO) {
+  clearRoomStartTimer(roomId);
+  const room = rooms.get(roomId);
+  if (!room) return;
+
+  // Only expire if room is still in waiting state
+  if (room.status !== "waiting") return;
+
+  console.log(`⏰ Room ${roomId} [${room.gameType}] expired and deleted (not started within 3 minutes).`);
+
+  // Notify players in the room
+  io.to(roomId).emit("room_expired", {
+    roomId,
+    message: "Room expired: Game was not started within 3 minutes.",
+  });
+  io.to(roomId).emit("error", {
+    message: "Room expired: Game was not started within 3 minutes.",
+  });
+
+  // Make all sockets in that room leave
+  const socketRoom = io.sockets.adapter.rooms.get(roomId);
+  if (socketRoom) {
+    for (const socketId of Array.from(socketRoom)) {
+      const s = io.sockets.sockets.get(socketId);
+      if (s) {
+        s.leave(roomId);
+        s.data.currentRoom = null;
+      }
+    }
+  }
+
+  // Cleanup room and game states
+  rooms.delete(roomId);
+  caroStates.delete(roomId);
+  wcStates.delete(roomId);
+  bsStates.delete(roomId);
+  mpStates.delete(roomId);
+  chessStates.delete(roomId);
+  clearWCTimer(roomId);
+
+  // Broadcast updated active lobbies
+  io.emit("active_lobbies" as any, getActiveLobbies());
+}
+
 const CARO_GRID_SIZE = 25;
 const WC_TURN_DURATION = 20; // seconds
 
@@ -1269,6 +1333,7 @@ export function registerSocketHandlers(io: GameIO): void {
           language: gameType === "wordchain" ? (language || "en") : undefined,
         };
         rooms.set(roomId, room);
+        startRoomStartTimer(roomId, io);
         const maxPlayers = gameType === "monopoly" ? MONOPOLY_MAX_PLAYERS : 2;
         console.log(`🏠 Room created: ${roomId} [${gameType}] (max: ${maxPlayers}${room.language ? `, lang: ${room.language}` : ""})`);
       } else {
@@ -1357,6 +1422,7 @@ export function registerSocketHandlers(io: GameIO): void {
       // Auto-start when 2 players
       if (room.players.length === 2 && room.gameType !== "monopoly") {
         room.status = "playing";
+        clearRoomStartTimer(roomId);
 
         if (room.gameType === "caro") {
           const gameState = createInitialCaroState();
@@ -1410,6 +1476,7 @@ export function registerSocketHandlers(io: GameIO): void {
       }
 
       room.status = "playing";
+      clearRoomStartTimer(roomId);
       const gameState = createInitialMonopolyState(
         room.players.map((p) => ({ id: p.id, username: p.username }))
       );
@@ -2735,6 +2802,7 @@ export function registerSocketHandlers(io: GameIO): void {
       (room as any).lastRestart = now;
 
       room.status = "playing";
+      clearRoomStartTimer(roomId);
       // Rotate players so they alternate who goes first
       if (room.players.length === 2) {
         room.players.reverse();
@@ -2798,6 +2866,14 @@ export function registerSocketHandlers(io: GameIO): void {
     const now = Date.now();
     for (const [id, room] of rooms) {
       if (
+        room.status === "waiting" &&
+        now - room.createdAt.getTime() >= ROOM_START_TIMEOUT_MS
+      ) {
+        handleRoomExpired(id, io);
+        continue;
+      }
+
+      if (
         room.players.length === 0 &&
         now - room.createdAt.getTime() > 5 * 60 * 1000
       ) {
@@ -2808,6 +2884,7 @@ export function registerSocketHandlers(io: GameIO): void {
         mpStates.delete(id);
         chessStates.delete(id);
         clearWCTimer(id);
+        clearRoomStartTimer(id);
         console.log(`🧹 Cleaned up stale room: ${id}`);
       }
     }
@@ -2981,9 +3058,10 @@ function handleLeaveRoom(
     mpStates.delete(roomId);
     chessStates.delete(roomId);
     clearWCTimer(roomId);
+    clearRoomStartTimer(roomId);
   } else {
-    // For non-monopoly games, mark as finished. For monopoly, the game continues.
-    if (room.gameType !== "monopoly" || room.status !== "playing") {
+    // Only mark room as finished if the match was already in progress (playing) and not a continuing monopoly game
+    if (room.status === "playing" && room.gameType !== "monopoly") {
       room.status = "finished";
     }
     socket.to(roomId).emit("player_left", { playerId: socket.id, room });

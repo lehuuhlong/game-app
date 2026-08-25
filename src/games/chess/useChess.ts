@@ -347,6 +347,26 @@ export function useChess(username: string) {
         }
       });
 
+      socket.on("room_expired", ({ message }) => {
+        stopTimer();
+        setScreen("lobby");
+        screenRef.current = "lobby";
+        setRoom(null);
+        setRoomId("");
+        roomIdRef.current = "";
+        setGameState(null);
+        gameStateRef.current = null;
+        setFen(DEFAULT_FEN);
+        fenRef.current = DEFAULT_FEN;
+        chessRef.current = new Chess();
+        myColorRef.current = null;
+        setWinner(null);
+        setEndReason(null);
+        setLastMove(null);
+        setError(message || "Room expired: Game was not started within 3 minutes.");
+        setJoinError(message || "Room expired: Game was not started within 3 minutes.");
+      });
+
       socket.on("error", ({ message }) => {
         setError(message);
         if (screenRef.current === "lobby") {
