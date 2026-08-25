@@ -36,7 +36,7 @@ const HOT_GAME_IDS = [
   'wordle',
 ];
 
-// All 11 completed browser games for the Arcade Bento Grid
+// All completed browser games for the Arcade Bento Grid
 const COMPLETED_GAME_IDS = [
   'chess',
   'caro',
@@ -48,6 +48,7 @@ const COMPLETED_GAME_IDS = [
   'minesweeper',
   'sudoku',
   'trex',
+  'flappybird',
   'wordchain',
 ];
 

@@ -98,7 +98,7 @@ export function ArcadeToolbar({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search 11 games... (Press /)"
+            placeholder="Search 12 games... (Press /)"
             className="w-full rounded-xl border border-border bg-surface pl-10 pr-9 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-foreground-muted transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
 

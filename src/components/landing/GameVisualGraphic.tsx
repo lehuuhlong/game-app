@@ -8,7 +8,7 @@ interface GameVisualGraphicProps {
 }
 
 /**
- * Bespoke dynamic SVG & CSS visual graphics for all 11 games.
+ * Bespoke dynamic SVG & CSS visual graphics for every game in the portal.
  * Replaces static PNG images with crisp, scalable, high-tech animated visual art.
  */
 export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps) {
@@ -301,6 +301,99 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             <span>HI 04820</span>
             <span className="text-emerald-400 font-bold">01290</span>
           </div>
+        </div>
+      )}
+
+      {/* ── FLAPPY BIRD ─────────────────────────────────────────── */}
+      {id === 'flappybird' && (
+        <div className="relative h-28 w-48 overflow-hidden rounded-xl border border-sky-400/30 bg-gradient-to-b from-sky-400 to-sky-200 shadow-lg shadow-sky-500/10">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            role="img"
+            aria-label="Chú chim Flappy Bird đang vỗ cánh bay qua ống"
+          >
+            <defs>
+              <linearGradient id="preview-pipe" x1="0" x2="1">
+                <stop offset="0" stopColor="#15803d" />
+                <stop offset="0.28" stopColor="#4ade80" />
+                <stop offset="0.72" stopColor="#22c55e" />
+                <stop offset="1" stopColor="#166534" />
+              </linearGradient>
+            </defs>
+
+            <g fill="white" opacity=".6">
+              <ellipse cx="28" cy="23" rx="22" ry="7" />
+              <ellipse cx="37" cy="17" rx="11" ry="10" />
+              <ellipse cx="91" cy="37" rx="18" ry="6" />
+            </g>
+
+            <g stroke="#14532d" strokeWidth="2.5" fill="url(#preview-pipe)">
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="8 0;-8 0;8 0"
+                dur="2.4s"
+                repeatCount="indefinite"
+              />
+              <rect x="145" y="-4" width="35" height="40" />
+              <rect x="140" y="32" width="45" height="12" rx="2" />
+              <rect x="145" y="79" width="35" height="35" />
+              <rect x="140" y="75" width="45" height="12" rx="2" />
+            </g>
+
+            <g>
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="58 58;58 52;58 58;58 62;58 58"
+                dur="1.35s"
+                repeatCount="indefinite"
+              />
+              <g transform="rotate(-8) scale(.5)">
+                <ellipse
+                  cx="0"
+                  cy="0"
+                  rx="23"
+                  ry="18"
+                  fill="#f59e0b"
+                  stroke="#92400e"
+                  strokeWidth="2.5"
+                />
+                <g>
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    values="-14 -8 7;20 -8 7;-14 -8 7"
+                    dur=".38s"
+                    repeatCount="indefinite"
+                  />
+                  <ellipse
+                    cx="-8"
+                    cy="7"
+                    rx="14"
+                    ry="9"
+                    fill="#fbbf24"
+                    stroke="#92400e"
+                    strokeWidth="2.5"
+                  />
+                </g>
+                <circle cx="10" cy="-7" r="8" fill="white" stroke="#92400e" strokeWidth="2.5" />
+                <circle cx="13" cy="-7" r="3" fill="#111827" />
+                <path
+                  d="M19 1 38 6 19 10Z"
+                  fill="#fb7185"
+                  stroke="#92400e"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                />
+              </g>
+            </g>
+
+            <rect y="101" width="192" height="11" fill="#84cc16" />
+            <rect y="101" width="192" height="4" fill="#d9f99d" />
+            <path d="M0 110h192" stroke="#4d7c0f" strokeWidth="2" strokeDasharray="8 5" />
+          </svg>
         </div>
       )}
 

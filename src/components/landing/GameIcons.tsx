@@ -6,7 +6,7 @@ interface IconProps {
 }
 
 /**
- * Premium authored SVG icons for all 11 games in the portal.
+ * Premium authored SVG icons for all games in the portal.
  * Adheres to consistent 2px stroke weight, clean geometric curves, and dark-mode neon accents.
  */
 export function ChessIcon({ className = '', size = 20 }: IconProps) {
@@ -249,6 +249,27 @@ export function TRexIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function FlappyBirdIcon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M4 13c0-4 3-7 7-7 3.6 0 6.3 2.2 7 5.3L22 13l-4 2c-1.1 2.4-3.5 4-6.5 4C7.4 19 4 16.6 4 13z" />
+      <path d="M5 14c-1.5 0-2.5-.7-3-2 1.4-.5 2.8-.4 4 .3" />
+      <path d="M8 14c1.8 0 3.4 1 4.2 2.5" />
+      <circle cx="14.5" cy="10.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function WordChainIcon({ className = '', size = 20 }: IconProps) {
   return (
     <svg
@@ -293,6 +314,8 @@ export function getGameSvgIcon(id: string, className = '', size = 20) {
       return <SudokuIcon className={className} size={size} />;
     case 'trex':
       return <TRexIcon className={className} size={size} />;
+    case 'flappybird':
+      return <FlappyBirdIcon className={className} size={size} />;
     case 'wordchain':
       return <WordChainIcon className={className} size={size} />;
     default:
