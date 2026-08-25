@@ -44,8 +44,8 @@ function CompactGameRow({ game, index }: { game: GameInfo; index: number }) {
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.03 }}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-surface/90 p-4 sm:p-5 backdrop-blur-xl transition-all duration-200 hover:border-sky-500/40 hover:bg-surface-hover hover:shadow-md"
+      transition={{ duration: 0.3, delay: Math.min(index * 0.025, 0.2) }}
+      className="group relative overflow-hidden rounded-2xl border border-border bg-surface/95 dark:bg-surface/90 p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-sky-500/40 hover:bg-surface-hover hover:shadow-md"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Left: Styled Gradient Icon Badge + Game Details */}

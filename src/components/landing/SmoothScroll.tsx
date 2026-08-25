@@ -1,47 +1,75 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import React, { useEffect, useRef, type ReactNode } from 'react';
 import Lenis from 'lenis';
+import { usePerformance } from '@/components/shared';
 
 interface SmoothScrollProps {
   children: ReactNode;
 }
 
 /**
- * Global smooth scroll wrapper powered by Lenis.
- * Provides momentum-based scrolling with hardware acceleration and clean lifecycle management.
+ * Global adaptive smooth scroll wrapper powered by Lenis.
+ * Automatically bypassed on touch devices, eco mode, or reduced-motion preferences
+ * to achieve 0% JS overhead and silky native hardware momentum scrolling.
  */
 export function SmoothScroll({ children }: SmoothScrollProps) {
   const lenisRef = useRef<Lenis | null>(null);
+  const { graphicsMode, isLowPowerDevice } = usePerformance();
 
   useEffect(() => {
-    // Initialize Lenis smooth scroll engine
+    // Bypass on low-power devices, Eco Mode, touch devices, or reduced motion
+    if (graphicsMode === 'eco' || isLowPowerDevice) return;
+
+    if (typeof window === 'undefined') return;
+
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (isTouch || prefersReducedMotion) return;
+
+    // Initialize lightweight Lenis smooth scroll engine
     const lenis = new Lenis({
-      duration: 1.15,
+      duration: 1.0,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1.0,
-      touchMultiplier: 1.5,
+      wheelMultiplier: 0.9,
     });
 
     lenisRef.current = lenis;
 
-    let rafId: number;
+    let rafId: number | null = null;
+    let isTabVisible = true;
+
     function raf(time: number) {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
+      if (isTabVisible) {
+        lenis.raf(time);
+        rafId = requestAnimationFrame(raf);
+      }
     }
 
+    const handleVisibility = () => {
+      isTabVisible = document.visibilityState === 'visible';
+      if (isTabVisible && !rafId) {
+        rafId = requestAnimationFrame(raf);
+      } else if (!isTabVisible && rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
     rafId = requestAnimationFrame(raf);
 
     return () => {
-      cancelAnimationFrame(rafId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (rafId) cancelAnimationFrame(rafId);
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, []);
+  }, [graphicsMode, isLowPowerDevice]);
 
   return <>{children}</>;
 }

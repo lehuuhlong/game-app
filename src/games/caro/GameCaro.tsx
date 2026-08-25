@@ -175,7 +175,18 @@ export function GameCaro() {
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")
-      .off("game_started").off("move_made").off("game_over").off("error");
+      .off("game_started").off("move_made").off("game_over").off("error").off("room_expired");
+
+    socket.on("room_expired", ({ message }: any) => {
+      stopTimer();
+      setJoinError(message || "Room expired: Game was not started within 3 minutes.");
+      setScreen("lobby");
+      roomIdRef.current = "";
+      myPlayerIdRef.current = "";
+      mySymbolRef.current = null;
+      setRoomId("");
+      setPlayers([]);
+    });
 
     socket.on("room_joined", ({ room, playerId }: any) => {
       myPlayerIdRef.current = playerId;
@@ -453,6 +464,7 @@ export function GameCaro() {
                   </button>
                 </div>
                 <p className="text-xs text-foreground-muted mt-2">Share with your friend</p>
+                <p className="text-xs text-amber-500/90 font-medium mt-1">⏳ Room will automatically close in 3 minutes if not started</p>
               </div>
 
               <div className="space-y-1 text-sm text-foreground-secondary">

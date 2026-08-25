@@ -160,56 +160,92 @@ button:disabled {
   background-clip: text;
 }
 
-/* Animated gradient background orbs */
+/* Hardware-accelerated background ambient glow */
 .bg-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
-  animation: float 8s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.35;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: float 14s ease-in-out infinite;
 }
 
 .bg-orb-1 {
-  width: 500px;
-  height: 500px;
-  background: linear-gradient(135deg, #38bdf8, #3b82f6);
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(59, 130, 246, 0.15) 45%, transparent 70%);
   top: -10%;
   left: -5%;
   animation-delay: 0s;
 }
 
 .bg-orb-2 {
-  width: 400px;
-  height: 400px;
-  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, rgba(234, 88, 12, 0.12) 45%, transparent 70%);
   top: 40%;
   right: -10%;
-  animation-delay: -3s;
-}
-
-.bg-orb-3 {
-  width: 350px;
-  height: 350px;
-  background: linear-gradient(135deg, #22d3ee, #3b82f6);
-  bottom: -10%;
-  left: 30%;
   animation-delay: -5s;
 }
 
+.bg-orb-3 {
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.35) 0%, rgba(59, 130, 246, 0.12) 45%, transparent 70%);
+  bottom: -10%;
+  left: 30%;
+  animation-delay: -9s;
+}
+
 .dark .bg-orb {
-  opacity: 0.15;
+  opacity: 0.18;
 }
 
 @keyframes float {
   0%,
   100% {
-    transform: translate(0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   33% {
-    transform: translate(30px, -30px) scale(1.05);
+    transform: translate3d(18px, -18px, 0) scale(1.03);
   }
   66% {
-    transform: translate(-20px, 20px) scale(0.95);
+    transform: translate3d(-14px, 14px, 0) scale(0.97);
+  }
+}
+
+/* ── Performance & Eco Mode Overrides ──────────────────────────── */
+
+.perf-mode .glass {
+  background: var(--surface);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.perf-mode .bg-orb {
+  animation: none !important;
+  opacity: 0.1 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+.perf-mode .card-shimmer::before {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

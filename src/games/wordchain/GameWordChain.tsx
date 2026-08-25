@@ -224,6 +224,7 @@ useEffect(() => {
                   </button>
                 </div>
                 <p className="text-xs text-foreground-muted mt-2">Language: {language === "en" ? "English" : "Vietnamese"}</p>
+                <p className="text-xs text-amber-500/90 font-medium mt-1">⏳ Room will automatically close in 3 minutes if not started</p>
               </div>
 
               <div className="space-y-1 text-sm text-foreground-secondary">

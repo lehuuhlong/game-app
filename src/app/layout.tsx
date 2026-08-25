@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { Navbar, Footer, ThemeProvider } from "@/components/shared";
+import { Navbar, Footer, ThemeProvider, PerformanceProvider } from "@/components/shared";
 import { AuthProvider } from "@/components/auth";
 
 const inter = Inter({
@@ -48,6 +48,10 @@ export default function RootLayout({
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
+                  var mode = localStorage.getItem('graphics-mode');
+                  if (mode === 'eco' || (!mode && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) {
+                    document.documentElement.classList.add('perf-mode');
+                  }
                 } catch(e) {}
               })();
             `,
@@ -55,13 +59,15 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col antialiased">
-        <ThemeProvider>
-          <AuthProvider>
+        <PerformanceProvider>
+          <ThemeProvider>
+            <AuthProvider>
               <Navbar />
               <main className="flex-1">{children}</main>
               <Footer />
-          </AuthProvider>
-        </ThemeProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </PerformanceProvider>
       </body>
     </html>
   );

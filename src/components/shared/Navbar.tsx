@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "./ThemeProvider";
+import { usePerformance } from "./PerformanceProvider";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth";
@@ -60,7 +61,8 @@ export function Navbar() {
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <GraphicsToggle />
             <ThemeToggle />
             <UserMenu />
 
@@ -120,6 +122,10 @@ export function Navbar() {
                   </Link>
                 );
               })}
+              <div className="pt-2 mt-1 border-t border-border flex items-center justify-between px-2 text-xs text-foreground-secondary">
+                <span>Graphics Mode</span>
+                <GraphicsToggle />
+              </div>
             </nav>
           </motion.div>
         )}
@@ -358,6 +364,7 @@ function ThemeToggle() {
       onClick={toggleTheme}
       className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border text-foreground-secondary transition-all duration-200 hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
     >
       <AnimatePresence mode="wait">
         {theme === "dark" ? (
@@ -377,3 +384,27 @@ function ThemeToggle() {
     </button>
   );
 }
+
+function GraphicsToggle() {
+  const { graphicsMode, toggleGraphicsMode } = usePerformance();
+  const isEco = graphicsMode === "eco";
+
+  return (
+    <button
+      onClick={toggleGraphicsMode}
+      className={`relative flex h-9 items-center gap-1.5 px-2.5 rounded-lg border text-xs font-semibold transition-all duration-200 ${
+        isEco
+          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+          : "border-border bg-surface text-foreground-secondary hover:bg-surface-hover hover:text-foreground hover:border-border-hover"
+      }`}
+      aria-label={isEco ? "Performance Mode (Eco 60fps) active" : "Ultra 3D Graphics active"}
+      title={isEco ? "Eco Mode: 0% GPU load (Click for 3D High)" : "3D Mode: High Graphics (Click for Eco 60fps)"}
+    >
+      <span className="text-sm">{isEco ? "⚡" : "🎮"}</span>
+      <span className="hidden sm:inline font-mono text-xs tracking-tight">
+        {isEco ? "Eco 60fps" : "3D High"}
+      </span>
+    </button>
+  );
+}
+

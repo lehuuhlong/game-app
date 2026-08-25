@@ -273,6 +273,17 @@ export function useWordChain() {
         }
       });
 
+      // ── Room Expired ─────────────────────────────────────────
+      socket.on("room_expired", ({ message }: any) => {
+        stopTimer();
+        setJoinError(message || "Room expired: Game was not started within 3 minutes.");
+        setScreen("lobby");
+        roomIdRef.current = "";
+        myPlayerIdRef.current = "";
+        setRoomId("");
+        setPlayers([]);
+      });
+
       // ── Error ─────────────────────────────────────────────────
       socket.on("error", ({ message }: any) => {
         setJoinError(message);
