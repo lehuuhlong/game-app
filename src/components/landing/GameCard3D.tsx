@@ -23,6 +23,7 @@ const GAME_DURATIONS: Record<string, string> = {
   'wordle': '3–5m',
   'sudoku': '5–20m',
   'trex': '1–5m',
+  'flappybird': '1–5m',
   'wordchain': '3–10m',
   'aimtrainer': '1m',
   'battleship': '10–20m',
@@ -195,7 +196,7 @@ export function GameCard3D({
             </div>
 
             {/* Right Column: Dynamic Visual Art */}
-            <div className="relative w-full sm:w-56 h-48 sm:h-auto min-h-[160px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-background/80 p-3 transition-colors duration-300 group-hover:border-border-hover">
+            <div className="relative w-full sm:w-56 h-48 sm:h-auto min-h-[160px] flex-shrink-0 overflow-hidden rounded-xl border border-border/70 bg-surface-secondary/30 transition-colors duration-300 group-hover:border-sky-500/40">
               <GameVisualGraphic id={game.id} />
             </div>
           </div>
@@ -226,7 +227,7 @@ export function GameCard3D({
               </div>
 
               {/* Visual Preview Graphic */}
-              <div className="mt-3 relative h-32 w-full overflow-hidden rounded-xl border border-border bg-background/80 p-2 transition-colors duration-300 group-hover:border-border-hover">
+              <div className="mt-3 relative h-32 w-full overflow-hidden rounded-xl border border-border/70 bg-surface-secondary/30 transition-colors duration-300 group-hover:border-sky-500/40">
                 <GameVisualGraphic id={game.id} />
               </div>
 

@@ -72,6 +72,12 @@ export const GAME_METAS: Record<string, GameMeta> = {
     difficultyColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
     badge: '🏆 Classic',
   },
+  flappybird: {
+    duration: '1-5m',
+    difficulty: 'Medium',
+    difficultyColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30',
+    badge: '🔥 Hot',
+  },
   wordchain: {
     duration: '3-8m',
     difficulty: 'Medium',
@@ -144,6 +150,15 @@ const gameIcons: Record<string, React.ReactNode> = {
       <rect x="22" y="4" width="14" height="10" rx="2" fill="rgba(255,255,255,0.6)" />
       <rect x="32" y="7" width="3" height="3" rx="1" fill="white" />
       <line x1="4" y1="40" x2="44" y2="40" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
+    </svg>
+  ),
+  flappybird: (
+    <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+      <circle cx="22" cy="24" r="14" fill="rgba(255,255,255,0.5)" />
+      <circle cx="29" cy="20" r="4.5" fill="white" />
+      <circle cx="30" cy="20" r="2" fill="#0f172a" />
+      <path d="M33 24 L43 27 L33 30 Z" fill="#ea580c" />
+      <ellipse cx="14" cy="26" rx="7" ry="4" fill="rgba(255,255,255,0.8)" transform="rotate(-15 14 26)" />
     </svg>
   ),
   wordchain: (

@@ -29,6 +29,7 @@ const GAME_DURATIONS: Record<string, string> = {
   'wordle': '3–5m',
   'sudoku': '5–20m',
   'trex': '1–5m',
+  'flappybird': '1–5m',
   'wordchain': '3–10m',
   'aimtrainer': '1m',
   'battleship': '10–20m',

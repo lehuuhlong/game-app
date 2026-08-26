@@ -21,6 +21,14 @@ export const metadata: Metadata = {
   description:
     "A modern web game portal. Play classic puzzle games, compete on leaderboards, and challenge friends in real-time.",
   keywords: ["games", "2048", "caro", "gomoku", "online games", "multiplayer"],
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export default function RootLayout({

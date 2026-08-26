@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 224" fill="none">
+  <defs>
+    <linearGradient id="bgChain" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#022c22" />
+      <stop offset="50%" stop-color="#134e4a" />
+      <stop offset="100%" stop-color="#042f2e" />
+    </linearGradient>
+    <linearGradient id="tokenTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
+    <linearGradient id="tokenAmber" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+
+  <rect width="384" height="224" fill="url(#bgChain)" />
+
+  <!-- Ambient Glow -->
+  <circle cx="192" cy="112" r="100" fill="#2dd4bf" fill-opacity="0.15" />
+
+  <!-- Interconnecting Neon Cable / Laser Beam -->
+  <path d="M70 112 C130 112 150 70 192 70 C234 70 254 154 314 154" stroke="#2dd4bf" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6" />
+  <path d="M70 112 C130 112 150 70 192 70 C234 70 254 154 314 154" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="8 8" fill="none" />
+
+  <!-- Word Capsule 1: "W - O - R - D" (Left) -->
+  <g transform="translate(42, 88)">
+    <rect x="0" y="0" width="104" height="48" rx="12" fill="#0f172a" stroke="#2dd4bf" stroke-width="2.5" />
+    <g font-family="monospace" font-weight="900" font-size="18" dominant-baseline="middle" text-anchor="middle">
+      <text x="20" y="26" fill="#f0fdfa">W</text>
+      <text x="42" y="26" fill="#f0fdfa">O</text>
+      <text x="64" y="26" fill="#f0fdfa">R</text>
+      <!-- Key Linking Letter "D" Highlighted -->
+      <circle cx="86" cy="24" r="13" fill="url(#tokenAmber)" />
+      <text x="86" y="26" fill="#451a03">D</text>
+    </g>
+  </g>
+
+  <!-- Linking Laser Arrow -->
+  <g transform="translate(156, 92)" fill="#fbbf24">
+    <polygon points="0,-4 14,0 0,4" />
+    <line x1="-12" y1="0" x2="10" y2="0" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" />
+  </g>
+
+  <!-- Word Capsule 2: "D - U - E - L" (Center Top) -->
+  <g transform="translate(180, 46)">
+    <rect x="0" y="0" width="104" height="48" rx="12" fill="#0f172a" stroke="#f59e0b" stroke-width="2.5" />
+    <g font-family="monospace" font-weight="900" font-size="18" dominant-baseline="middle" text-anchor="middle">
+      <!-- Starting Letter "D" -->
+      <circle cx="18" cy="24" r="13" fill="url(#tokenAmber)" />
+      <text x="18" y="26" fill="#451a03">D</text>
+      <text x="42" y="26" fill="#fef3c7">U</text>
+      <text x="64" y="26" fill="#fef3c7">E</text>
+      <!-- Key Linking Letter "L" Highlighted -->
+      <circle cx="86" cy="24" r="13" fill="url(#tokenTeal)" />
+      <text x="86" y="26" fill="#042f2e">L</text>
+    </g>
+  </g>
+
+  <!-- Word Capsule 3: "L - I - N - K" (Right Bottom) -->
+  <g transform="translate(238, 130)">
+    <rect x="0" y="0" width="104" height="48" rx="12" fill="#0f172a" stroke="#2dd4bf" stroke-width="2.5" />
+    <g font-family="monospace" font-weight="900" font-size="18" dominant-baseline="middle" text-anchor="middle">
+      <!-- Starting Letter "L" -->
+      <circle cx="18" cy="24" r="13" fill="url(#tokenTeal)" />
+      <text x="18" y="26" fill="#042f2e">L</text>
+      <text x="42" y="26" fill="#f0fdfa">I</text>
+      <text x="64" y="26" fill="#f0fdfa">N</text>
+      <text x="86" y="26" fill="#f0fdfa">K</text>
+    </g>
+  </g>
+</svg>

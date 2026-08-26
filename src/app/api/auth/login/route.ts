@@ -35,6 +35,7 @@ function toClientUser(user: InstanceType<typeof User>) {
     wordleGuesses5: user.wordleGuesses5 ?? 0,
     wordleGuesses6: user.wordleGuesses6 ?? 0,
     bestScoreTrex: user.bestScoreTrex ?? 0,
+    bestScoreFlappy: user.bestScoreFlappy ?? 0,
     wordchainWins: user.wordchainWins ?? 0,
     wordchainTotal: user.wordchainTotal ?? 0,
     sudokuBestEasy: user.sudokuBestEasy ?? 0,

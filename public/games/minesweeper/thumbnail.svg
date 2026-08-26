@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 224" fill="none">
+  <defs>
+    <linearGradient id="bgMine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="mineMetal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+  </defs>
+
+  <rect width="384" height="224" fill="url(#bgMine)" />
+
+  <!-- 3x3 Grid on Left/Center -->
+  <g transform="translate(48, 28)">
+    <!-- Cell (0,0) -> 1 (Blue) -->
+    <rect x="0" y="0" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="25" y="32" fill="#38bdf8" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">1</text>
+
+    <!-- Cell (1,0) -> 2 (Green) -->
+    <rect x="58" y="0" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="83" y="32" fill="#4ade80" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">2</text>
+
+    <!-- Cell (2,0) -> 1 (Blue) -->
+    <rect x="116" y="0" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="141" y="32" fill="#38bdf8" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">1</text>
+
+    <!-- Cell (0,1) -> 3 (Red) -->
+    <rect x="0" y="58" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="25" y="90" fill="#f87171" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">3</text>
+
+    <!-- Cell (1,1) -> FLAGGED MINE (Red Flag) -->
+    <rect x="58" y="58" width="50" height="50" rx="8" fill="#f59e0b" fill-opacity="0.15" stroke="#f59e0b" stroke-width="2" />
+    <!-- Flagpole -->
+    <line x1="75" y1="70" x2="75" y2="98" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round" />
+    <rect x="68" y="96" width="14" height="4" rx="2" fill="#64748b" />
+    <polygon points="75,70 95,78 75,86" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5" />
+
+    <!-- Cell (2,1) -> 2 (Green) -->
+    <rect x="116" y="58" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="141" y="90" fill="#4ade80" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">2</text>
+
+    <!-- Cell (0,2) -> 1 (Blue) -->
+    <rect x="0" y="116" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="25" y="148" fill="#38bdf8" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">1</text>
+
+    <!-- Cell (1,2) -> 1 (Blue) -->
+    <rect x="58" y="116" width="50" height="50" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+    <text x="83" y="148" fill="#38bdf8" font-family="monospace" font-weight="900" font-size="24" text-anchor="middle" dominant-baseline="middle">1</text>
+
+    <!-- Cell (2,2) -> Blank Empty -->
+    <rect x="116" y="116" width="50" height="50" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="2" />
+  </g>
+
+  <!-- Big 3D Spiky Naval Mine on Right -->
+  <g transform="translate(285, 112)">
+    <circle cx="0" cy="0" r="54" fill="rgba(0,0,0,0.35)" />
+    <!-- Spikes radiating out -->
+    <g stroke="#64748b" stroke-width="8" stroke-linecap="round">
+      <line x1="0" y1="-50" x2="0" y2="50" />
+      <line x1="-50" y1="0" x2="50" y2="0" />
+      <line x1="-36" y1="-36" x2="36" y2="36" />
+      <line x1="-36" y1="36" x2="36" y2="-36" />
+    </g>
+    <!-- Spikes Caps -->
+    <circle cx="0" cy="-52" r="5" fill="#f87171" />
+    <circle cx="0" cy="52" r="5" fill="#f87171" />
+    <circle cx="-52" cy="0" r="5" fill="#f87171" />
+    <circle cx="52" cy="0" r="5" fill="#f87171" />
+
+    <!-- Mine Spherical Body -->
+    <circle cx="0" cy="0" r="42" fill="url(#mineMetal)" stroke="#94a3b8" stroke-width="3" />
+    <!-- Light Reflection Highlight -->
+    <ellipse cx="-12" cy="-14" rx="14" ry="9" fill="#ffffff" opacity="0.3" transform="rotate(-30 -12 -14)" />
+    <!-- Center Danger LED -->
+    <circle cx="0" cy="0" r="8" fill="#ef4444" />
+    <circle cx="0" cy="0" r="4" fill="#fecaca" />
+  </g>
+</svg>

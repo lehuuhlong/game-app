@@ -19,6 +19,7 @@ export type AllGameType =
   | "minesweeper"
   | "wordle"
   | "trex"
+  | "flappybird"
   | "sudoku";
 
 export interface IMatchPlayer {
@@ -53,6 +54,7 @@ const MatchSchema = new Schema<IMatch>(
         "minesweeper",
         "wordle",
         "trex",
+        "flappybird",
         "sudoku",
       ],
     },

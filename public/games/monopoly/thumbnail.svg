@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 224" fill="none">
+  <defs>
+    <linearGradient id="bgMonopoly" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#022c22" />
+      <stop offset="60%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="goldCoin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+  </defs>
+
+  <rect width="384" height="224" fill="url(#bgMonopoly)" />
+
+  <!-- Ambient Light -->
+  <circle cx="192" cy="112" r="100" fill="#10b981" fill-opacity="0.15" />
+
+  <!-- Isometric Board Perimeter -->
+  <g transform="translate(192, 118) scale(1, 0.54) rotate(45)">
+    <!-- Board Base -->
+    <rect x="-95" y="-95" width="190" height="190" rx="10" fill="#ecfdf5" stroke="#047857" stroke-width="8" />
+
+    <!-- Center Board Area -->
+    <rect x="-65" y="-65" width="130" height="130" fill="#d1fae5" stroke="#059669" stroke-width="3" />
+
+    <!-- Colored Property Tiles along edges -->
+    <!-- Top Edge (Red Properties) -->
+    <rect x="-65" y="-95" width="26" height="30" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" />
+    <rect x="-65" y="-95" width="26" height="10" fill="#ef4444" />
+    <rect x="-39" y="-95" width="26" height="30" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" />
+    <rect x="-39" y="-95" width="26" height="10" fill="#ef4444" />
+    <rect x="-13" y="-95" width="26" height="30" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5" />
+    <rect x="-13" y="-95" width="26" height="10" fill="#ef4444" />
+
+    <!-- Right Edge (Yellow/Green Properties) -->
+    <rect x="65" y="-65" width="30" height="26" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" />
+    <rect x="85" y="-65" width="10" height="26" fill="#f59e0b" />
+    <rect x="65" y="-39" width="30" height="26" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" />
+    <rect x="85" y="-39" width="10" height="26" fill="#f59e0b" />
+    <rect x="65" y="-13" width="30" height="26" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" />
+    <rect x="85" y="-13" width="10" height="26" fill="#f59e0b" />
+
+    <!-- Bottom Edge (Blue Properties) -->
+    <rect x="-65" y="65" width="26" height="30" fill="#e0e7ff" stroke="#4338ca" stroke-width="1.5" />
+    <rect x="-65" y="85" width="26" height="10" fill="#3b82f6" />
+    <rect x="-39" y="65" width="26" height="30" fill="#e0e7ff" stroke="#4338ca" stroke-width="1.5" />
+    <rect x="-39" y="85" width="26" height="10" fill="#3b82f6" />
+
+    <!-- Left Edge (Cyan Properties) -->
+    <rect x="-95" y="-65" width="30" height="26" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+    <rect x="-95" y="-65" width="10" height="26" fill="#0ea5e9" />
+    <rect x="-95" y="-39" width="30" height="26" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+    <rect x="-95" y="-39" width="10" height="26" fill="#0ea5e9" />
+
+    <!-- Corner "GO" Arrow -->
+    <rect x="-95" y="-95" width="30" height="30" fill="#ef4444" />
+    <polygon points="-88,-70 -80,-85 -72,-70" fill="white" />
+  </g>
+
+  <!-- 3D Floating Pair of Dice (Foreground Center) -->
+  <!-- Dice 1 (White - 6) -->
+  <g transform="translate(150, 95) rotate(-12)">
+    <rect x="-24" y="-24" width="48" height="48" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="3" />
+    <ellipse cx="2" cy="28" rx="20" ry="6" fill="rgba(0,0,0,0.3)" />
+    <!-- 6 pips -->
+    <circle cx="-13" cy="-13" r="4.5" fill="#0f172a" />
+    <circle cx="-13" cy="0" r="4.5" fill="#0f172a" />
+    <circle cx="-13" cy="13" r="4.5" fill="#0f172a" />
+    <circle cx="13" cy="-13" r="4.5" fill="#0f172a" />
+    <circle cx="13" cy="0" r="4.5" fill="#0f172a" />
+    <circle cx="13" cy="13" r="4.5" fill="#0f172a" />
+  </g>
+
+  <!-- Dice 2 (Amber Gold - 5) -->
+  <g transform="translate(225, 105) rotate(16)">
+    <rect x="-22" y="-22" width="44" height="44" rx="9" fill="#f59e0b" stroke="#fde047" stroke-width="3" />
+    <ellipse cx="2" cy="26" rx="18" ry="5" fill="rgba(0,0,0,0.3)" />
+    <!-- 5 pips -->
+    <circle cx="-11" cy="-11" r="4" fill="#451a03" />
+    <circle cx="11" cy="-11" r="4" fill="#451a03" />
+    <circle cx="0" cy="0" r="4.5" fill="#ffffff" />
+    <circle cx="-11" cy="11" r="4" fill="#451a03" />
+    <circle cx="11" cy="11" r="4" fill="#451a03" />
+  </g>
+
+  <!-- Floating Cash Banknotes & Golden Coins -->
+  <g transform="translate(85, 135) rotate(-22)">
+    <rect x="-26" y="-14" width="52" height="28" rx="4" fill="#10b981" stroke="#34d399" stroke-width="2" />
+    <circle cx="0" cy="0" r="8" fill="#047857" />
+    <text x="0" y="4" fill="white" font-family="sans-serif" font-weight="900" font-size="12" text-anchor="middle">$</text>
+  </g>
+  <g transform="translate(305, 130) rotate(18)">
+    <circle cx="0" cy="0" r="16" fill="url(#goldCoin)" stroke="#fde047" stroke-width="2" />
+    <text x="0" y="5" fill="#451a03" font-family="sans-serif" font-weight="900" font-size="16" text-anchor="middle">M</text>
+  </g>
+</svg>

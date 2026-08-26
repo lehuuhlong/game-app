@@ -14,7 +14,7 @@
 
 <p align="center">
   <b>A unified, zero-install web gaming platform built with modern web technologies.</b><br/>
-  Featuring 11 logic puzzles, arcade classics, and real-time multiplayer duels with zero-latency synchronization, global leaderboards, adaptive 3D graphics, and 60 FPS Eco-Performance optimization.
+  Featuring 12 logic puzzles, arcade classics, and real-time multiplayer duels with zero-latency synchronization, global leaderboards, adaptive 3D graphics, and 60 FPS Eco-Performance optimization.
 </p>
 
 [✨ Live Demo](#-quick-start-local-development) • [🕹️ Games Library](#-games-library) • [🏗️ Architecture](#-system-architecture) • [🚀 Quick Start](#-quick-start-local-development) • [⚡ Performance System](#-adaptive-performance--graphics-system)
@@ -25,7 +25,7 @@
 
 ## 🌟 Highlights & Key Features
 
-- 🎯 **11 Fully Playable Games**: From competitive 1v1 multiplayer duels (Chess, Caro, Monopoly, Battleship) to solo puzzle masteries (2048, Minesweeper, Sudoku, Wordle).
+- 🎯 **12 Fully Playable Games**: From competitive 1v1 multiplayer duels (Chess, Caro, Monopoly, Battleship) to solo puzzles and arcade classics (2048, Minesweeper, Sudoku, Wordle, Flappy Bird).
 - ⚡ **Zero-Latency Real-Time Engine**: Built on Socket.io with room matchmaking, reconnection tolerance, game clock synchronization, and spectator-ready lobbies.
 - 🎨 **State-of-the-Art Visual Aesthetics**: Designed with modern glassmorphism, dynamic micro-interactions (Framer Motion), interactive 3D WebGL hero canvas (Three.js), and cohesive dark/light palettes.
 - 🚀 **Adaptive 60 FPS Performance System**: Integrated hardware detection (`PerformanceProvider`) with a 1-click **Eco Mode (`⚡ Eco 60fps`)** toggle for non-dedicated GPU and low-spec machines.
@@ -49,6 +49,7 @@
 | **[Wordle](src/games/wordle)** | 🧠 Solo | Word Puzzle | 5-letter daily mystery word challenge with color-coded feedback (Green/Yellow/Gray), physical keyboard support, and streak tracking. |
 | **[Aim Trainer](src/games/aimtrainer)** | ⚡ Solo | Reflex Action | 60-second reaction time and precision target trial with click accuracy percentage and real-time score counters. |
 | **[T-Rex Runner](src/games/trex)** | 🏃 Solo | Endless Arcade | High-performance HTML5 Canvas infinite runner with jump/duck physics, cactus & pterodactyl obstacles, and day/night transitions. |
+| **[Flappy Bird](src/games/flappybird)** | 🐤 Solo | Endless Arcade | Responsive HTML5 Canvas flight game with tap/keyboard controls, progressive pipe speed, shrinking gaps, collision detection, and local high scores. |
 
 ---
 
@@ -129,6 +130,7 @@ game-app/
 │   │   ├── monopoly/             # Monopoly board, travel, and trading logic
 │   │   ├── sudoku/               # 9x9 generator with pencil notes
 │   │   ├── trex/                 # Canvas-based 60 FPS dino runner
+│   │   ├── flappybird/           # Canvas-based endless flight game
 │   │   ├── wordchain/            # Vietnamese/English dictionary word chain
 │   │   └── wordle/               # Wordle letter solver
 │   ├── lib/                      # MongoDB connection & Mongoose schemas

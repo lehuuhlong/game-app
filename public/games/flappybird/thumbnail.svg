@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 224" fill="none">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="35%" stop-color="#38bdf8" />
+      <stop offset="75%" stop-color="#7dd3fc" />
+      <stop offset="100%" stop-color="#bae6fd" />
+    </linearGradient>
+    <linearGradient id="pipeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#15803d" />
+      <stop offset="25%" stop-color="#4ade80" />
+      <stop offset="65%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#166534" />
+    </linearGradient>
+    <linearGradient id="birdBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="70%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sky Background -->
+  <rect width="384" height="224" fill="url(#skyGrad)" />
+
+  <!-- Clouds -->
+  <g fill="white" opacity="0.75">
+    <ellipse cx="60" cy="46" rx="44" ry="15" />
+    <ellipse cx="80" cy="36" rx="24" ry="20" />
+    <ellipse cx="180" cy="70" rx="36" ry="12" />
+    <ellipse cx="320" cy="40" rx="50" ry="16" />
+    <ellipse cx="340" cy="28" rx="26" ry="22" />
+  </g>
+
+  <!-- City Skyline -->
+  <path d="M0 190 L30 190 L30 160 L55 160 L55 175 L80 175 L80 150 L110 150 L110 180 L140 180 L140 165 L170 165 L170 190 L200 190 L200 155 L230 155 L230 170 L260 170 L260 145 L290 145 L290 175 L320 175 L320 160 L350 160 L350 180 L384 180 L384 190 L0 190 Z" fill="rgba(14, 165, 233, 0.25)" />
+
+  <!-- Pipes -->
+  <!-- Top Pipe -->
+  <g stroke="#14532d" stroke-width="4" fill="url(#pipeGrad)">
+    <rect x="270" y="-8" width="60" height="78" />
+    <rect x="262" y="62" width="76" height="24" rx="3" />
+    <!-- Bottom Pipe -->
+    <rect x="262" y="146" width="76" height="24" rx="3" />
+    <rect x="270" y="170" width="60" height="36" />
+  </g>
+
+  <!-- Flappy Bird -->
+  <g transform="translate(130, 114) rotate(-5)">
+    <!-- Shadow -->
+    <ellipse cx="2" cy="6" rx="26" ry="20" fill="rgba(0,0,0,0.15)" />
+    <!-- Body -->
+    <ellipse cx="0" cy="0" rx="26" ry="21" fill="url(#birdBody)" stroke="#78350f" stroke-width="3.5" />
+    <!-- Belly -->
+    <ellipse cx="-4" cy="7" rx="14" ry="10" fill="#fef3c7" />
+    <!-- Wing -->
+    <ellipse cx="-10" cy="4" rx="15" ry="9" fill="#fde68a" stroke="#78350f" stroke-width="3" transform="rotate(-15 -10 4)" />
+    <!-- Eye -->
+    <circle cx="12" cy="-8" r="9" fill="white" stroke="#78350f" stroke-width="3" />
+    <circle cx="15" cy="-8" r="4" fill="#0f172a" />
+    <circle cx="16.5" cy="-9.5" r="1.5" fill="white" />
+    <!-- Blush -->
+    <circle cx="5" cy="4" r="5" fill="rgba(244, 63, 94, 0.45)" />
+    <!-- Beak -->
+    <path d="M21 0 L40 6 L21 12 Z" fill="#ea580c" stroke="#7c2d12" stroke-width="3" stroke-linejoin="round" />
+    <line x1="21" y1="6" x2="35" y2="6" stroke="#7c2d12" stroke-width="2" />
+  </g>
+
+  <!-- Ground -->
+  <rect y="196" width="384" height="28" fill="#d4a359" />
+  <rect y="196" width="384" height="10" fill="#65a30d" />
+  <rect y="196" width="384" height="4" fill="#bef264" />
+  <path d="M0 212 L384 212" stroke="#b47f38" stroke-width="4" stroke-dasharray="16 12" />
+</svg>

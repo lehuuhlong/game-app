@@ -17,7 +17,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
-const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly'];
+const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'flappybird', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly'];
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
   beginner: 'msBestBeginner',
   intermediate: 'msBestIntermediate',
@@ -104,6 +104,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (score > (user.bestScoreTrex || 0)) {
         user.bestScoreTrex = score;
       }
+    } else if (game === 'flappybird') {
+      const { score } = body;
+      if (typeof score !== 'number' || score < 0) {
+        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
+      }
+      if (score > (user.bestScoreFlappy || 0)) {
+        user.bestScoreFlappy = score;
+      }
     } else if (game === 'wordchain') {
       const { won } = body;
       user.wordchainTotal = (user.wordchainTotal || 0) + 1;
@@ -175,6 +183,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       wordleGuesses5: user.wordleGuesses5,
       wordleGuesses6: user.wordleGuesses6,
       bestScoreTrex: user.bestScoreTrex,
+      bestScoreFlappy: user.bestScoreFlappy,
       wordchainWins: user.wordchainWins,
       wordchainTotal: user.wordchainTotal,
       sudokuBestEasy: user.sudokuBestEasy,

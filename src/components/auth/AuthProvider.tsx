@@ -29,6 +29,7 @@ export interface AuthUser {
   wordleGuesses5?: number;
   wordleGuesses6?: number;
   bestScoreTrex: number;
+  bestScoreFlappy?: number;
   wordchainWins: number;
   wordchainTotal: number;
   sudokuBestEasy?: number;
