@@ -84,6 +84,14 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
       <path d="M14 10V5a1 1 0 0 1 1-1h4" />
     </svg>
   ),
+  flappybird: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="7" />
+      <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+      <path d="M17 12l4 1.5-4 1.5" />
+      <path d="M8 13c-1.5 0-3-1-3-2.5s1.5-2.5 3-1.5" />
+    </svg>
+  ),
   wordle: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -198,7 +206,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
-    if (gameType === "trex") {
+    if (gameType === "trex" || gameType === "flappybird") {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
@@ -263,6 +271,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="minesweeper">Minesweeper</option>
             <option value="sudoku">Sudoku</option>
             <option value="trex">T-Rex</option>
+            <option value="flappybird">Flappy Bird</option>
             <option value="wordle">Wordle</option>
           </select>
         </div>

@@ -24,6 +24,7 @@ export interface IUser extends Document {
   wordleGuesses5: number;      // Wordle: won on 5th guess
   wordleGuesses6: number;      // Wordle: won on 6th guess
   bestScoreTrex: number;       // Trex: best score
+  bestScoreFlappy: number;     // Flappy Bird: best score
   wordchainWins: number;       // Wordchain: total wins
   wordchainTotal: number;      // Wordchain: total games played
   sudokuBestEasy: number;      // Sudoku Easy: best time in seconds (0 = never won)
@@ -69,6 +70,7 @@ const UserSchema = new Schema<IUser>(
     wordleGuesses5:         { type: Number, default: 0 },
     wordleGuesses6:         { type: Number, default: 0 },
     bestScoreTrex:          { type: Number, default: 0 },
+    bestScoreFlappy:        { type: Number, default: 0 },
     wordchainWins:          { type: Number, default: 0 },
     wordchainTotal:         { type: Number, default: 0 },
     sudokuBestEasy:         { type: Number, default: 0 },
@@ -94,6 +96,7 @@ UserSchema.index({ battleshipWins: -1, battleshipTotal: -1 });
 UserSchema.index({ monopolyWins: -1, monopolyTotal: -1 });
 UserSchema.index({ wordchainWins: -1, wordchainTotal: -1 });
 UserSchema.index({ bestScoreTrex: -1 });
+UserSchema.index({ bestScoreFlappy: -1 });
 UserSchema.index({ aimTrainerBestScore: -1, aimTrainerBestAccuracy: -1 });
 UserSchema.index({ msBestBeginner: 1 });
 UserSchema.index({ msBestIntermediate: 1 });

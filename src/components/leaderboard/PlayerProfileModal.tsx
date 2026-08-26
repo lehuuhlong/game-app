@@ -24,6 +24,7 @@ interface PlayerProfileData {
   wordleGuesses5?: number;
   wordleGuesses6?: number;
   bestScoreTrex: number;
+  bestScoreFlappy?: number;
   wordchainWins: number;
   wordchainTotal: number;
   sudokuBestEasy: number;
@@ -314,14 +315,15 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                   </div>
                 </div>
 
-                {/* T-Rex & Wordle */}
+                {/* T-Rex, Flappy Bird & Wordle */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
                   <div className="flex items-center gap-2">
                     <span>🦖</span>
-                    <span className="font-semibold text-foreground">T-Rex / Wordle</span>
+                    <span className="font-semibold text-foreground">Arcade / Wordle</span>
                   </div>
                   <div className="text-right font-mono text-[11px]">
-                    T-Rex: <strong className="text-foreground">{profile.bestScoreTrex || 0}</strong> • Wordle:{' '}
+                    T-Rex: <strong className="text-foreground">{profile.bestScoreTrex || 0}</strong> • Flappy:{' '}
+                    <strong className="text-foreground">{profile.bestScoreFlappy || 0}</strong> • Wordle:{' '}
                     <strong className="text-foreground">
                       {profile.wordleWins || 0}W
                       {profile.wordleTotal
@@ -380,7 +382,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 <span>{capitalize(m.gameData?.difficulty || 'Normal')}</span>
                               )}
                             </span>
-                          ) : m.gameType === '2048' || m.gameType === 'trex' || m.gameType === 'aimtrainer' ? (
+                          ) : m.gameType === '2048' || m.gameType === 'trex' || m.gameType === 'flappybird' || m.gameType === 'aimtrainer' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
                             </span>

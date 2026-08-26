@@ -23,6 +23,7 @@ type GameTab =
   | "minesweeper"
   | "sudoku"
   | "trex"
+  | "flappybird"
   | "wordle";
 
 type MsLevel = "beginner" | "intermediate" | "expert";
@@ -78,6 +79,13 @@ interface EntryTrex {
   score: number;
 }
 
+interface EntryFlappy {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  score: number;
+}
+
 interface EntrySudoku {
   rank: number;
   username: string;
@@ -110,6 +118,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "minesweeper", label: "Minesweeper", category: "singleplayer" },
   { id: "sudoku", label: "Sudoku", category: "singleplayer" },
   { id: "trex", label: "T-Rex", category: "singleplayer" },
+  { id: "flappybird", label: "Flappy Bird", category: "singleplayer" },
   { id: "wordle", label: "Wordle", category: "singleplayer" },
 ];
 
@@ -189,6 +198,14 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <path d="M14 10V5a1 1 0 0 1 1-1h4" />
     </svg>
   ),
+  flappybird: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="7" />
+      <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+      <path d="M17 12l4 1.5-4 1.5" />
+      <path d="M8 13c-1.5 0-3-1-3-2.5s1.5-2.5 3-1.5" />
+    </svg>
+  ),
   wordle: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -208,7 +225,8 @@ const TAB_INDEX: Record<string, number> = {
   minesweeper: 7,
   sudoku: 8,
   trex: 9,
-  wordle: 10,
+  flappybird: 10,
+  wordle: 11,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -313,6 +331,7 @@ export default function LeaderboardPage() {
   const [dataMs, setDataMs] = useState<EntryMinesweeper[]>([]);
   const [dataWordle, setDataWordle] = useState<EntryWordle[]>([]);
   const [dataTrex, setDataTrex] = useState<EntryTrex[]>([]);
+  const [dataFlappy, setDataFlappy] = useState<EntryFlappy[]>([]);
   const [dataSudoku, setDataSudoku] = useState<EntrySudoku[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -406,6 +425,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "minesweeper") setDataMs(json.leaderboard || []);
           else if (activeGame === "wordle") setDataWordle(json.leaderboard || []);
           else if (activeGame === "trex") setDataTrex(json.leaderboard || []);
+          else if (activeGame === "flappybird") setDataFlappy(json.leaderboard || []);
           else if (activeGame === "sudoku") setDataSudoku(json.leaderboard || []);
         }
       } catch (error) {
@@ -527,6 +547,15 @@ export default function LeaderboardPage() {
         metricLabel: "Score",
       };
     }
+    if (activeGame === "flappybird") {
+      if (dataFlappy.length === 0) return null;
+      return {
+        first: dataFlappy[0] ? { rank: 1 as const, username: dataFlappy[0].username, avatarUrl: dataFlappy[0].avatarUrl, primaryStat: `${dataFlappy[0].score.toLocaleString()} pts`, secondaryStat: "Pipes Passed" } : null,
+        second: dataFlappy[1] ? { rank: 2 as const, username: dataFlappy[1].username, avatarUrl: dataFlappy[1].avatarUrl, primaryStat: `${dataFlappy[1].score.toLocaleString()} pts`, secondaryStat: "Pipes Passed" } : null,
+        third: dataFlappy[2] ? { rank: 3 as const, username: dataFlappy[2].username, avatarUrl: dataFlappy[2].avatarUrl, primaryStat: `${dataFlappy[2].score.toLocaleString()} pts`, secondaryStat: "Pipes Passed" } : null,
+        metricLabel: "Score",
+      };
+    }
     if (activeGame === "wordle") {
       if (dataWordle.length === 0) return null;
       return {
@@ -537,7 +566,7 @@ export default function LeaderboardPage() {
       };
     }
     return null;
-  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataWordle]);
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle]);
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
@@ -1269,6 +1298,39 @@ export default function LeaderboardPage() {
                                   <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
                                   <span className="text-sm font-bold text-foreground text-right font-mono flex items-center justify-end gap-1.5">
                                     <span className="text-amber-500">⭐</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Flappy Bird ── */}
+                      {activeGame === "flappybird" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Score</span>
+                          </TableHeader>
+                          {dataFlappy.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No flapper scores recorded yet. Tap to fly!"} />
+                          ) : (
+                            dataFlappy
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataFlappy.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span className="text-amber-500">🐤</span>
                                     {e.score.toLocaleString()}
                                   </span>
                                 </TableRow>

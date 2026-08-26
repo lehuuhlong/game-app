@@ -190,6 +190,24 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "flappybird") {
+      const leaderboard = await User.find({ bestScoreFlappy: { $gt: 0 } })
+        .select("username avatarUrl bestScoreFlappy")
+        .sort({ bestScoreFlappy: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "flappybird",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.bestScoreFlappy,
+        })),
+      });
+    }
+
     if (game === "wordchain") {
       const leaderboard = await User.find({ wordchainTotal: { $gt: 0 } })
         .select("username avatarUrl wordchainWins wordchainTotal")
