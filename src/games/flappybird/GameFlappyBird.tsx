@@ -6,16 +6,18 @@ import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
 
 export function GameFlappyBird() {
+  const { user, refreshUser } = useAuth();
   const {
     canvasRef,
     gameState,
     startGame,
     flap,
     config,
-  } = useFlappyBird();
+  } = useFlappyBird(user?.bestScoreFlappy || 0);
 
-  const { user, refreshUser } = useAuth();
-  const scoreSavedRef = useRef(false);
+  const matchSavedRef = useRef(false);
+  const userScoreSavedRef = useRef(false);
+  const lastScoreRef = useRef(0);
   const [showLogin, setShowLogin] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -34,61 +36,78 @@ export function GameFlappyBird() {
     return () => window.removeEventListener("resize", handleResize);
   }, [config.canvasWidth]);
 
+  // ── Helper to save score to database ────────────────────────────
+  const saveUserScore = async (targetUser: typeof user, finalScore: number) => {
+    if (!targetUser || finalScore < 0) return;
+    try {
+      const res = await fetch(`/api/users/${targetUser.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: "flappybird", score: finalScore }),
+      });
+      const d = await res.json();
+      if (d.bestScoreFlappy !== undefined) {
+        refreshUser({ bestScoreFlappy: d.bestScoreFlappy });
+      }
+    } catch (err) {
+      console.error("Failed to save Flappy Bird score:", err);
+    }
+  };
+
   // ── Login prompt on game over if not logged in ──────────────────
   useEffect(() => {
-    if (gameState.isGameOver && !user && gameState.score > 0) {
-      const t = setTimeout(() => setShowLogin(true), 650);
-      return () => clearTimeout(t);
+    if (gameState.isGameOver) {
+      lastScoreRef.current = gameState.score;
+      if (!user && gameState.score > 0) {
+        const t = setTimeout(() => setShowLogin(true), 650);
+        return () => clearTimeout(t);
+      }
+    } else {
+      matchSavedRef.current = false;
+      userScoreSavedRef.current = false;
     }
   }, [gameState.isGameOver, user, gameState.score]);
 
   // ── Save score and match history on game over ───────────────────
   useEffect(() => {
-    if (!gameState.isGameOver) {
-      scoreSavedRef.current = false;
-      return;
+    if (!gameState.isGameOver) return;
+
+    const currentScore = gameState.score;
+
+    // Record match history once per game over
+    if (!matchSavedRef.current && currentScore > 0) {
+      matchSavedRef.current = true;
+      fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "flappybird",
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : "Guest",
+              score: currentScore,
+              result: currentScore >= 10 ? "win" : "loss",
+            },
+          ],
+          duration: 0,
+          gameData: { score: currentScore },
+        }),
+      }).catch((err) => console.error("Failed to save Flappy Bird match:", err));
     }
-    if (scoreSavedRef.current) return;
-    scoreSavedRef.current = true;
 
-    // Record match history
-    fetch("/api/matches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameType: "flappybird",
-        players: [
-          {
-            userId: user?.id,
-            username: user ? user.username : "Guest",
-            score: gameState.score,
-            result: gameState.score >= 10 ? "win" : "loss",
-          },
-        ],
-        duration: 0,
-        gameData: { score: gameState.score },
-      }),
-    }).catch((err) => console.error("Failed to save Flappy Bird match:", err));
+    // Save to user account if user is logged in
+    if (user && !userScoreSavedRef.current && currentScore > 0) {
+      userScoreSavedRef.current = true;
+      saveUserScore(user, currentScore);
+    }
+  }, [gameState.isGameOver, gameState.score, user]);
 
-    if (!user) return;
-
-    fetch(`/api/users/${user.id}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "flappybird", score: gameState.score }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.bestScoreFlappy !== undefined) {
-          refreshUser({ bestScoreFlappy: d.bestScoreFlappy });
-        }
-      })
-      .catch((err) => console.error("Failed to save Flappy Bird score:", err));
-  }, [gameState.isGameOver, gameState.score, user, refreshUser]);
-
-  const displayHighScore = user
-    ? Math.max(user.bestScoreFlappy || 0, gameState.highScore)
-    : gameState.highScore;
+  const displayHighScore = Math.max(
+    user?.bestScoreFlappy || 0,
+    gameState.highScore,
+    gameState.score
+  );
 
   // Medal for score milestones
   const getMedalBadge = (score: number) => {
@@ -106,8 +125,10 @@ export function GameFlappyBird() {
       {showLogin && (
         <LoginModal
           title="Save your score!"
-          subtitle={`You scored ${gameState.score}! Enter a username to save it to the global leaderboard.`}
-          onSuccess={() => setShowLogin(false)}
+          subtitle={`You scored ${lastScoreRef.current || gameState.score}! Enter a username to save it to the global leaderboard.`}
+          onSuccess={() => {
+            setShowLogin(false);
+          }}
           onClose={() => setShowLogin(false)}
         />
       )}

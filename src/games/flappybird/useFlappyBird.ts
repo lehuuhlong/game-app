@@ -261,7 +261,7 @@ function drawBird(
   ctx.restore();
 }
 
-export function useFlappyBird() {
+export function useFlappyBird(externalHighScore = 0) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const birdYRef = useRef(280);
   const velocityRef = useRef(0);
@@ -274,10 +274,12 @@ export function useFlappyBird() {
   const elapsedRef = useRef(0);
   const lastFrameRef = useRef(0);
   const speedRef = useRef(175);
+  const externalHighScoreRef = useRef(externalHighScore);
+  externalHighScoreRef.current = externalHighScore;
 
   const [gameState, setGameState] = useState<FlappyGameState>({
     score: 0,
-    highScore: 0,
+    highScore: Math.max(readHighScore(), externalHighScore),
     isPlaying: false,
     isGameOver: false,
     isNewHighScore: false,
@@ -285,11 +287,10 @@ export function useFlappyBird() {
   });
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      setGameState((state) => ({ ...state, highScore: readHighScore() }));
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    const local = readHighScore();
+    const effective = Math.max(local, externalHighScore);
+    setGameState((state) => ({ ...state, highScore: Math.max(state.highScore, effective) }));
+  }, [externalHighScore]);
 
   const spawnFeatherParticles = (x: number, y: number) => {
     const colors = ["#fbbf24", "#f59e0b", "#fed7aa", "#ffffff", "#ea580c"];
@@ -380,7 +381,7 @@ export function useFlappyBird() {
 
       spawnFeatherParticles(BIRD_X, birdYRef.current);
 
-      const oldHighScore = readHighScore();
+      const oldHighScore = Math.max(readHighScore(), externalHighScoreRef.current);
       const currentScore = scoreRef.current;
       const isNewBest = currentScore > oldHighScore && currentScore > 0;
       const finalHighScore = Math.max(oldHighScore, currentScore);
