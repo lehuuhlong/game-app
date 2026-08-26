@@ -23,6 +23,18 @@ export interface GameInfo {
 
 export const GAMES: GameInfo[] = [
   {
+    id: "flappybird",
+    title: "Flappy Bird",
+    description:
+      "Tap to flap through an endless course of pipes. Master the rhythm, survive the shrinking gaps, and chase your best score.",
+    thumbnail: "/games/flappybird/thumbnail.svg",
+    route: "/games/flappybird",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Arcade", "Single Player", "Reflex", "Endless"],
+    color: "from-sky-400 via-cyan-500 to-emerald-500",
+  },
+  {
     id: "2048",
     title: "2048",
     description:
@@ -93,18 +105,6 @@ export const GAMES: GameInfo[] = [
     maxPlayers: 1,
     tags: ["Arcade", "Single Player", "Endless"],
     color: "from-stone-500 to-zinc-700",
-  },
-  {
-    id: "flappybird",
-    title: "Flappy Bird",
-    description:
-      "Tap to flap through an endless course of pipes. Master the rhythm, survive the shrinking gaps, and chase your best score.",
-    thumbnail: "/games/flappybird/thumbnail.svg",
-    route: "/games/flappybird",
-    minPlayers: 1,
-    maxPlayers: 1,
-    tags: ["Arcade", "Single Player", "Reflex", "Endless"],
-    color: "from-sky-400 via-cyan-500 to-emerald-500",
   },
   {
     id: "wordchain",
