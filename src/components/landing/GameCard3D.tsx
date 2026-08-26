@@ -196,7 +196,7 @@ export function GameCard3D({
             </div>
 
             {/* Right Column: Dynamic Visual Art */}
-            <div className="relative w-full sm:w-56 h-48 sm:h-auto min-h-[160px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-background/80 p-3 transition-colors duration-300 group-hover:border-border-hover">
+            <div className="relative w-full sm:w-56 h-48 sm:h-auto min-h-[160px] flex-shrink-0 overflow-hidden rounded-xl border border-border/70 bg-surface-secondary/30 transition-colors duration-300 group-hover:border-sky-500/40">
               <GameVisualGraphic id={game.id} />
             </div>
           </div>
@@ -227,7 +227,7 @@ export function GameCard3D({
               </div>
 
               {/* Visual Preview Graphic */}
-              <div className="mt-3 relative h-32 w-full overflow-hidden rounded-xl border border-border bg-background/80 p-2 transition-colors duration-300 group-hover:border-border-hover">
+              <div className="mt-3 relative h-32 w-full overflow-hidden rounded-xl border border-border/70 bg-surface-secondary/30 transition-colors duration-300 group-hover:border-sky-500/40">
                 <GameVisualGraphic id={game.id} />
               </div>
 

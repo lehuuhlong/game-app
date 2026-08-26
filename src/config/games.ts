@@ -39,7 +39,7 @@ export const GAMES: GameInfo[] = [
     title: "2048",
     description:
       "Slide numbered tiles on a grid to combine them and reach the 2048 tile. A single-player puzzle of strategy and luck.",
-    thumbnail: "/games/2048/thumbnail.png",
+    thumbnail: "/games/2048/thumbnail.svg",
     route: "/games/2048",
     minPlayers: 1,
     maxPlayers: 1,
@@ -51,7 +51,7 @@ export const GAMES: GameInfo[] = [
     title: "Caro",
     description:
       "A classic 5-in-a-row strategy game. Play locally with a friend or compete online in real-time.",
-    thumbnail: "/games/caro/thumbnail.png",
+    thumbnail: "/games/caro/thumbnail.svg",
     route: "/games/caro",
     minPlayers: 2,
     maxPlayers: 2,
@@ -63,7 +63,7 @@ export const GAMES: GameInfo[] = [
     title: "Minesweeper",
     description:
       "Navigate a minefield by revealing safe cells. Use logic to flag mines and clear the board without exploding!",
-    thumbnail: "/games/minesweeper/thumbnail.png",
+    thumbnail: "/games/minesweeper/thumbnail.svg",
     route: "/games/minesweeper",
     minPlayers: 1,
     maxPlayers: 1,
@@ -75,7 +75,7 @@ export const GAMES: GameInfo[] = [
     title: "Wordle",
     description:
       "Guess the 5-letter word in 6 tries. Each guess reveals clues — green, yellow, or gray — to crack the code.",
-    thumbnail: "/games/wordle/thumbnail.png",
+    thumbnail: "/games/wordle/thumbnail.svg",
     route: "/games/wordle",
     minPlayers: 1,
     maxPlayers: 1,
@@ -87,7 +87,7 @@ export const GAMES: GameInfo[] = [
     title: "Sudoku",
     description:
       "Fill the 9x9 grid so that each column, row, and 3x3 section contain all of the digits between 1 and 9.",
-    thumbnail: "/games/sudoku/thumbnail.png",
+    thumbnail: "/games/sudoku/thumbnail.svg",
     route: "/games/sudoku",
     minPlayers: 1,
     maxPlayers: 1,
@@ -99,7 +99,7 @@ export const GAMES: GameInfo[] = [
     title: "T-Rex Runner",
     description:
       "Chrome's classic offline dinosaur game. Jump over cacti, dodge pterodactyls, and chase your high score in this endless runner!",
-    thumbnail: "/games/trex/thumbnail.png",
+    thumbnail: "/games/trex/thumbnail.svg",
     route: "/games/trex",
     minPlayers: 1,
     maxPlayers: 1,
@@ -111,7 +111,7 @@ export const GAMES: GameInfo[] = [
     title: "Word Chain",
     description:
       "A fast-paced multiplayer word game. Connect words where the next word starts with the last letter of the previous one. English and Vietnamese supported!",
-    thumbnail: "/games/wordchain/thumbnail.png",
+    thumbnail: "/games/wordchain/thumbnail.svg",
     route: "/games/wordchain",
     minPlayers: 2,
     maxPlayers: 2,
@@ -123,7 +123,7 @@ export const GAMES: GameInfo[] = [
     title: "Aim Trainer",
     description:
       "Test your reflexes and precision. Hit as many targets as you can in 60 seconds and track your click accuracy.",
-    thumbnail: "/games/aimtrainer/thumbnail.png",
+    thumbnail: "/games/aimtrainer/thumbnail.svg",
     route: "/games/aimtrainer",
     minPlayers: 1,
     maxPlayers: 1,
@@ -135,7 +135,7 @@ export const GAMES: GameInfo[] = [
     title: "Battleship",
     description:
       "Engage in tactical naval combat. Place your fleet strategically and sink the enemy's ships in this real-time multiplayer classic.",
-    thumbnail: "/games/battleship/thumbnail.png",
+    thumbnail: "/games/battleship/thumbnail.svg",
     route: "/games/battleship",
     minPlayers: 2,
     maxPlayers: 2,
@@ -147,7 +147,7 @@ export const GAMES: GameInfo[] = [
     title: "Monopoly",
     description:
       "The classic property trading board game. Roll dice, buy properties, collect rent, and bankrupt your opponents in real-time 2-4 player multiplayer.",
-    thumbnail: "/games/monopoly/thumbnail.png",
+    thumbnail: "/games/monopoly/thumbnail.svg",
     route: "/games/monopoly",
     minPlayers: 2,
     maxPlayers: 4,
@@ -159,7 +159,7 @@ export const GAMES: GameInfo[] = [
     title: "Chess",
     description:
       "The royal game of strategy. Real-time 2-player multiplayer with standard chess rules, 15-minute game clocks, and FEN state synchronization.",
-    thumbnail: "/games/chess/thumbnail.png",
+    thumbnail: "/games/chess/thumbnail.svg",
     route: "/games/chess",
     minPlayers: 2,
     maxPlayers: 2,

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 224" fill="none">
+  <defs>
+    <linearGradient id="bgOcean" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="50%" stop-color="#082f49" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="sonarSweep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="384" height="224" fill="url(#bgOcean)" />
+
+  <!-- Ocean Tactical Grid Matrix -->
+  <g stroke="#0284c7" stroke-width="1" opacity="0.3">
+    <line x1="40" y1="0" x2="40" y2="224" />
+    <line x1="80" y1="0" x2="80" y2="224" />
+    <line x1="120" y1="0" x2="120" y2="224" />
+    <line x1="160" y1="0" x2="160" y2="224" />
+    <line x1="200" y1="0" x2="200" y2="224" />
+    <line x1="240" y1="0" x2="240" y2="224" />
+    <line x1="280" y1="0" x2="280" y2="224" />
+    <line x1="320" y1="0" x2="320" y2="224" />
+    <line x1="360" y1="0" x2="360" y2="224" />
+
+    <line x1="0" y1="36" x2="384" y2="36" />
+    <line x1="0" y1="72" x2="384" y2="72" />
+    <line x1="0" y1="108" x2="384" y2="108" />
+    <line x1="0" y1="144" x2="384" y2="144" />
+    <line x1="0" y1="180" x2="384" y2="180" />
+    <line x1="0" y1="216" x2="384" y2="216" />
+  </g>
+
+  <!-- Sonar Radar Circle (Left) -->
+  <g transform="translate(110, 112)">
+    <circle cx="0" cy="0" r="75" fill="rgba(8,47,73,0.4)" stroke="#38bdf8" stroke-width="2" />
+    <circle cx="0" cy="0" r="50" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+    <circle cx="0" cy="0" r="25" stroke="#38bdf8" stroke-width="1.5" opacity="0.4" />
+    <path d="M0 0 L53 -53 A75 75 0 0 1 75 0 Z" fill="url(#sonarSweep)" />
+    <!-- Radar blips -->
+    <circle cx="35" cy="-25" r="4" fill="#38bdf8" />
+    <circle cx="-30" cy="35" r="3" fill="#38bdf8" opacity="0.7" />
+  </g>
+
+  <!-- Aircraft Carrier Battleship (Right Center) -->
+  <g transform="translate(240, 90)">
+    <!-- Ship Shadow -->
+    <path d="M-60 15 L60 15 L50 25 L-50 25 Z" fill="rgba(0,0,0,0.4)" />
+    <!-- Flight Deck / Hull -->
+    <path d="M-65 0 L55 -6 L68 0 L55 6 L-65 0 Z" fill="#334155" stroke="#64748b" stroke-width="2.5" />
+    <!-- Runway Stripe Lines -->
+    <line x1="-55" y1="0" x2="45" y2="0" stroke="#f8fafc" stroke-width="2" stroke-dasharray="8 6" />
+    <!-- Island / Bridge Tower -->
+    <rect x="10" y="-12" width="18" height="6" rx="1" fill="#475569" stroke="#94a3b8" stroke-width="1.5" />
+    <line x1="20" y1="-12" x2="20" y2="-18" stroke="#cbd5e1" stroke-width="2" />
+  </g>
+
+  <!-- Patrol Boat (Bottom Left) -->
+  <g transform="translate(80, 160)">
+    <path d="M-30 0 L25 -4 L32 0 L25 4 L-30 0 Z" fill="#475569" stroke="#94a3b8" stroke-width="2" />
+    <rect x="-5" y="-6" width="12" height="4" rx="1" fill="#64748b" />
+    <circle cx="15" cy="0" r="2.5" fill="#f8fafc" />
+  </g>
+
+  <!-- Fiery Direct Missile Hit Explosion (On the Carrier) -->
+  <g transform="translate(260, 85)">
+    <!-- Shockwave Rings -->
+    <circle cx="0" cy="0" r="22" stroke="#ef4444" stroke-width="2" opacity="0.6" />
+    <circle cx="0" cy="0" r="14" stroke="#f59e0b" stroke-width="2.5" opacity="0.8" />
+    <!-- Fireball -->
+    <polygon points="0,-16 5,-5 16,-4 7,4 10,15 0,8 -10,15 -7,4 -16,-4 -5,-5" fill="#ef4444" stroke="#fde047" stroke-width="2" />
+    <polygon points="0,-8 3,-2 8,-2 4,2 5,8 0,4 -5,8 -4,2 -8,-2 -3,-2" fill="#fbbf24" />
+    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+    <!-- Target Marker -->
+    <circle cx="0" cy="0" r="8" stroke="#ffffff" stroke-width="1.5" fill="none" />
+    <line x1="-12" y1="0" x2="12" y2="0" stroke="#ffffff" stroke-width="1.5" />
+    <line x1="0" y1="-12" x2="0" y2="12" stroke="#ffffff" stroke-width="1.5" />
+  </g>
+</svg>
