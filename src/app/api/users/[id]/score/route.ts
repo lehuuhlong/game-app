@@ -106,10 +106,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     } else if (game === 'flappybird') {
       const { score } = body;
-      if (typeof score !== 'number' || score < 0) {
+      if (typeof score !== 'number' || score < 0 || !Number.isFinite(score)) {
         return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
       }
-      if (score > (user.bestScoreFlappy || 0)) {
+      const currentBest = typeof user.bestScoreFlappy === 'number' ? user.bestScoreFlappy : 0;
+      if (score > currentBest) {
         user.bestScoreFlappy = score;
       }
     } else if (game === 'wordchain') {

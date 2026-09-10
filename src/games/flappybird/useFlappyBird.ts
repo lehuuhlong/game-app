@@ -289,6 +289,13 @@ export function useFlappyBird(externalHighScore = 0) {
   useEffect(() => {
     const local = readHighScore();
     const effective = Math.max(local, externalHighScore);
+    if (externalHighScore > local) {
+      try {
+        localStorage.setItem(STORAGE_KEY, String(externalHighScore));
+      } catch {
+        // ignore storage errors
+      }
+    }
     setGameState((state) => ({ ...state, highScore: Math.max(state.highScore, effective) }));
   }, [externalHighScore]);
 
@@ -381,13 +388,20 @@ export function useFlappyBird(externalHighScore = 0) {
 
       spawnFeatherParticles(BIRD_X, birdYRef.current);
 
-      const oldHighScore = Math.max(readHighScore(), externalHighScoreRef.current);
+      const localBest = readHighScore();
+      const dbBest = externalHighScoreRef.current;
+      const oldHighScore = Math.max(localBest, dbBest);
       const currentScore = scoreRef.current;
       const isNewBest = currentScore > oldHighScore && currentScore > 0;
       const finalHighScore = Math.max(oldHighScore, currentScore);
 
-      if (isNewBest) {
-        localStorage.setItem(STORAGE_KEY, String(finalHighScore));
+      // Only update localStorage if finalHighScore is strictly higher than current localStorage
+      if (finalHighScore > localBest) {
+        try {
+          localStorage.setItem(STORAGE_KEY, String(finalHighScore));
+        } catch {
+          // ignore storage errors
+        }
       }
 
       setGameState({

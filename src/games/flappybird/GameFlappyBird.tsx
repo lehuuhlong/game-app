@@ -38,7 +38,11 @@ export function GameFlappyBird() {
 
   // ── Helper to save score to database ────────────────────────────
   const saveUserScore = async (targetUser: typeof user, finalScore: number) => {
-    if (!targetUser || finalScore < 0) return;
+    if (!targetUser || finalScore <= 0) return;
+    const currentDbBest = targetUser.bestScoreFlappy || 0;
+    // Strictly only update if the new score exceeds the DB best score
+    if (finalScore <= currentDbBest) return;
+
     try {
       const res = await fetch(`/api/users/${targetUser.id}/score`, {
         method: "PATCH",
@@ -48,6 +52,13 @@ export function GameFlappyBird() {
       const d = await res.json();
       if (d.bestScoreFlappy !== undefined) {
         refreshUser({ bestScoreFlappy: d.bestScoreFlappy });
+        // Also ensure localStorage reflects the updated high score
+        if (typeof window !== "undefined") {
+          const local = Number.parseInt(localStorage.getItem("flappy-bird-high-score") || "0", 10);
+          if (d.bestScoreFlappy > local) {
+            localStorage.setItem("flappy-bird-high-score", String(d.bestScoreFlappy));
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to save Flappy Bird score:", err);
@@ -96,8 +107,9 @@ export function GameFlappyBird() {
       }).catch((err) => console.error("Failed to save Flappy Bird match:", err));
     }
 
-    // Save to user account if user is logged in
-    if (user && !userScoreSavedRef.current && currentScore > 0) {
+    // Save to user account only if user is logged in AND score exceeds their DB high score
+    const userDbBest = user?.bestScoreFlappy || 0;
+    if (user && !userScoreSavedRef.current && currentScore > userDbBest && currentScore > 0) {
       userScoreSavedRef.current = true;
       saveUserScore(user, currentScore);
     }
@@ -105,8 +117,7 @@ export function GameFlappyBird() {
 
   const displayHighScore = Math.max(
     user?.bestScoreFlappy || 0,
-    gameState.highScore,
-    gameState.score
+    gameState.highScore
   );
 
   // Medal for score milestones
