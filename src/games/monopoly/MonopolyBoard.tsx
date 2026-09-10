@@ -381,6 +381,7 @@ function BoardCell({
   onHostWorldCup,
   isShielded = false,
   isBlackout = false,
+  blackoutRemainingLaps,
   isChanceTargetActive = false,
   isValidChanceTarget = false,
   onSelectChanceTarget,
@@ -402,6 +403,7 @@ function BoardCell({
   onHostWorldCup?: (index: number) => void;
   isShielded?: boolean;
   isBlackout?: boolean;
+  blackoutRemainingLaps?: number;
   isChanceTargetActive?: boolean;
   isValidChanceTarget?: boolean;
   onSelectChanceTarget?: (index: number) => void;
@@ -612,9 +614,12 @@ function BoardCell({
           {isBlackout && (
             <div
               className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
-              title="Blackout: Rent is $0!"
+              title={`Blackout: Rent is $0! (${blackoutRemainingLaps ?? 3} laps past START left)`}
             >
               <span>⚡</span>
+              {blackoutRemainingLaps !== undefined && (
+                <span className="text-[6px] sm:text-[7px] font-mono leading-none">{blackoutRemainingLaps}</span>
+              )}
             </div>
           )}
 
@@ -723,9 +728,12 @@ function BoardCell({
         {isBlackout && (
           <div
             className="absolute bottom-0.5 right-0.5 z-20 flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] px-1 py-0.2 rounded-full border border-amber-300 shadow-md animate-pulse"
-            title="Blackout: Rent is $0!"
+            title={`Blackout: Rent is $0! (${blackoutRemainingLaps ?? 3} laps past START left)`}
           >
             <span>⚡</span>
+            {blackoutRemainingLaps !== undefined && (
+              <span className="text-[6px] sm:text-[7px] font-mono leading-none">{blackoutRemainingLaps}</span>
+            )}
           </div>
         )}
 
@@ -1822,6 +1830,7 @@ export function MonopolyBoard({
                   onHostWorldCup={onHostWorldCup}
                   isShielded={gameState?.shieldedSpaces?.includes(idx)}
                   isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  blackoutRemainingLaps={gameState?.blackoutRemainingLaps?.[idx]}
                   isChanceTargetActive={isChanceTargetSelectionActive}
                   isValidChanceTarget={isSpaceValidChanceTarget(idx)}
                   onSelectChanceTarget={onSelectChanceTarget}
@@ -1849,6 +1858,7 @@ export function MonopolyBoard({
                   onHostWorldCup={onHostWorldCup}
                   isShielded={gameState?.shieldedSpaces?.includes(idx)}
                   isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  blackoutRemainingLaps={gameState?.blackoutRemainingLaps?.[idx]}
                   isChanceTargetActive={isChanceTargetSelectionActive}
                   isValidChanceTarget={isSpaceValidChanceTarget(idx)}
                   onSelectChanceTarget={onSelectChanceTarget}
@@ -1876,6 +1886,7 @@ export function MonopolyBoard({
                   onHostWorldCup={onHostWorldCup}
                   isShielded={gameState?.shieldedSpaces?.includes(idx)}
                   isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  blackoutRemainingLaps={gameState?.blackoutRemainingLaps?.[idx]}
                   isChanceTargetActive={isChanceTargetSelectionActive}
                   isValidChanceTarget={isSpaceValidChanceTarget(idx)}
                   onSelectChanceTarget={onSelectChanceTarget}
@@ -1904,6 +1915,7 @@ export function MonopolyBoard({
                   onHostWorldCup={onHostWorldCup}
                   isShielded={gameState?.shieldedSpaces?.includes(idx)}
                   isBlackout={gameState?.blackoutSpaces?.includes(idx)}
+                  blackoutRemainingLaps={gameState?.blackoutRemainingLaps?.[idx]}
                   isChanceTargetActive={isChanceTargetSelectionActive}
                   isValidChanceTarget={isSpaceValidChanceTarget(idx)}
                   onSelectChanceTarget={onSelectChanceTarget}

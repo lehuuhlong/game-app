@@ -183,6 +183,7 @@ export interface MonopolyGameState {
   pendingDebt?: MonopolyPendingDebt | null;
   worldCupSpaceIndex?: number | null;
   blackoutSpaces?: number[];
+  blackoutRemainingLaps?: Record<number, number>;
   shieldedSpaces?: number[];
   pendingChanceTarget?: MonopolyChanceTarget | null;
   lastChanceEvent?: MonopolyChanceEvent | null;

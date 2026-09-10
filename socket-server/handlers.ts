@@ -498,6 +498,7 @@ function createInitialMonopolyState(
     pendingDebt: null,
     worldCupSpaceIndex: null,
     blackoutSpaces: [] as number[],
+    blackoutRemainingLaps: {} as Record<number, number>,
     shieldedSpaces: [] as number[],
     pendingChanceTarget: null,
     lastChanceEvent: null,
@@ -687,6 +688,53 @@ function isWorldTourTargetValid(spaceIndex: number): boolean {
     return false;
   }
   return true;
+}
+
+/**
+ * Handle a player passing or landing on START.
+ * Decrements the blackout countdown for any properties owned by this player.
+ * If countdown reaches 0, the blackout is automatically lifted!
+ */
+function handlePlayerPassedStart(
+  state: MonopolyGameState,
+  player: MonopolyPlayerState
+): void {
+  if (!state.blackoutSpaces || state.blackoutSpaces.length === 0) return;
+  if (!state.blackoutRemainingLaps) state.blackoutRemainingLaps = {};
+
+  // Find all properties owned by this player that are currently blacked out
+  const ownedBlackouts = state.blackoutSpaces.filter((idx) =>
+    player.ownedProperties.includes(idx)
+  );
+
+  for (const spaceIndex of ownedBlackouts) {
+    const currentLaps = state.blackoutRemainingLaps[spaceIndex] ?? 3;
+    const remaining = currentLaps - 1;
+    const space = MONOPOLY_BOARD[spaceIndex];
+    const spaceName = space?.name || `Space #${spaceIndex}`;
+
+    if (remaining <= 0) {
+      // Auto restore power after 3 laps
+      state.blackoutSpaces = state.blackoutSpaces.filter((idx) => idx !== spaceIndex);
+      delete state.blackoutRemainingLaps[spaceIndex];
+      mpLog(
+        state,
+        `💡 Power automatically restored in ${spaceName}! ${player.username} completed 3 laps past START. Rent is active again.`
+      );
+      state.lastChanceEvent = {
+        title: "💡 POWER RESTORED!",
+        description: `Power automatically restored in ${spaceName} after 3 laps past START!`,
+        icon: "💡",
+        timestamp: Date.now(),
+      };
+    } else {
+      state.blackoutRemainingLaps[spaceIndex] = remaining;
+      mpLog(
+        state,
+        `⚡ ${spaceName} blackout countdown: ${remaining} lap${remaining > 1 ? "s" : ""} past START remaining.`
+      );
+    }
+  }
 }
 
 /**
@@ -934,7 +982,7 @@ function resolveSpace(
         state.pendingChanceTarget = {
           type: "blackout",
           title: "⚡ CITY BLACKOUT",
-          description: "Click an opponent's city to cut power (Rent becomes $0)!",
+          description: "Click an opponent's city to cut power (Rent becomes $0 for 3 laps)!",
         };
         state.lastChanceEvent = {
           title: "⚡ BLACKOUT CARD!",
@@ -1146,6 +1194,15 @@ function resolveSpace(
           owner.balance += player.balance;
           player.balance = 0;
           player.isActive = false;
+          if (state.blackoutSpaces) {
+            state.blackoutSpaces = state.blackoutSpaces.filter((idx) => !player.ownedProperties.includes(idx));
+          }
+          if (state.blackoutRemainingLaps) {
+            player.ownedProperties.forEach((idx) => delete state.blackoutRemainingLaps![idx]);
+          }
+          if (state.shieldedSpaces) {
+            state.shieldedSpaces = state.shieldedSpaces.filter((idx) => !player.ownedProperties.includes(idx));
+          }
           player.ownedProperties = [];
           player.houseLevels = {};
           mpLog(state, `💀 ${player.username} cannot afford $${rent} rent and went bankrupt! All remaining cash given to ${owner.username}.`);
@@ -1163,6 +1220,9 @@ function resolveSpace(
       // Landing on own property — restore power if in blackout
       if (state.blackoutSpaces && state.blackoutSpaces.includes(player.position)) {
         state.blackoutSpaces = state.blackoutSpaces.filter((idx) => idx !== player.position);
+        if (state.blackoutRemainingLaps) {
+          delete state.blackoutRemainingLaps[player.position];
+        }
         mpLog(state, `💡 Power restored in ${space.name}! Rent is active again.`);
         state.lastChanceEvent = {
           title: "💡 POWER RESTORED!",
@@ -1606,9 +1666,11 @@ export function registerSocketHandlers(io: GameIO): void {
       if (mpPlayer.position < oldPosition && mpPlayer.position !== 0) {
         mpPlayer.balance += 250;
         mpLog(state, `💵 ${mpPlayer.username} passed START — collected $250!`);
+        handlePlayerPassedStart(state, mpPlayer);
       } else if (mpPlayer.position === 0 && oldPosition !== 0) {
         mpPlayer.balance += 250;
         mpLog(state, `💵 ${mpPlayer.username} landed on START — collected $250!`);
+        handlePlayerPassedStart(state, mpPlayer);
       }
 
       const landedSpace = MONOPOLY_BOARD[mpPlayer.position];
@@ -2006,6 +2068,15 @@ export function registerSocketHandlers(io: GameIO): void {
         state.worldCupSpaceIndex = null;
         mpLog(state, `🏆 World Cup host property ${space.name} was sold. World Cup host status cleared.`);
       }
+      if (state.blackoutSpaces) {
+        state.blackoutSpaces = state.blackoutSpaces.filter((idx) => idx !== spaceIndex);
+      }
+      if (state.blackoutRemainingLaps) {
+        delete state.blackoutRemainingLaps[spaceIndex];
+      }
+      if (state.shieldedSpaces) {
+        state.shieldedSpaces = state.shieldedSpaces.filter((idx) => idx !== spaceIndex);
+      }
 
       const levelStr = houseLevel > 0 ? ` (Lv.${houseLevel})` : "";
       mpLog(state, `🏷️ ${mpPlayer.username} sold ${space.name}${levelStr} for $${saleValue}.`);
@@ -2137,6 +2208,7 @@ export function registerSocketHandlers(io: GameIO): void {
       if (targetSpaceIndex < 24) {
         mpPlayer.balance += 250;
         mpLog(state, `💵 ${mpPlayer.username} passed START during World Tour flight — collected $250!`);
+        handlePlayerPassedStart(state, mpPlayer);
       }
 
       mpPlayer.position = targetSpaceIndex;
@@ -2360,6 +2432,9 @@ export function registerSocketHandlers(io: GameIO): void {
           state.worldCupSpaceIndex = null;
         }
         state.blackoutSpaces = state.blackoutSpaces.filter((idx) => idx !== targetSpaceIndex);
+        if (state.blackoutRemainingLaps) {
+          delete state.blackoutRemainingLaps[targetSpaceIndex];
+        }
 
         mpLog(state, `💣 ${mpPlayer.username} demolished ${opponent.username}'s ${targetSpace.name}! Property returned to Bank.`);
         state.lastChanceEvent = {
@@ -2383,10 +2458,13 @@ export function registerSocketHandlers(io: GameIO): void {
         if (!state.blackoutSpaces.includes(targetSpaceIndex)) {
           state.blackoutSpaces.push(targetSpaceIndex);
         }
-        mpLog(state, `⚡ ${mpPlayer.username} caused a Blackout in ${opponent.username}'s ${targetSpace.name}! Rent is now $0.`);
+        if (!state.blackoutRemainingLaps) state.blackoutRemainingLaps = {};
+        state.blackoutRemainingLaps[targetSpaceIndex] = 3;
+
+        mpLog(state, `⚡ ${mpPlayer.username} caused a Blackout in ${opponent.username}'s ${targetSpace.name}! Rent is now $0 for 3 laps past START.`);
         state.lastChanceEvent = {
           title: "⚡ BLACKOUT TRIGGERED!",
-          description: `Power cut in ${targetSpace.name} (Rent = $0)!`,
+          description: `Power cut in ${targetSpace.name} (Rent = $0) for 3 laps past START!`,
           icon: "⚡",
           timestamp: Date.now(),
         };
@@ -3008,6 +3086,15 @@ function handleLeaveRoom(
       if (mpPlayer) {
         // Mark as inactive and release all properties
         mpPlayer.isActive = false;
+        if (state.blackoutSpaces) {
+          state.blackoutSpaces = state.blackoutSpaces.filter((idx) => !mpPlayer.ownedProperties.includes(idx));
+        }
+        if (state.blackoutRemainingLaps) {
+          mpPlayer.ownedProperties.forEach((idx) => delete state.blackoutRemainingLaps![idx]);
+        }
+        if (state.shieldedSpaces) {
+          state.shieldedSpaces = state.shieldedSpaces.filter((idx) => !mpPlayer.ownedProperties.includes(idx));
+        }
         mpPlayer.ownedProperties = [];
         mpPlayer.doublesCount = 0;
         mpLog(state, `🚪 ${mpPlayer.username} disconnected. Their properties are now available!`);
