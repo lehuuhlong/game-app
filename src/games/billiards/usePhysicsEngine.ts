@@ -276,7 +276,7 @@ export function snapAllBallsToStop(balls: Matter.Body[]) {
 
 // ─── Containment and Velocity Guard ─────────────────────────────────────────
 // Clamps max speed and guarantees balls never tunnel through cushions or escape table
-const MAX_BALL_SPEED = 24; // px per 60Hz step limit
+const MAX_BALL_SPEED = 50; // generous velocity ceiling for explosive break shots
 
 function clampAndContainBalls(balls: Matter.Body[]) {
   const minX = PLAY_LEFT;
@@ -289,7 +289,7 @@ function clampAndContainBalls(balls: Matter.Body[]) {
     const vy = ball.velocity.y;
     const speedSq = vx * vx + vy * vy;
 
-    // 1. Cap terminal velocity
+    // 1. Cap terminal velocity if extreme spike
     if (speedSq > MAX_BALL_SPEED * MAX_BALL_SPEED) {
       const speed = Math.sqrt(speedSq);
       const scale = MAX_BALL_SPEED / speed;
@@ -306,7 +306,8 @@ function clampAndContainBalls(balls: Matter.Body[]) {
     });
 
     if (!nearPocket) {
-      // 3. Table containment guard: ball must stay strictly within cushions
+      // 3. Table containment guard: ball must stay strictly within cushions.
+      // Only reflect velocity if the ball is moving TOWARD the cushion (prevents over-damping on consecutive sub-steps)
       const r = BALL_RADIUS;
       let clamped = false;
       let newX = bx;
@@ -316,21 +317,21 @@ function clampAndContainBalls(balls: Matter.Body[]) {
 
       if (bx < minX + r) {
         newX = minX + r;
-        newVx = Math.abs(newVx) * 0.75;
+        if (newVx < 0) newVx = -newVx * 0.82;
         clamped = true;
       } else if (bx > maxX - r) {
         newX = maxX - r;
-        newVx = -Math.abs(newVx) * 0.75;
+        if (newVx > 0) newVx = -newVx * 0.82;
         clamped = true;
       }
 
       if (by < minY + r) {
         newY = minY + r;
-        newVy = Math.abs(newVy) * 0.75;
+        if (newVy < 0) newVy = -newVy * 0.82;
         clamped = true;
       } else if (by > maxY - r) {
         newY = maxY - r;
-        newVy = -Math.abs(newVy) * 0.75;
+        if (newVy > 0) newVy = -newVy * 0.82;
         clamped = true;
       }
 
@@ -489,9 +490,9 @@ export function usePhysicsEngine() {
   // ─── Respot cue ball (after scratch/foul) ─────────────────────────────
 
   const respotCueBall = useCallback(() => {
-    const cueBall = cueBallRef.current;
     const engine = engineRef.current;
-    if (!cueBall || !engine) return;
+    if (!engine) return;
+    const cueBall = cueBallRef.current;
 
     // Determine an unoccupied spot starting from standard break position
     let spawnX = CUE_BALL_START_X;
@@ -510,10 +511,10 @@ export function usePhysicsEngine() {
     }
 
     // Check if the cue ball was removed (potted) from world or active list
-    const existsInWorld = Composite.get(engine.world, cueBall.id, "body");
-    const existsInBalls = ballsRef.current.some((b) => b.id === cueBall.id);
+    const existsInWorld = cueBall ? Composite.get(engine.world, cueBall.id, "body") : null;
+    const existsInBalls = cueBall ? ballsRef.current.some((b) => b.id === cueBall.id) : false;
 
-    if (!existsInWorld || !existsInBalls) {
+    if (!cueBall || !existsInWorld || !existsInBalls) {
       const newCueBall = Bodies.circle(spawnX, spawnY, BALL_RADIUS, {
         restitution: CUE_BALL_RESTITUTION,
         friction: BALL_FRICTION,
@@ -523,9 +524,7 @@ export function usePhysicsEngine() {
         label: BALL_CONFIGS[0].label,
         render: { fillStyle: "#FFFFFF" },
       });
-      if (!existsInWorld) {
-        Composite.add(engine.world, newCueBall);
-      }
+      Composite.add(engine.world, newCueBall);
       // Replace or add in balls array
       ballsRef.current = [
         ...ballsRef.current.filter((b) => b.label !== BALL_CONFIGS[0].label),

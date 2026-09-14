@@ -9,8 +9,11 @@ interface PottedBallsTrayProps {
   currentPlayer: 1 | 2;
   gameOver: boolean;
   winner: 1 | 2 | null;
-  height?: number;
+  width?: number;
 }
+
+const SOLID_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
+const STRIPE_NUMBERS = [9, 10, 11, 12, 13, 14, 15];
 
 export function PottedBallsTray({
   player1,
@@ -18,137 +21,215 @@ export function PottedBallsTray({
   currentPlayer,
   gameOver,
   winner,
-  height = 500,
+  width,
 }: PottedBallsTrayProps) {
   const totalPotted = player1.pottedBalls.length + player2.pottedBalls.length;
 
   const p1GroupText =
-    player1.group === "solid" ? "Solids" : player1.group === "stripe" ? "Stripes" : "Open";
+    player1.group === "solid" ? "Solids" : player1.group === "stripe" ? "Stripes" : "Open Table";
   const p2GroupText =
-    player2.group === "solid" ? "Solids" : player2.group === "stripe" ? "Stripes" : "Open";
+    player2.group === "solid" ? "Solids" : player2.group === "stripe" ? "Stripes" : "Open Table";
 
-  // Check 8-ball status: is it in player1 or player2's potted list?
+  const p1Count = player1.pottedBalls.filter((n) => n !== 8).length;
+  const p2Count = player2.pottedBalls.filter((n) => n !== 8).length;
+
+  // Has either player cleared their group and is now on the 8-ball?
+  const p1OnEight = player1.group !== null && p1Count >= 7;
+  const p2OnEight = player2.group !== null && p2Count >= 7;
   const isEightPotted = player1.pottedBalls.includes(8) || player2.pottedBalls.includes(8);
 
+  const getTargetBalls = (group: "solid" | "stripe" | null): number[] => {
+    if (group === "solid") return SOLID_NUMBERS;
+    if (group === "stripe") return STRIPE_NUMBERS;
+    return [1, 2, 3, 4, 5, 6, 7]; // default placeholder rack
+  };
+
+  const p1Targets = getTargetBalls(player1.group);
+  const p2Targets = getTargetBalls(player2.group);
+
   return (
-    <aside
-      className="shrink-0 flex flex-col justify-between rounded-2xl border border-border/80 bg-surface/95 dark:bg-slate-900/95 p-3 shadow-xl backdrop-blur-md select-none transition-all w-28 sm:w-32 lg:w-36 overflow-hidden"
-      style={{ height }}
-      aria-label="Pocketed billiard balls tray"
+    <header
+      className="w-full flex items-center justify-between gap-2 sm:gap-4 rounded-2xl border border-border/80 bg-surface/95 dark:bg-slate-900/95 px-3 sm:px-5 py-2.5 shadow-xl backdrop-blur-md select-none transition-all"
+      style={{ maxWidth: width ? Math.max(width, 700) : "100%" }}
+      aria-label="Player scoreboard and potted balls rack"
     >
-      {/* ── Top: Header & Total Count ────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-border/60 pb-2">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-foreground-muted">
-            Pocketed
-          </span>
+      {/* ── PLAYER 1 (Left Side) ─────────────────────────────────── */}
+      <div
+        className={`flex items-center gap-2.5 sm:gap-3.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl border transition-all ${
+          currentPlayer === 1 && !gameOver
+            ? "border-blue-500/60 bg-blue-500/10 shadow-md shadow-blue-500/10 ring-1 ring-blue-500/40"
+            : winner === 1
+            ? "border-emerald-500/60 bg-emerald-500/10"
+            : "border-transparent bg-background/40"
+        }`}
+      >
+        {/* Avatar badge */}
+        <div className="relative">
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs transition-transform ${
+              currentPlayer === 1 && !gameOver
+                ? "bg-gradient-to-tr from-blue-600 to-sky-400 text-white shadow-md shadow-blue-500/30 scale-105"
+                : "bg-slate-800 text-slate-300 border border-slate-700"
+            }`}
+          >
+            P1
+          </div>
+          {currentPlayer === 1 && !gameOver && (
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500" />
+            </span>
+          )}
         </div>
-        <span className="font-mono text-xs font-black text-foreground-secondary">
-          {totalPotted}/15
+
+        {/* Player info & ball rack */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black tracking-tight text-foreground">
+              Player 1
+            </span>
+            <span
+              className={`px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider rounded border ${
+                player1.group === "solid"
+                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                  : player1.group === "stripe"
+                  ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
+                  : "bg-slate-800 text-slate-400 border-slate-700"
+              }`}
+            >
+              {p1GroupText}
+            </span>
+            {currentPlayer === 1 && !gameOver && (
+              <span className="rounded bg-sky-500/20 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-sky-300 border border-sky-500/30 animate-pulse">
+                Turn
+              </span>
+            )}
+            <span className="font-mono text-[11px] font-extrabold text-foreground-secondary ml-auto">
+              {p1Count}/7
+            </span>
+          </div>
+
+          {/* 7 Target ball sockets */}
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {p1Targets.map((num) => {
+              const isPotted = player1.pottedBalls.includes(num);
+              return isPotted ? (
+                <BallSphere key={num} number={num} size={22} />
+              ) : (
+                <div
+                  key={num}
+                  className="w-[22px] h-[22px] rounded-full border border-slate-700/60 bg-slate-800/40 shadow-inner flex items-center justify-center opacity-40 transition-all hover:opacity-60"
+                  title={`Ball ${num} (${player1.group || "target"})`}
+                >
+                  <span className="text-[8px] font-black text-slate-400 select-none">
+                    {player1.group ? num : "•"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CENTER: 8-Ball Target & Match Status ─────────────────── */}
+      <div className="flex flex-col items-center justify-center px-2 py-1 shrink-0">
+        <div className="relative">
+          <BallSphere
+            number={8}
+            size={28}
+            glow={p1OnEight || p2OnEight || isEightPotted}
+          />
+          {(p1OnEight || p2OnEight) && !isEightPotted && !gameOver && (
+            <span className="absolute -top-1.5 -right-2 px-1 py-0.2 text-[7px] font-black uppercase rounded bg-amber-500 text-black animate-bounce shadow-xs">
+              Target
+            </span>
+          )}
+        </div>
+        <span className="text-[9px] font-black uppercase tracking-wider text-foreground mt-0.5">
+          8-Ball
+        </span>
+        <span className="text-[8px] font-mono text-foreground-muted">
+          {totalPotted}/15 Sunk
         </span>
       </div>
 
-      {/* ── Middle: Player 1 & Player 2 Ball Sockets ─────────────── */}
-      <div className="flex-1 flex flex-col justify-around py-1 gap-2 overflow-y-auto custom-scrollbar">
-        {/* ── PLAYER 1 COMPARTMENT ── */}
-        <div
-          className={`rounded-xl border p-2 transition-all ${
-            currentPlayer === 1 && !gameOver
-              ? "border-blue-500/50 bg-blue-500/10 shadow-sm ring-1 ring-blue-500/30"
-              : winner === 1
-              ? "border-emerald-500/50 bg-emerald-500/10"
-              : "border-border/60 bg-background/50"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                P1 • {p1GroupText}
+      {/* ── PLAYER 2 (Right Side) ────────────────────────────────── */}
+      <div
+        className={`flex items-center gap-2.5 sm:gap-3.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl border transition-all text-right ${
+          currentPlayer === 2 && !gameOver
+            ? "border-rose-500/60 bg-rose-500/10 shadow-md shadow-rose-500/10 ring-1 ring-rose-500/40"
+            : winner === 2
+            ? "border-emerald-500/60 bg-emerald-500/10"
+            : "border-transparent bg-background/40"
+        }`}
+      >
+        {/* Player info & ball rack */}
+        <div className="flex flex-col gap-1 items-end">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] font-extrabold text-foreground-secondary mr-auto">
+              {p2Count}/7
+            </span>
+            {currentPlayer === 2 && !gameOver && (
+              <span className="rounded bg-rose-500/20 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-rose-300 border border-rose-500/30 animate-pulse">
+                Turn
               </span>
-              {currentPlayer === 1 && !gameOver && (
-                <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[8px] font-black uppercase tracking-wider text-blue-400 border border-blue-500/30 animate-pulse">
-                  Turn
-                </span>
-              )}
-            </div>
-            <span className="font-mono text-[10px] font-bold text-foreground-muted">
-              {player1.pottedBalls.filter((n: number) => n !== 8).length}/7
+            )}
+            <span
+              className={`px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider rounded border ${
+                player2.group === "solid"
+                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                  : player2.group === "stripe"
+                  ? "bg-blue-500/15 text-blue-300 border-blue-500/30"
+                  : "bg-slate-800 text-slate-400 border-slate-700"
+              }`}
+            >
+              {p2GroupText}
+            </span>
+            <span className="text-xs font-black tracking-tight text-foreground">
+              Player 2
             </span>
           </div>
 
-          {/* Sunk balls grid (wells) */}
-          <div className="grid grid-cols-3 gap-1.5 justify-items-center">
-            {player1.pottedBalls.length === 0 ? (
-              <div className="col-span-3 py-2 text-center text-[10px] font-medium text-foreground-muted/60 italic">
-                Waiting...
-              </div>
-            ) : (
-              player1.pottedBalls.map((num: number) => (
-                <BallSphere key={num} number={num} size={24} />
-              ))
-            )}
+          {/* 7 Target ball sockets */}
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse">
+            {p2Targets.map((num) => {
+              const isPotted = player2.pottedBalls.includes(num);
+              return isPotted ? (
+                <BallSphere key={num} number={num} size={22} />
+              ) : (
+                <div
+                  key={num}
+                  className="w-[22px] h-[22px] rounded-full border border-slate-700/60 bg-slate-800/40 shadow-inner flex items-center justify-center opacity-40 transition-all hover:opacity-60"
+                  title={`Ball ${num} (${player2.group || "target"})`}
+                >
+                  <span className="text-[8px] font-black text-slate-400 select-none">
+                    {player2.group ? num : "•"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Subtle separator */}
-        <div className="h-px bg-border/50 w-full" />
-
-        {/* ── PLAYER 2 COMPARTMENT ── */}
-        <div
-          className={`rounded-xl border p-2 transition-all ${
-            currentPlayer === 2 && !gameOver
-              ? "border-rose-500/50 bg-rose-500/10 shadow-sm ring-1 ring-rose-500/30"
-              : winner === 2
-              ? "border-emerald-500/50 bg-emerald-500/10"
-              : "border-border/60 bg-background/50"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">
-                P2 • {p2GroupText}
-              </span>
-              {currentPlayer === 2 && !gameOver && (
-                <span className="rounded bg-rose-500/20 px-1 py-0.2 text-[8px] font-black uppercase tracking-wider text-rose-400 border border-rose-500/30 animate-pulse">
-                  Turn
-                </span>
-              )}
-            </div>
-            <span className="font-mono text-[10px] font-bold text-foreground-muted">
-              {player2.pottedBalls.filter((n: number) => n !== 8).length}/7
+        {/* Avatar badge */}
+        <div className="relative">
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs transition-transform ${
+              currentPlayer === 2 && !gameOver
+                ? "bg-gradient-to-tr from-rose-600 to-pink-400 text-white shadow-md shadow-rose-500/30 scale-105"
+                : "bg-slate-800 text-slate-300 border border-slate-700"
+            }`}
+          >
+            P2
+          </div>
+          {currentPlayer === 2 && !gameOver && (
+            <span className="absolute -top-1 -left-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
             </span>
-          </div>
-
-          {/* Sunk balls grid (wells) */}
-          <div className="grid grid-cols-3 gap-1.5 justify-items-center">
-            {player2.pottedBalls.length === 0 ? (
-              <div className="col-span-3 py-2 text-center text-[10px] font-medium text-foreground-muted/60 italic">
-                Waiting...
-              </div>
-            ) : (
-              player2.pottedBalls.map((num: number) => (
-                <BallSphere key={num} number={num} size={24} />
-              ))
-            )}
-          </div>
+          )}
         </div>
       </div>
-
-      {/* ── Bottom: 8-Ball Target Status ─────────────────────────── */}
-      <div className="border-t border-border/60 pt-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BallSphere number={8} size={24} glow={isEightPotted} />
-          <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase tracking-wider text-foreground">
-              8-Ball
-            </span>
-            <span className="text-[8px] font-medium text-foreground-muted">
-              {isEightPotted ? (gameOver ? "Potted!" : "Foul!") : "Final Target"}
-            </span>
-          </div>
-        </div>
-      </div>
-    </aside>
+    </header>
   );
 }
