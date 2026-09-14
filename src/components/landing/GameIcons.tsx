@@ -270,6 +270,30 @@ export function FlappyBirdIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function BilliardsIcon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Cue ball */}
+      <circle cx="8" cy="14" r="4" />
+      {/* 8-ball */}
+      <circle cx="16" cy="10" r="4" />
+      <circle cx="16" cy="10" r="1.5" fill="currentColor" />
+      {/* Cue stick */}
+      <line x1="2" y1="22" x2="6" y2="18" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export function WordChainIcon({ className = '', size = 20 }: IconProps) {
   return (
     <svg
@@ -338,6 +362,8 @@ export function getGameSvgIcon(id: string, className = '', size = 20) {
       return <FlappyBirdIcon className={className} size={size} />;
     case 'wordchain':
       return <WordChainIcon className={className} size={size} />;
+    case 'billiards':
+      return <BilliardsIcon className={className} size={size} />;
     default:
       return <Puzzle2048Icon className={className} size={size} />;
   }

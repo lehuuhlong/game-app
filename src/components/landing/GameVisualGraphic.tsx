@@ -588,6 +588,110 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+
+      {/* ── 14. 8 BALL POOL (BILLIARDS) ─────────────────────────── */}
+      {id === 'billiards' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-emerald-900 via-teal-950 to-slate-950">
+          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="8 Ball Pool">
+            <defs>
+              <radialGradient id="felt-glow" cx="50%" cy="50%" r="60%">
+                <stop offset="0%" stopColor="#059669" stopOpacity="0.85" />
+                <stop offset="70%" stopColor="#047857" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#064e3b" stopOpacity="0.95" />
+              </radialGradient>
+              <radialGradient id="ball-gloss" cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.75" />
+                <stop offset="40%" stopColor="#ffffff" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
+              </radialGradient>
+              <linearGradient id="stick-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#fed7aa" />
+                <stop offset="40%" stopColor="#d97706" />
+                <stop offset="100%" stopColor="#78350f" />
+              </linearGradient>
+            </defs>
+
+            {/* Table Frame & Rails */}
+            <rect x="8" y="10" width="176" height="92" rx="10" fill="#451a03" stroke="#78350f" strokeWidth="2.5" />
+            <rect x="18" y="20" width="156" height="72" rx="4" fill="url(#felt-glow)" />
+
+            {/* Pockets */}
+            <circle cx="21" cy="23" r="5" fill="#0f172a" />
+            <circle cx="96" cy="19" r="4" fill="#0f172a" />
+            <circle cx="171" cy="23" r="5" fill="#0f172a" />
+            <circle cx="21" cy="89" r="5" fill="#0f172a" />
+            <circle cx="96" cy="93" r="4" fill="#0f172a" />
+            <circle cx="171" cy="89" r="5" fill="#0f172a" />
+
+            {/* Aiming guideline */}
+            <line x1="58" y1="56" x2="105" y2="52" stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 2" opacity="0.85" />
+
+            {/* Solid Ball (Yellow 1) */}
+            <g transform="translate(136, 44)">
+              <ellipse cx="1" cy="6" rx="6" ry="2.5" fill="#000000" opacity="0.3" />
+              <circle cx="0" cy="0" r="7" fill="#eab308" />
+              <circle cx="0" cy="0" r="7" fill="url(#ball-gloss)" />
+              <circle cx="0" cy="0" r="2.8" fill="#ffffff" />
+              <text x="0" y="2" fontSize="5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#000000">1</text>
+            </g>
+
+            {/* Stripe Ball (Red 11) */}
+            <g transform="translate(142, 62)">
+              <ellipse cx="1" cy="6" rx="6" ry="2.5" fill="#000000" opacity="0.3" />
+              <circle cx="0" cy="0" r="7" fill="#ffffff" />
+              <rect x="-7" y="-3.2" width="14" height="6.4" fill="#ef4444" />
+              <circle cx="0" cy="0" r="7" fill="url(#ball-gloss)" />
+              <circle cx="0" cy="0" r="2.8" fill="#ffffff" />
+              <text x="0" y="2" fontSize="4.5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#000000">11</text>
+            </g>
+
+            {/* Solid Ball (Blue 2) */}
+            <g transform="translate(122, 66)">
+              <ellipse cx="1" cy="6" rx="6" ry="2.5" fill="#000000" opacity="0.3" />
+              <circle cx="0" cy="0" r="7" fill="#2563eb" />
+              <circle cx="0" cy="0" r="7" fill="url(#ball-gloss)" />
+              <circle cx="0" cy="0" r="2.8" fill="#ffffff" />
+              <text x="0" y="2" fontSize="5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#ffffff">2</text>
+            </g>
+
+            {/* 8-Ball Center Target with subtle pulse */}
+            <g transform="translate(112, 51)">
+              <ellipse cx="1" cy="7" rx="7.5" ry="3" fill="#000000" opacity="0.4" />
+              <circle cx="0" cy="0" r="8" fill="#111827" />
+              <circle cx="0" cy="0" r="8" fill="url(#ball-gloss)" />
+              <circle cx="0" cy="0" r="3.2" fill="#ffffff" />
+              <text x="0" y="2.2" fontSize="6" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" fill="#000000">8</text>
+            </g>
+
+            {/* Cue Ball */}
+            <g transform="translate(56, 56)">
+              <ellipse cx="1" cy="6.5" rx="7" ry="2.5" fill="#000000" opacity="0.35" />
+              <circle cx="0" cy="0" r="7.5" fill="#f8fafc" />
+              <circle cx="0" cy="0" r="7.5" fill="url(#ball-gloss)" />
+              <circle cx="-1.5" cy="-1.5" r="1" fill="#ef4444" />
+            </g>
+
+            {/* Cue Stick with Pullback Animation */}
+            <g>
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="-8 1; 2 -0.2; -8 1"
+                dur="2.2s"
+                repeatCount="indefinite"
+              />
+              <g transform="translate(46, 57) rotate(5)">
+                {/* Chalk tip */}
+                <rect x="-2" y="-1.5" width="2" height="3" fill="#38bdf8" />
+                {/* Ferrule */}
+                <rect x="-5" y="-1.6" width="3" height="3.2" fill="#ffffff" />
+                {/* Cue shaft */}
+                <polygon points="-5,-1.6 -5,1.6 -65,3 -65,-3" fill="url(#stick-gradient)" stroke="#451a03" strokeWidth="0.4" />
+              </g>
+            </g>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
