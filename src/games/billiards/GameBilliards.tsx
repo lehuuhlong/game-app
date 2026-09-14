@@ -89,6 +89,7 @@ export function GameBilliards() {
     ballsRef,
     active: rulesState.ballInHand,
     onConfirm: () => setBallInHand(false),
+    respotCueBall,
   });
 
   // Ball in Hand render state ref for the 60fps render loop
@@ -184,8 +185,8 @@ export function GameBilliards() {
     function handleResize() {
       if (!containerRef.current) return;
       const containerW = containerRef.current.clientWidth;
-      // Account for left cue power gauge (~76px) + right potted tray (~136px) + gaps (~32px)
-      const sidePanelsW = containerW >= 1200 ? 244 : containerW >= 960 ? 210 : 170;
+      // Account for left cue power gauge (~76px) + gaps (~24px)
+      const sidePanelsW = containerW >= 960 ? 100 : 80;
       const availableW = containerW - sidePanelsW;
       const scale = Math.min(1, Math.max(0.35, availableW / TABLE_WIDTH));
       setCanvasScale(scale);
@@ -300,87 +301,17 @@ export function GameBilliards() {
         </button>
       </div>
 
-      {/* ── Single Unified Status / Turn Banner ─────────────────── */}
-      <div className="w-full min-h-[44px] flex items-center justify-center">
-        {rulesState.ballInHand ? (
-          <div className="w-full max-w-[820px] flex flex-wrap items-center justify-between gap-3 px-4 py-2 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-slate-900/90 to-amber-500/15 backdrop-blur-md shadow-lg shadow-amber-500/10">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl select-none animate-bounce" aria-hidden="true">
-                🖐️
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-300">
-                    Ball in Hand (Bi trong tay) — Người chơi {currentPlayer}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      isPlacementValid
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                        : "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse"
-                    }`}
-                  >
-                    {isPlacementValid ? "✓ Vị trí hợp lệ" : "✕ Trùng bi / Trong lỗ"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-300">
-                  {isPlacingBall
-                    ? isPlacementValid
-                      ? "Thả chuột/ngón tay để đặt bi tại đây."
-                      : "Di chuyển ra vùng nỉ trống, không trùng bi khác."
-                    : "Kéo thả bi trắng hoặc bấm vào bàn cờ để điều chỉnh vị trí."}
-                </p>
-              </div>
-            </div>
+      {/* ── TOP: Player Scoreboard & Potted Balls Bar ── */}
+      <PottedBallsTray
+        player1={player1}
+        player2={player2}
+        currentPlayer={currentPlayer}
+        gameOver={gameOver}
+        winner={winner}
+        width={Math.round(TABLE_WIDTH * canvasScale) + 84}
+      />
 
-            <button
-              type="button"
-              onClick={confirmPlacement}
-              disabled={!isPlacementValid}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
-                isPlacementValid
-                  ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-400 hover:to-green-500 active:scale-95 shadow-emerald-500/25 cursor-pointer ring-2 ring-emerald-400/30"
-                  : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60"
-              }`}
-              title={isPlacementValid ? "Xác nhận vị trí (phím Space hoặc Enter)" : "Vị trí không hợp lệ"}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              {isPlacementValid ? "Xác nhận vị trí" : "Vị trí không hợp lệ"}
-            </button>
-          </div>
-        ) : foulFlash && foulMessage ? (
-          <div className="px-4 py-1.5 rounded-full border border-red-500/30 bg-red-500/15 text-red-400 text-xs font-semibold text-center animate-pulse shadow-xs">
-            ⚠️ {foulMessage}
-          </div>
-        ) : turnMessage && !gameOver && phase === "aiming" ? (
-          <div className="px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium text-center shadow-xs">
-            {turnMessage}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-foreground-muted">
-            <span className={`inline-block w-2 h-2 rounded-full ${
-              gameOver
-                ? "bg-emerald-400"
-                : phase === "shooting"
-                ? "bg-amber-400"
-                : "bg-emerald-400"
-            } animate-pulse`} />
-            <span className="font-medium">
-              {gameOver
-                ? `🏆 Player ${winner} wins! — ${winReason}`
-                : phase === "shooting"
-                ? "Balls in motion..."
-                : isBreakShot
-                ? "Break shot — Drag cue ball to aim and strike"
-                : "Click & drag cue ball to aim and strike"}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* ── Billiard Arena (Left Cue Power + Center Table + Right Potted Tray) ── */}
+      {/* ── Billiard Arena (Left Cue Power + Center Table) ── */}
       <div
         ref={containerRef}
         className="w-full flex items-center justify-center gap-3 sm:gap-4 lg:gap-5"
@@ -464,16 +395,86 @@ export function GameBilliards() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* ── RIGHT: Pocketed Balls Tray ── */}
-        <PottedBallsTray
-          player1={player1}
-          player2={player2}
-          currentPlayer={currentPlayer}
-          gameOver={gameOver}
-          winner={winner}
-          height={Math.round(TABLE_HEIGHT * canvasScale)}
-        />
+      {/* ── Bottom Single Unified Status / Turn Banner (in English) ── */}
+      <div className="w-full min-h-[44px] flex items-center justify-center">
+        {rulesState.ballInHand ? (
+          <div className="w-full max-w-[820px] flex flex-wrap items-center justify-between gap-3 px-4 py-2 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-slate-900/90 to-amber-500/15 backdrop-blur-md shadow-lg shadow-amber-500/10">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl select-none animate-bounce" aria-hidden="true">
+                🖐️
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-300">
+                    Ball in Hand — Player {currentPlayer}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      isPlacementValid
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                        : "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse"
+                    }`}
+                  >
+                    {isPlacementValid ? "✓ Legal Position" : "✕ Overlapping Ball or Pocket"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300">
+                  {isPlacingBall
+                    ? isPlacementValid
+                      ? "Release pointer to place cue ball here."
+                      : "Move to open felt, cannot overlap other balls."
+                    : "Drag cue ball or click anywhere on the felt to reposition."}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={confirmPlacement}
+              disabled={!isPlacementValid}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md ${
+                isPlacementValid
+                  ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-400 hover:to-green-500 active:scale-95 shadow-emerald-500/25 cursor-pointer ring-2 ring-emerald-400/30"
+                  : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60"
+              }`}
+              title={isPlacementValid ? "Confirm placement (Space or Enter)" : "Invalid placement position"}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {isPlacementValid ? "Confirm Placement" : "Invalid Position"}
+            </button>
+          </div>
+        ) : foulFlash && foulMessage ? (
+          <div className="px-4 py-1.5 rounded-full border border-red-500/30 bg-red-500/15 text-red-400 text-xs font-semibold text-center animate-pulse shadow-xs">
+            ⚠️ {foulMessage}
+          </div>
+        ) : turnMessage && !gameOver && phase === "aiming" ? (
+          <div className="px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium text-center shadow-xs">
+            {turnMessage}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-xs text-foreground-muted">
+            <span className={`inline-block w-2 h-2 rounded-full ${
+              gameOver
+                ? "bg-emerald-400"
+                : phase === "shooting"
+                ? "bg-amber-400"
+                : "bg-emerald-400"
+            } animate-pulse`} />
+            <span className="font-medium">
+              {gameOver
+                ? `🏆 Player ${winner} wins! — ${winReason}`
+                : phase === "shooting"
+                ? "Balls in motion..."
+                : isBreakShot
+                ? "Break shot — Drag cue ball to aim and strike"
+                : "Click & drag cue ball to aim and strike"}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

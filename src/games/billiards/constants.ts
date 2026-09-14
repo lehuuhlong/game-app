@@ -20,26 +20,26 @@ export const PLAY_HEIGHT = PLAY_BOTTOM - PLAY_TOP;
 // ─── Ball Properties ────────────────────────────────────────────────────────
 export const BALL_RADIUS = 11;
 export const BALL_MASS = 0.17; // ~170g billiard ball
-export const BALL_FRICTION = 0.04; // rolling friction on cloth
-export const BALL_FRICTION_AIR = 0.015; // air/cloth drag to slow balls
-export const BALL_FRICTION_STATIC = 0.1;
-export const BALL_RESTITUTION = 0.9; // bounciness between balls
+export const BALL_FRICTION = 0.015; // rolling friction on cloth
+export const BALL_FRICTION_AIR = 0.004; // air/cloth drag tuned for 4 sub-steps per frame (~0.016/frame)
+export const BALL_FRICTION_STATIC = 0.05;
+export const BALL_RESTITUTION = 0.95; // bounciness between balls for explosive breaks
 export const BALL_DENSITY = 0.0025;
 
 // Cue ball can have slightly different properties
-export const CUE_BALL_RESTITUTION = 0.92;
+export const CUE_BALL_RESTITUTION = 0.95;
 
 // ─── Cushion Properties ─────────────────────────────────────────────────────
-export const CUSHION_RESTITUTION = 0.7; // rubber cushion bounce
-export const CUSHION_FRICTION = 0.05;
+export const CUSHION_RESTITUTION = 0.82; // lively rubber cushion bounce
+export const CUSHION_FRICTION = 0.03;
 
 // ─── Physics Engine ─────────────────────────────────────────────────────────
 export const FIXED_TIMESTEP = 1000 / 60; // 60 Hz physics updates
 export const VELOCITY_THRESHOLD = 0.08; // below this, a ball is "stopped"
 
 // ─── Max Shooting Force ─────────────────────────────────────────────────────
-export const MAX_FORCE = 0.13; // Increased for fast, punchy, realistic break and bank shots
-export const MIN_DRAG_DISTANCE = 8; // min pixels to drag before registering
+export const MAX_FORCE = 0.22; // Powerful, punchy shot force for authentic break & bank shots
+export const MIN_DRAG_DISTANCE = 6; // min pixels to drag before registering
 export const MAX_DRAG_DISTANCE = 110; // comfortable drag distance to reach 100% full power smoothly
 
 // ─── Ball IDs / Labels ──────────────────────────────────────────────────────

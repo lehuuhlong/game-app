@@ -146,6 +146,12 @@ export function useBilliardsRules() {
 
           if (!ballBody || !pocketBody) continue;
 
+          // CRITICAL: If Ball in Hand is currently active and this is the cue ball,
+          // IGNORE pocket collisions! The player is positioning/dragging it, it must NEVER be pocketed!
+          if (rulesRef.current.ballInHand && ballBody.label === CUE_BALL_LABEL) {
+            continue;
+          }
+
           const ballNumber = getBallNumber(ballBody.label);
           if (ballNumber < 0) continue;
 

@@ -35,6 +35,7 @@ interface UseBallInHandOptions {
   ballsRef: React.MutableRefObject<Matter.Body[]>;
   active: boolean; // rulesState.ballInHand
   onConfirm: () => void;
+  respotCueBall?: () => Matter.Body | undefined;
 }
 
 export function useBallInHand({
@@ -43,6 +44,7 @@ export function useBallInHand({
   ballsRef,
   active,
   onConfirm,
+  respotCueBall,
 }: UseBallInHandOptions) {
   const [isDragging, setIsDragging] = useState(false);
   const [isValid, setIsValid] = useState(true);
@@ -88,16 +90,46 @@ export function useBallInHand({
   // Position cue ball with clamping and update validity
   const moveCueBallTo = useCallback(
     (targetX: number, targetY: number) => {
-      const cueBall = cueBallRef.current;
+      let cueBall = cueBallRef.current;
+      if (!cueBall || !ballsRef.current.some((b) => b.id === cueBall!.id)) {
+        if (respotCueBall) {
+          const respawned = respotCueBall();
+          if (respawned) cueBall = respawned;
+        }
+      }
       if (!cueBall) return;
 
-      const clampedX = Math.min(
+      // 1. Initial boundary clamping
+      let clampedX = Math.min(
         PLAY_RIGHT - BALL_RADIUS - 2,
         Math.max(PLAY_LEFT + BALL_RADIUS + 2, targetX)
       );
-      const clampedY = Math.min(
+      let clampedY = Math.min(
         PLAY_BOTTOM - BALL_RADIUS - 2,
         Math.max(PLAY_TOP + BALL_RADIUS + 2, targetY)
+      );
+
+      // 2. Prevent cue ball from ever entering pocket openings/sensors:
+      // If dragged near a pocket, push it smoothly away from pocket center
+      for (const p of POCKET_POSITIONS) {
+        const dx = clampedX - p.x;
+        const dy = clampedY - p.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = POCKET_RADIUS + BALL_RADIUS + 5;
+        if (dist < minDist && dist > 0.001) {
+          clampedX = p.x + (dx / dist) * minDist;
+          clampedY = p.y + (dy / dist) * minDist;
+        }
+      }
+
+      // Re-clamp inside boundaries after pocket repulsion
+      clampedX = Math.min(
+        PLAY_RIGHT - BALL_RADIUS - 2,
+        Math.max(PLAY_LEFT + BALL_RADIUS + 2, clampedX)
+      );
+      clampedY = Math.min(
+        PLAY_BOTTOM - BALL_RADIUS - 2,
+        Math.max(PLAY_TOP + BALL_RADIUS + 2, clampedY)
       );
 
       const valid = checkValidity(clampedX, clampedY);
@@ -107,25 +139,40 @@ export function useBallInHand({
       Body.setVelocity(cueBall, { x: 0, y: 0 });
       Body.setAngularVelocity(cueBall, 0);
     },
-    [checkValidity, cueBallRef]
+    [checkValidity, cueBallRef, ballsRef, respotCueBall]
   );
 
-  // Check initial position validity when active becomes true
+  // Check initial position validity when active becomes true, or recover missing ball
   useEffect(() => {
-    if (active && cueBallRef.current) {
-      const cue = cueBallRef.current;
-      const valid = checkValidity(cue.position.x, cue.position.y);
-      setIsValid(valid);
+    if (active) {
+      let cue = cueBallRef.current;
+      const isBallPresent = cue && ballsRef.current.some((b) => b.id === cue!.id);
+      if (!isBallPresent && respotCueBall) {
+        const respawned = respotCueBall();
+        if (respawned) cue = respawned;
+      }
+      if (cue) {
+        const valid = checkValidity(cue.position.x, cue.position.y);
+        setIsValid(valid);
+      }
     }
-  }, [active, checkValidity, cueBallRef]);
+  }, [active, checkValidity, cueBallRef, ballsRef, respotCueBall]);
 
   // Pointer event handlers
   const handlePointerDown = useCallback(
     (e: PointerEvent) => {
       if (!active) return;
       const canvas = canvasRef.current;
-      const cueBall = cueBallRef.current;
-      if (!canvas || !cueBall) return;
+      let cueBall = cueBallRef.current;
+      if (!canvas) return;
+
+      if (!cueBall || !ballsRef.current.some((b) => b.id === cueBall!.id)) {
+        if (respotCueBall) {
+          const respawned = respotCueBall();
+          if (respawned) cueBall = respawned;
+        }
+      }
+      if (!cueBall) return;
 
       const pos = canvasToPhysics(e, canvas);
 
