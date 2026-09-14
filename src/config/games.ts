@@ -23,6 +23,18 @@ export interface GameInfo {
 
 export const GAMES: GameInfo[] = [
   {
+    id: "billiards",
+    title: "8 Ball Pool",
+    description:
+      "Classic 8-ball billiards with realistic Matter.js physics. Aim with the cue stick, pot your balls, then sink the 8 to win in local 2-player mode.",
+    thumbnail: "/games/billiards/thumbnail.svg",
+    route: "/games/billiards",
+    minPlayers: 2,
+    maxPlayers: 2,
+    tags: ["Strategy", "Board Game", "Physics"],
+    color: "from-emerald-600 via-green-700 to-teal-800",
+  },
+  {
     id: "flappybird",
     title: "Flappy Bird",
     description:

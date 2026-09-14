@@ -35,6 +35,7 @@ const GAME_DURATIONS: Record<string, string> = {
   'battleship': '10–20m',
   'monopoly': '15–45m',
   'chess': '10–30m',
+  'billiards': '10–20m',
 };
 
 function CompactGameRow({ game, index }: { game: GameInfo; index: number }) {
