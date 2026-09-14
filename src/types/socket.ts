@@ -264,6 +264,24 @@ export interface BilliardsShotData {
   cueAngle: number;
   aimDir: { x: number; y: number };
   power: number;
+  cueBallPos?: { x: number; y: number };
+  initialBalls?: Array<{ id: number; x: number; y: number }>;
+}
+
+export interface BilliardsPhysicsSyncData {
+  roomId: string;
+  balls: Array<{
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+  }>;
+  sunkBall?: {
+    id: number;
+    pocketX: number;
+    pocketY: number;
+  };
 }
 
 export interface BilliardsSettledData {
@@ -356,6 +374,7 @@ export interface ClientToServerEvents {
   billiards_ball_in_hand_move: (data: BilliardsBallInHandData) => void;
   billiards_ball_in_hand_confirm: (data: BilliardsConfirmBallInHandData) => void;
   billiards_restart: (data: { roomId: string }) => void;
+  billiards_sync_physics: (data: BilliardsPhysicsSyncData) => void;
 }
 
 /** Events the server can emit to clients */
@@ -429,6 +448,7 @@ export interface ServerToClientEvents {
   billiards_remote_ball_in_hand_confirm: (data: BilliardsConfirmBallInHandData) => void;
   billiards_game_restarted: () => void;
   billiards_game_over: (data: { winner: 1 | 2; reason: string }) => void;
+  billiards_remote_sync_physics: (data: BilliardsPhysicsSyncData) => void;
 }
 
 /** Internal server-to-server events (for scaling with Redis adapter later) */

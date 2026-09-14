@@ -12,6 +12,7 @@ import type {
   BilliardsSettledData,
   BilliardsBallInHandData,
   BilliardsConfirmBallInHandData,
+  BilliardsPhysicsSyncData,
 } from "@/types/socket";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -29,6 +30,7 @@ interface UseBilliardsMultiplayerOptions {
   onRemoteSettled?: (data: BilliardsSettledData) => void;
   onRemoteBallInHandMove?: (data: BilliardsBallInHandData) => void;
   onRemoteBallInHandConfirm?: (data: BilliardsConfirmBallInHandData) => void;
+  onRemoteSyncPhysics?: (data: BilliardsPhysicsSyncData) => void;
   onGameStarted?: () => void;
   onGameRestarted?: () => void;
 }
@@ -153,6 +155,10 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
 
     socket.on("billiards_remote_ball_in_hand_confirm", (data) => {
       optionsRef.current.onRemoteBallInHandConfirm?.(data);
+    });
+
+    socket.on("billiards_remote_sync_physics", (data) => {
+      optionsRef.current.onRemoteSyncPhysics?.(data);
     });
 
     socket.on("billiards_game_restarted", () => {
@@ -290,7 +296,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     });
   }, []);
 
-  const sendShoot = useCallback((data: { cueAngle: number; aimDir: { x: number; y: number }; power: number }) => {
+  const sendShoot = useCallback((data: Omit<BilliardsShotData, "roomId">) => {
     if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
     socketRef.current.emit("billiards_shoot", {
       roomId: roomIdRef.current,
@@ -321,6 +327,17 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
       ...pos,
     });
   }, []);
+
+  const sendPhysicsTick = useCallback(
+    (data: Omit<BilliardsPhysicsSyncData, "roomId">) => {
+      if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+      socketRef.current.emit("billiards_sync_physics", {
+        roomId: roomIdRef.current,
+        ...data,
+      });
+    },
+    []
+  );
 
   // Opponent player info
   const opponent =
@@ -370,6 +387,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     sendSettled,
     sendBallInHandMove,
     sendBallInHandConfirm,
+    sendPhysicsTick,
     isMyTurn,
   };
 }

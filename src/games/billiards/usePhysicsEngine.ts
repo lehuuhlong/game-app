@@ -411,6 +411,8 @@ export function usePhysicsEngine() {
   // Uses 4 sub-steps per 60Hz frame (240Hz physics resolution).
   // Ensures balls never tunnel through cushions even at maximum velocity.
 
+  const onTickRef = useRef<(() => void) | null>(null);
+
   const startLoop = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
@@ -438,10 +440,18 @@ export function usePhysicsEngine() {
         accumulatorRef.current -= FIXED_TIMESTEP;
       }
 
+      if (onTickRef.current) {
+        onTickRef.current();
+      }
+
       rafIdRef.current = requestAnimationFrame(loop);
     };
 
     rafIdRef.current = requestAnimationFrame(loop);
+  }, []);
+
+  const setOnTick = useCallback((cb: (() => void) | null) => {
+    onTickRef.current = cb;
   }, []);
 
   const stopLoop = useCallback(() => {
@@ -613,6 +623,7 @@ export function usePhysicsEngine() {
     removeBall,
     getBallNumber,
     syncSettledBalls,
+    setOnTick,
     areAllBallsStopped: () => areAllBallsStopped(ballsRef.current),
     snapAllBallsToStop: () => snapAllBallsToStop(ballsRef.current),
   };

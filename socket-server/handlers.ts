@@ -2611,6 +2611,10 @@ export function registerSocketHandlers(io: GameIO): void {
       io.to(roomId).emit("billiards_game_restarted");
     });
 
+    socket.on("billiards_sync_physics", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_sync_physics", data);
+    });
+
     // ══════════════════════════════════════════════════════════════
     //  CARO EVENTS
     // ══════════════════════════════════════════════════════════════

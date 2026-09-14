@@ -36,6 +36,7 @@ export function GameBilliards() {
   const [isAiming, setIsAiming] = useState(false);
   const [copiedRoomCode, setCopiedRoomCode] = useState(false);
   const lastAimEmitRef = useRef<number>(0);
+  const lastPhysicsTickEmitRef = useRef<number>(0);
   const matchSavedRef = useRef(false);
 
   // Physics engine
@@ -54,6 +55,7 @@ export function GameBilliards() {
     respotCueBall,
     removeBall,
     syncSettledBalls,
+    setOnTick,
   } = usePhysicsEngine();
 
   // Canvas renderer
@@ -115,6 +117,23 @@ export function GameBilliards() {
     },
     onRemoteShoot: (data) => {
       setRemoteAim(null);
+
+      // 1. Pre-align ball coordinates from shooter so trajectories match identically
+      if (data.initialBalls && data.initialBalls.length > 0) {
+        for (const bData of data.initialBalls) {
+          const body = ballsRef.current.find((b) => b.label === `ball-${bData.id}`);
+          if (body) {
+            Body.setPosition(body, { x: bData.x, y: bData.y });
+            Body.setVelocity(body, { x: 0, y: 0 });
+          }
+        }
+      }
+      if (data.cueBallPos && cueBallRef.current) {
+        Body.setPosition(cueBallRef.current, data.cueBallPos);
+        Body.setVelocity(cueBallRef.current, { x: 0, y: 0 });
+      }
+
+      // 2. Apply impulse
       const cueBall = cueBallRef.current;
       if (cueBall) {
         const forceMagnitude = data.power * MAX_FORCE;
@@ -127,6 +146,30 @@ export function GameBilliards() {
       phaseRef.current = "shooting";
       onShotStart();
       waitForBallsToStop(false);
+    },
+    onRemoteSyncPhysics: (data) => {
+      // If we are the non-shooter, mirror the shooter's physics in real time
+      if (multiplayer.mode === "online" && !multiplayer.isMyTurn(rulesState.currentPlayer)) {
+        if (data.sunkBall) {
+          const ball = ballsRef.current.find(
+            (b) => b.label === `ball-${data.sunkBall!.id}`
+          );
+          if (ball) {
+            addSinkingBall(ball.label, ball.position, {
+              x: data.sunkBall.pocketX,
+              y: data.sunkBall.pocketY,
+            });
+            removeBall(ball);
+          }
+        }
+        for (const bData of data.balls) {
+          const body = ballsRef.current.find((b) => b.label === `ball-${bData.id}`);
+          if (body) {
+            Body.setPosition(body, { x: bData.x, y: bData.y });
+            Body.setVelocity(body, { x: bData.vx, y: bData.vy });
+          }
+        }
+      }
     },
     onRemoteSettled: (data) => {
       syncSettledBalls(data.balls);
@@ -189,10 +232,30 @@ export function GameBilliards() {
     (ball: Matter.Body, pocketPos?: { x: number; y: number }) => {
       if (pocketPos) {
         addSinkingBall(ball.label, ball.position, pocketPos);
+
+        // If online shooter, broadcast this sinking ball immediately to opponent
+        if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer)) {
+          multiplayer.sendPhysicsTick({
+            balls: ballsRef.current
+              .filter((b) => b.parent === b && b !== ball)
+              .map((b) => ({
+                id: Number(b.label.replace("ball-", "")),
+                x: Math.round(b.position.x * 10) / 10,
+                y: Math.round(b.position.y * 10) / 10,
+                vx: Math.round(b.velocity.x * 100) / 100,
+                vy: Math.round(b.velocity.y * 100) / 100,
+              })),
+            sunkBall: {
+              id: Number(ball.label.replace("ball-", "")),
+              pocketX: pocketPos.x,
+              pocketY: pocketPos.y,
+            },
+          });
+        }
       }
       removeBall(ball);
     },
-    [addSinkingBall, removeBall]
+    [addSinkingBall, removeBall, multiplayer, rulesState.currentPlayer, ballsRef]
   );
 
   // ── Waiting for balls to settle ──────────────────────────────────────────
@@ -369,16 +432,28 @@ export function GameBilliards() {
       onShotStart();
 
       if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer)) {
+        const initialBalls = ballsRef.current
+          .filter((b) => b.parent === b)
+          .map((b) => ({
+            id: Number(b.label.replace("ball-", "")),
+            x: Math.round(b.position.x * 10) / 10,
+            y: Math.round(b.position.y * 10) / 10,
+          }));
+
         multiplayer.sendShoot({
           cueAngle: 0,
           aimDir: payload.aimDir,
           power: payload.power,
+          cueBallPos: cueBallRef.current
+            ? { x: cueBallRef.current.position.x, y: cueBallRef.current.position.y }
+            : undefined,
+          initialBalls,
         });
       }
 
       waitForBallsToStop(true);
     },
-    [onShotStart, multiplayer, rulesState.currentPlayer, waitForBallsToStop]
+    [onShotStart, multiplayer, rulesState.currentPlayer, waitForBallsToStop, ballsRef, cueBallRef]
   );
 
   const {
@@ -410,6 +485,35 @@ export function GameBilliards() {
       };
     }
   }, [multiplayer.screen, attachListeners, detachListeners]);
+
+  // ── Physics tick streaming from active shooter to opponent ───────────────
+  useEffect(() => {
+    setOnTick(() => {
+      if (
+        phaseRef.current === "shooting" &&
+        multiplayer.mode === "online" &&
+        multiplayer.isMyTurn(rulesState.currentPlayer)
+      ) {
+        const now = performance.now();
+        if (now - lastPhysicsTickEmitRef.current >= 33) {
+          lastPhysicsTickEmitRef.current = now;
+          const ballsData = ballsRef.current
+            .filter((b) => b.parent === b)
+            .map((b) => ({
+              id: Number(b.label.replace("ball-", "")),
+              x: Math.round(b.position.x * 10) / 10,
+              y: Math.round(b.position.y * 10) / 10,
+              vx: Math.round(b.velocity.x * 100) / 100,
+              vy: Math.round(b.velocity.y * 100) / 100,
+            }));
+          multiplayer.sendPhysicsTick({ balls: ballsData });
+        }
+      }
+    });
+    return () => {
+      setOnTick(null);
+    };
+  }, [setOnTick, multiplayer, rulesState.currentPlayer, ballsRef]);
 
   // ── Init on mount ────────────────────────────────────────────────────────
   useEffect(() => {
