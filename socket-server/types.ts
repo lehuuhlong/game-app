@@ -3,7 +3,7 @@
  * (Duplicate of src/types/socket.ts — kept separate to avoid Next.js dependency)
  */
 
-export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly" | "chess";
+export type GameType = "2048" | "caro" | "wordchain" | "battleship" | "monopoly" | "chess" | "billiards";
 
 export type WordChainLanguage = "en" | "vi";
 
@@ -245,6 +245,59 @@ export interface ChessGameState {
 }
 
 
+// ── Billiards types ─────────────────────────────────────────────────
+
+export interface BilliardsAimData {
+  roomId: string;
+  cueAngle: number;
+  aimDir: { x: number; y: number };
+  power: number;
+}
+
+export interface BilliardsShotData {
+  roomId: string;
+  cueAngle: number;
+  aimDir: { x: number; y: number };
+  power: number;
+}
+
+export interface BilliardsSettledData {
+  roomId: string;
+  balls: Array<{
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    isPotted: boolean;
+  }>;
+  currentPlayer: 1 | 2;
+  assignedTypes: {
+    1: "solid" | "stripe" | null;
+    2: "solid" | "stripe" | null;
+  };
+  pottedHistory: {
+    1: number[];
+    2: number[];
+  };
+  winner: 1 | 2 | null;
+  ballInHand: boolean;
+  fouled: boolean;
+  statusMessage: string;
+}
+
+export interface BilliardsBallInHandData {
+  roomId: string;
+  x: number;
+  y: number;
+}
+
+export interface BilliardsConfirmBallInHandData {
+  roomId: string;
+  x: number;
+  y: number;
+}
+
 // ── Socket Event Maps ───────────────────────────────────────────────
 
 export interface ClientToServerEvents {
@@ -289,6 +342,14 @@ export interface ClientToServerEvents {
   chess_move: (data: ChessMove) => void;
   chess_resign: (data: { roomId: string }) => void;
   chess_timeout: (data: { roomId: string; losingColor: ChessColor }) => void;
+
+  // Billiards
+  billiards_aim: (data: BilliardsAimData) => void;
+  billiards_shoot: (data: BilliardsShotData) => void;
+  billiards_settled: (data: BilliardsSettledData) => void;
+  billiards_ball_in_hand_move: (data: BilliardsBallInHandData) => void;
+  billiards_ball_in_hand_confirm: (data: BilliardsConfirmBallInHandData) => void;
+  billiards_restart: (data: { roomId: string }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -351,6 +412,16 @@ export interface ServerToClientEvents {
   chess_game_started: (data: { room: Room; gameState: ChessGameState; whitePlayerId: string; blackPlayerId: string }) => void;
   chess_game_update: (data: { gameState: ChessGameState; lastMove?: ChessMoveRecord }) => void;
   chess_game_over: (data: { winner: ChessColor | "draw" | null; reason: string; gameState: ChessGameState }) => void;
+
+  // Billiards
+  billiards_game_started: (data: { room: Room; player1Id: string; player2Id: string }) => void;
+  billiards_remote_aim: (data: BilliardsAimData) => void;
+  billiards_remote_shoot: (data: BilliardsShotData) => void;
+  billiards_remote_settled: (data: BilliardsSettledData) => void;
+  billiards_remote_ball_in_hand_move: (data: BilliardsBallInHandData) => void;
+  billiards_remote_ball_in_hand_confirm: (data: BilliardsConfirmBallInHandData) => void;
+  billiards_game_restarted: () => void;
+  billiards_game_over: (data: { winner: 1 | 2; reason: string }) => void;
 }
 
 export interface InterServerEvents {

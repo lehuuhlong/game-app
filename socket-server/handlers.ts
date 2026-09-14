@@ -1444,6 +1444,16 @@ export function registerSocketHandlers(io: GameIO): void {
             if (gs) {
               socket.emit("wc_game_started", { room, gameState: gs });
             }
+          } else if (room.gameType === "billiards") {
+            const p1 = room.players[0];
+            const p2 = room.players[1];
+            if (p1 && p2) {
+              socket.emit("billiards_game_started", {
+                room,
+                player1Id: p1.id,
+                player2Id: p2.id,
+              });
+            }
           }
         }
         return;
@@ -1510,6 +1520,14 @@ export function registerSocketHandlers(io: GameIO): void {
             gameState,
             whitePlayerId: p1.id,
             blackPlayerId: p2.id,
+          });
+        } else if (room.gameType === "billiards") {
+          const p1 = room.players[0];
+          const p2 = room.players[1];
+          io.to(roomId).emit("billiards_game_started", {
+            room,
+            player1Id: p1.id,
+            player2Id: p2.id,
           });
         }
 
@@ -2566,6 +2584,34 @@ export function registerSocketHandlers(io: GameIO): void {
     });
 
     // ══════════════════════════════════════════════════════════════
+    //  BILLIARDS EVENTS
+    // ══════════════════════════════════════════════════════════════
+
+    socket.on("billiards_aim", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_aim", data);
+    });
+
+    socket.on("billiards_shoot", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_shoot", data);
+    });
+
+    socket.on("billiards_settled", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_settled", data);
+    });
+
+    socket.on("billiards_ball_in_hand_move", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_ball_in_hand_move", data);
+    });
+
+    socket.on("billiards_ball_in_hand_confirm", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_ball_in_hand_confirm", data);
+    });
+
+    socket.on("billiards_restart", ({ roomId }) => {
+      io.to(roomId).emit("billiards_game_restarted");
+    });
+
+    // ══════════════════════════════════════════════════════════════
     //  CARO EVENTS
     // ══════════════════════════════════════════════════════════════
 
@@ -2921,6 +2967,13 @@ export function registerSocketHandlers(io: GameIO): void {
           gameState,
           whitePlayerId: p1.id,
           blackPlayerId: p2.id,
+        });
+      } else if (room.gameType === "billiards") {
+        io.to(roomId).emit("billiards_game_restarted");
+        io.to(roomId).emit("billiards_game_started", {
+          room,
+          player1Id: room.players[0].id,
+          player2Id: room.players[1].id,
         });
       }
 

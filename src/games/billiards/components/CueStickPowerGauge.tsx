@@ -1,31 +1,100 @@
 "use client";
 
+import { useRef } from "react";
+
 interface CueStickPowerGaugeProps {
   power: number; // 0..1
   isAiming: boolean;
   height?: number;
+  disabled?: boolean;
+  onPowerChange?: (power: number, dragging: boolean) => void;
+  onRelease?: (power: number) => void;
 }
 
 export function CueStickPowerGauge({
   power,
   isAiming,
   height = 500,
+  disabled = false,
+  onPowerChange,
+  onRelease,
 }: CueStickPowerGaugeProps) {
   const percentage = Math.round(power * 100);
   const isCharged = isAiming && power > 0.05;
   const isNearMax = power > 0.85;
 
-  // Cue stick physical pullback distance in pixels (max 85px down)
-  const stickPullbackPx = Math.round(power * 85);
+  // Cue stick physical pullback distance in pixels (max 95px down)
+  const stickPullbackPx = Math.round(power * 95);
+
+  const trackRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (disabled) return;
+    isDraggingRef.current = true;
+    activePointerIdRef.current = e.pointerId;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const relY = e.clientY - rect.top;
+    const clampedRatio = Math.max(0, Math.min(1, relY / rect.height));
+    onPowerChange?.(clampedRatio, true);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current || e.pointerId !== activePointerIdRef.current) return;
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const relY = e.clientY - rect.top;
+    const clampedRatio = Math.max(0, Math.min(1, relY / rect.height));
+    onPowerChange?.(clampedRatio, true);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingRef.current || e.pointerId !== activePointerIdRef.current) return;
+    isDraggingRef.current = false;
+    activePointerIdRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+
+    if (power > 0.02) {
+      onRelease?.(power);
+    } else {
+      onPowerChange?.(0, false);
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerId !== activePointerIdRef.current) return;
+    isDraggingRef.current = false;
+    activePointerIdRef.current = null;
+    onPowerChange?.(0, false);
+  };
 
   return (
     <aside
-      className="shrink-0 flex flex-col items-center justify-between rounded-2xl border border-border/80 bg-surface/95 dark:bg-slate-900/95 p-2.5 sm:p-3 shadow-xl backdrop-blur-md select-none transition-all w-16 sm:w-20"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      className={`shrink-0 flex flex-col items-center justify-between rounded-2xl border border-border/80 bg-surface/95 dark:bg-slate-900/95 p-2.5 sm:p-3 shadow-xl backdrop-blur-md select-none transition-all w-16 sm:w-20 touch-none ${
+        disabled
+          ? "opacity-60 cursor-not-allowed"
+          : isAiming
+          ? "cursor-grabbing ring-2 ring-emerald-400/40 shadow-emerald-500/20"
+          : "cursor-grab hover:border-emerald-500/50"
+      }`}
       style={{ height }}
       aria-label="Cue stick shot power meter"
+      title={disabled ? "Waiting for opponent's turn" : "Click and drag down to charge power, release to shoot"}
     >
       {/* ── Top: Header & Digital Readout ────────────────────────── */}
-      <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col items-center text-center pointer-events-none">
         <div className="flex items-center gap-1">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
@@ -57,9 +126,12 @@ export function CueStickPowerGauge({
       </div>
 
       {/* ── Center: Dual Track (Power Bar + Animated Cue Stick) ──── */}
-      <div className="relative flex-1 w-full my-2 flex items-center justify-center gap-1 sm:gap-2">
+      <div
+        ref={trackRef}
+        className="relative flex-1 w-full my-2 flex items-center justify-center gap-1 sm:gap-2"
+      >
         {/* 1. Precision Vertical Power Meter Fill */}
-        <div className="relative w-2.5 sm:w-3 h-full rounded-full bg-background border border-border/70 overflow-hidden flex flex-col justify-end p-0.5 shadow-inner">
+        <div className="relative w-2.5 sm:w-3 h-full rounded-full bg-background border border-border/70 overflow-hidden flex flex-col justify-end p-0.5 shadow-inner pointer-events-none">
           {/* Fill track (bottom to top) */}
           <div
             className="w-full rounded-full transition-all duration-75 ease-out"
@@ -79,7 +151,7 @@ export function CueStickPowerGauge({
         </div>
 
         {/* 2. Calibration Tick Marks */}
-        <div className="flex flex-col justify-between h-full py-1 text-[8px] font-mono text-foreground-muted/60 font-semibold select-none">
+        <div className="flex flex-col justify-between h-full py-1 text-[8px] font-mono text-foreground-muted/60 font-semibold select-none pointer-events-none">
           <span>100</span>
           <span>75</span>
           <span>50</span>
@@ -88,7 +160,7 @@ export function CueStickPowerGauge({
         </div>
 
         {/* 3. Authentic Vertical Cue Stick Graphic (Pulls down dynamically) */}
-        <div className="relative w-4 sm:w-5 h-full flex flex-col items-center overflow-hidden">
+        <div className="relative w-4 sm:w-5 h-full flex flex-col items-center overflow-hidden pointer-events-none">
           {/* Static striking contact point (cue ball at top) */}
           <div className="w-3.5 h-3.5 rounded-full bg-white border border-slate-300 shadow-xs flex-shrink-0 flex items-center justify-center mb-1 z-10">
             <div className="w-1 h-1 rounded-full bg-red-500" />
@@ -139,9 +211,13 @@ export function CueStickPowerGauge({
       </div>
 
       {/* ── Bottom: Guidance Prompt ──────────────────────────────── */}
-      <div className="text-center pt-1 border-t border-border/60 w-full">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-foreground-muted block">
-          {isCharged ? "Release" : "Pull Cue"}
+      <div className="text-center pt-1 border-t border-border/60 w-full pointer-events-none">
+        <span
+          className={`text-[9px] font-bold uppercase tracking-wider block transition-colors ${
+            isCharged ? "text-emerald-400 animate-pulse" : "text-foreground-muted"
+          }`}
+        >
+          {disabled ? "Wait Turn" : isCharged ? "Release!" : "Pull Down"}
         </span>
       </div>
     </aside>

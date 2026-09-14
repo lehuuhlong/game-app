@@ -21,7 +21,8 @@ export type AllGameType =
   | "trex"
   | "flappybird"
   | "sudoku"
-  | "pikachu";
+  | "pikachu"
+  | "billiards";
 
 export interface IMatchPlayer {
   userId?: mongoose.Types.ObjectId | null;
@@ -58,6 +59,7 @@ const MatchSchema = new Schema<IMatch>(
         "flappybird",
         "sudoku",
         "pikachu",
+        "billiards",
       ],
     },
     players: [
