@@ -468,6 +468,10 @@ export function useBilliardsRules() {
     firstContactBallRef.current = null;
   }, []);
 
+  const syncRulesState = useCallback((synced: Partial<RulesState>) => {
+    updateState((prev) => ({ ...prev, ...synced }));
+  }, [updateState]);
+
   return {
     rulesState,
     rulesRef,
@@ -475,6 +479,7 @@ export function useBilliardsRules() {
     evaluateShot,
     resetRules,
     setBallInHand,
+    syncRulesState,
     startCollisionDetection,
     stopCollisionDetection,
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Matter from "matter-js";
 import {
   BALL_RADIUS,
@@ -39,6 +39,11 @@ const EMPTY_AIM: AimState = {
   power: 0,
 };
 
+export interface ShotPayload {
+  aimDir: { x: number; y: number };
+  power: number;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Convert a PointerEvent on a scaled canvas to physics-space coordinates */
@@ -68,17 +73,117 @@ export function useAiming(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   cueBallRef: React.RefObject<Matter.Body | null>,
   canAim: () => boolean,
-  onShot: () => void,
-  onAimChange?: (power: number, isDragging: boolean) => void
+  onShot: (payload: ShotPayload) => void,
+  onAimChange?: (power: number, isDragging: boolean, aimDir?: { x: number; y: number }) => void
 ) {
   const aimRef = useRef<AimState>({ ...EMPTY_AIM });
+  const remoteAimRef = useRef<AimState | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
+  const currentAimDirRef = useRef<{ x: number; y: number }>({ x: 1, y: 0 });
 
   // ── Get current aim state (for the renderer to read) ────────────────────
 
-  const getAimState = useCallback((): AimState => aimRef.current, []);
+  const getAimState = useCallback((): AimState => {
+    if (aimRef.current.isDragging) return aimRef.current;
+    if (remoteAimRef.current) return remoteAimRef.current;
+    return aimRef.current;
+  }, []);
 
-  // ── Pointer Down ────────────────────────────────────────────────────────
+  // ── Set remote aim state (when opponent aims) ───────────────────────────
+
+  const setRemoteAim = useCallback(
+    (data: { aimDir: { x: number; y: number }; power: number; isDragging: boolean } | null) => {
+      if (!data || !data.isDragging || data.power <= 0.001) {
+        remoteAimRef.current = null;
+        onAimChange?.(0, false);
+        return;
+      }
+      const cueBall = cueBallRef.current;
+      if (!cueBall) return;
+      const origin = { x: cueBall.position.x, y: cueBall.position.y };
+      const dragDist = MIN_DRAG_DISTANCE + data.power * (MAX_DRAG_DISTANCE - MIN_DRAG_DISTANCE);
+      const pointer = {
+        x: origin.x - data.aimDir.x * dragDist,
+        y: origin.y - data.aimDir.y * dragDist,
+      };
+      remoteAimRef.current = {
+        isDragging: true,
+        origin,
+        pointer,
+        aimDir: data.aimDir,
+        dragDistance: dragDist,
+        power: data.power,
+      };
+      onAimChange?.(data.power, true, data.aimDir);
+    },
+    [cueBallRef, onAimChange]
+  );
+
+  // ── Direct gauge power control (from left CueStickPowerGauge) ───────────
+
+  const setGaugePower = useCallback(
+    (power: number, isDragging: boolean) => {
+      const cueBall = cueBallRef.current;
+      if (!cueBall) return;
+      const origin = { x: cueBall.position.x, y: cueBall.position.y };
+
+      if (!isDragging || power <= 0.005) {
+        aimRef.current = { ...EMPTY_AIM, aimDir: currentAimDirRef.current };
+        onAimChange?.(0, false, currentAimDirRef.current);
+        return;
+      }
+
+      const clampedPower = Math.min(1, Math.max(0, power));
+      const dragDist = MIN_DRAG_DISTANCE + clampedPower * (MAX_DRAG_DISTANCE - MIN_DRAG_DISTANCE);
+      const pointer = {
+        x: origin.x - currentAimDirRef.current.x * dragDist,
+        y: origin.y - currentAimDirRef.current.y * dragDist,
+      };
+
+      aimRef.current = {
+        isDragging: true,
+        origin,
+        pointer,
+        aimDir: currentAimDirRef.current,
+        dragDistance: dragDist,
+        power: clampedPower,
+      };
+      onAimChange?.(clampedPower, true, currentAimDirRef.current);
+    },
+    [cueBallRef, onAimChange]
+  );
+
+  // ── Direct gauge shot trigger (when releasing CueStickPowerGauge) ───────
+
+  const triggerGaugeShot = useCallback(
+    (power: number) => {
+      const cueBall = cueBallRef.current;
+      if (!cueBall || power <= 0.01) {
+        aimRef.current = { ...EMPTY_AIM, aimDir: currentAimDirRef.current };
+        onAimChange?.(0, false);
+        return;
+      }
+
+      const clampedPower = Math.min(1, Math.max(0, power));
+      const forceMagnitude = clampedPower * MAX_FORCE;
+      Body.applyForce(cueBall, cueBall.position, {
+        x: currentAimDirRef.current.x * forceMagnitude,
+        y: currentAimDirRef.current.y * forceMagnitude,
+      });
+
+      const shotPayload: ShotPayload = {
+        aimDir: currentAimDirRef.current,
+        power: clampedPower,
+      };
+
+      aimRef.current = { ...EMPTY_AIM, aimDir: currentAimDirRef.current };
+      onAimChange?.(0, false);
+      onShot(shotPayload);
+    },
+    [cueBallRef, onShot, onAimChange]
+  );
+
+  // ── Pointer Down on Canvas ──────────────────────────────────────────────
 
   const handlePointerDown = useCallback(
     (e: PointerEvent) => {
@@ -89,29 +194,37 @@ export function useAiming(
 
       const pos = canvasToPhysics(e, canvas);
       const cueBallPos = cueBall.position;
+      const d = dist(pos, cueBallPos);
 
-      // Must click within a generous radius of the cue ball to start aiming
-      const clickRadius = BALL_RADIUS * 3.5;
-      if (dist(pos, cueBallPos) > clickRadius) return;
+      // If clicked far away on felt: set aim direction towards the clicked position
+      if (d > BALL_RADIUS * 4) {
+        const dx = pos.x - cueBallPos.x;
+        const dy = pos.y - cueBallPos.y;
+        if (d > 1) {
+          currentAimDirRef.current = { x: dx / d, y: dy / d };
+        }
+      }
 
       // Capture this pointer
       activePointerIdRef.current = e.pointerId;
-      canvas.setPointerCapture(e.pointerId);
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {}
 
       aimRef.current = {
         isDragging: true,
         origin: { x: cueBallPos.x, y: cueBallPos.y },
         pointer: pos,
-        aimDir: { x: 1, y: 0 },
+        aimDir: currentAimDirRef.current,
         dragDistance: 0,
         power: 0,
       };
-      onAimChange?.(0, true);
+      onAimChange?.(0, true, currentAimDirRef.current);
     },
     [canAim, canvasRef, cueBallRef, onAimChange]
   );
 
-  // ── Pointer Move ────────────────────────────────────────────────────────
+  // ── Pointer Move on Canvas ──────────────────────────────────────────────
 
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {
@@ -135,6 +248,7 @@ export function useAiming(
       // Aim direction is OPPOSITE to drag (pull back to shoot forward)
       const aimDirX = -dx / dragDist;
       const aimDirY = -dy / dragDist;
+      currentAimDirRef.current = { x: aimDirX, y: aimDirY };
 
       const clampedDrag = Math.min(dragDist, MAX_DRAG_DISTANCE);
       const power = Math.max(0, (clampedDrag - MIN_DRAG_DISTANCE) / (MAX_DRAG_DISTANCE - MIN_DRAG_DISTANCE));
@@ -148,12 +262,12 @@ export function useAiming(
         dragDistance: clampedDrag,
         power: clampedPower,
       };
-      onAimChange?.(clampedPower, true);
+      onAimChange?.(clampedPower, true, { x: aimDirX, y: aimDirY });
     },
     [canvasRef, cueBallRef, onAimChange]
   );
 
-  // ── Pointer Up — SHOOT! ─────────────────────────────────────────────────
+  // ── Pointer Up on Canvas — SHOOT! ───────────────────────────────────────
 
   const handlePointerUp = useCallback(
     (e: PointerEvent) => {
@@ -164,7 +278,9 @@ export function useAiming(
       const cueBall = cueBallRef.current;
       if (!canvas || !cueBall) return;
 
-      canvas.releasePointerCapture(e.pointerId);
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {}
       activePointerIdRef.current = null;
 
       const aim = aimRef.current;
@@ -176,11 +292,11 @@ export function useAiming(
           x: aim.aimDir.x * forceMagnitude,
           y: aim.aimDir.y * forceMagnitude,
         });
-        onShot();
+        onShot({ aimDir: aim.aimDir, power: aim.power });
       }
 
       // Reset aim state
-      aimRef.current = { ...EMPTY_AIM };
+      aimRef.current = { ...EMPTY_AIM, aimDir: currentAimDirRef.current };
       onAimChange?.(0, false);
     },
     [canvasRef, cueBallRef, onShot, onAimChange]
@@ -192,7 +308,7 @@ export function useAiming(
     (e: PointerEvent) => {
       if (e.pointerId !== activePointerIdRef.current) return;
       activePointerIdRef.current = null;
-      aimRef.current = { ...EMPTY_AIM };
+      aimRef.current = { ...EMPTY_AIM, aimDir: currentAimDirRef.current };
       onAimChange?.(0, false);
     },
     [onAimChange]
@@ -203,6 +319,11 @@ export function useAiming(
   const attachListeners = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    canvas.removeEventListener("pointerdown", handlePointerDown);
+    canvas.removeEventListener("pointermove", handlePointerMove);
+    canvas.removeEventListener("pointerup", handlePointerUp);
+    canvas.removeEventListener("pointercancel", handlePointerCancel);
 
     canvas.addEventListener("pointerdown", handlePointerDown);
     canvas.addEventListener("pointermove", handlePointerMove);
@@ -220,8 +341,19 @@ export function useAiming(
     canvas.removeEventListener("pointercancel", handlePointerCancel);
   }, [canvasRef, handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel]);
 
+  // Automatically attach listeners when canvas is mounted or handlers update
+  useEffect(() => {
+    attachListeners();
+    return () => {
+      detachListeners();
+    };
+  }, [attachListeners, detachListeners]);
+
   return {
     getAimState,
+    setRemoteAim,
+    setGaugePower,
+    triggerGaugeShot,
     attachListeners,
     detachListeners,
   };

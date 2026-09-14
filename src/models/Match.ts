@@ -20,7 +20,8 @@ export type AllGameType =
   | "wordle"
   | "trex"
   | "flappybird"
-  | "sudoku";
+  | "sudoku"
+  | "billiards";
 
 export interface IMatchPlayer {
   userId?: mongoose.Types.ObjectId | null;

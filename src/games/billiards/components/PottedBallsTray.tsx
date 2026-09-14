@@ -10,6 +10,9 @@ interface PottedBallsTrayProps {
   gameOver: boolean;
   winner: 1 | 2 | null;
   width?: number;
+  player1Name?: string;
+  player2Name?: string;
+  myPlayerNum?: 1 | 2 | null;
 }
 
 const SOLID_NUMBERS = [1, 2, 3, 4, 5, 6, 7];
@@ -22,6 +25,9 @@ export function PottedBallsTray({
   gameOver,
   winner,
   width,
+  player1Name,
+  player2Name,
+  myPlayerNum,
 }: PottedBallsTrayProps) {
   const totalPotted = player1.pottedBalls.length + player2.pottedBalls.length;
 
@@ -85,8 +91,13 @@ export function PottedBallsTray({
         {/* Player info & ball rack */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black tracking-tight text-foreground">
-              Player 1
+            <span className="text-xs font-black tracking-tight text-foreground flex items-center gap-1">
+              <span>{player1Name || "Player 1"}</span>
+              {myPlayerNum === 1 && (
+                <span className="text-[9px] font-bold text-sky-400 bg-sky-500/15 px-1 py-0.2 rounded border border-sky-500/30">
+                  You
+                </span>
+              )}
             </span>
             <span
               className={`px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider rounded border ${
@@ -185,8 +196,13 @@ export function PottedBallsTray({
             >
               {p2GroupText}
             </span>
-            <span className="text-xs font-black tracking-tight text-foreground">
-              Player 2
+            <span className="text-xs font-black tracking-tight text-foreground flex items-center gap-1">
+              {myPlayerNum === 2 && (
+                <span className="text-[9px] font-bold text-rose-400 bg-rose-500/15 px-1 py-0.2 rounded border border-rose-500/30">
+                  You
+                </span>
+              )}
+              <span>{player2Name || "Player 2"}</span>
             </span>
           </div>
 

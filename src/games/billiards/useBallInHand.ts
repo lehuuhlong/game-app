@@ -34,7 +34,9 @@ interface UseBallInHandOptions {
   cueBallRef: React.MutableRefObject<Matter.Body | null>;
   ballsRef: React.MutableRefObject<Matter.Body[]>;
   active: boolean; // rulesState.ballInHand
-  onConfirm: () => void;
+  enabled?: boolean; // false if not current player in online mode
+  onConfirm: (pos?: { x: number; y: number }) => void;
+  onMove?: (pos: { x: number; y: number }) => void;
   respotCueBall?: () => Matter.Body | undefined;
 }
 
@@ -43,7 +45,9 @@ export function useBallInHand({
   cueBallRef,
   ballsRef,
   active,
+  enabled = true,
   onConfirm,
+  onMove,
   respotCueBall,
 }: UseBallInHandOptions) {
   const [isDragging, setIsDragging] = useState(false);
@@ -138,8 +142,9 @@ export function useBallInHand({
       Body.setPosition(cueBall, { x: clampedX, y: clampedY });
       Body.setVelocity(cueBall, { x: 0, y: 0 });
       Body.setAngularVelocity(cueBall, 0);
+      onMove?.({ x: clampedX, y: clampedY });
     },
-    [checkValidity, cueBallRef, ballsRef, respotCueBall]
+    [checkValidity, cueBallRef, ballsRef, respotCueBall, onMove]
   );
 
   // Check initial position validity when active becomes true, or recover missing ball
@@ -161,7 +166,7 @@ export function useBallInHand({
   // Pointer event handlers
   const handlePointerDown = useCallback(
     (e: PointerEvent) => {
-      if (!active) return;
+      if (!active || !enabled) return;
       const canvas = canvasRef.current;
       let cueBall = cueBallRef.current;
       if (!canvas) return;
@@ -188,12 +193,12 @@ export function useBallInHand({
       // Instantly position cue ball at pointer coordinates
       moveCueBallTo(pos.x, pos.y);
     },
-    [active, canvasRef, cueBallRef, moveCueBallTo]
+    [active, enabled, canvasRef, cueBallRef, moveCueBallTo]
   );
 
   const handlePointerMove = useCallback(
     (e: PointerEvent) => {
-      if (!active || !isDraggingRef.current) return;
+      if (!active || !enabled || !isDraggingRef.current) return;
       if (e.pointerId !== activePointerIdRef.current) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -201,7 +206,7 @@ export function useBallInHand({
       const pos = canvasToPhysics(e, canvas);
       moveCueBallTo(pos.x, pos.y);
     },
-    [active, canvasRef, moveCueBallTo]
+    [active, enabled, canvasRef, moveCueBallTo]
   );
 
   const handlePointerUp = useCallback(
@@ -243,9 +248,10 @@ export function useBallInHand({
 
   const confirmPlacement = useCallback(() => {
     if (isValid) {
-      onConfirm();
+      const cue = cueBallRef.current;
+      onConfirm(cue ? { x: cue.position.x, y: cue.position.y } : undefined);
     }
-  }, [isValid, onConfirm]);
+  }, [isValid, onConfirm, cueBallRef]);
 
   return {
     isDragging,

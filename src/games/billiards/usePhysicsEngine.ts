@@ -489,14 +489,14 @@ export function usePhysicsEngine() {
 
   // ─── Respot cue ball (after scratch/foul) ─────────────────────────────
 
-  const respotCueBall = useCallback(() => {
+  const respotCueBall = useCallback((customX?: number, customY?: number) => {
     const engine = engineRef.current;
     if (!engine) return;
     const cueBall = cueBallRef.current;
 
-    // Determine an unoccupied spot starting from standard break position
-    let spawnX = CUE_BALL_START_X;
-    let spawnY = CUE_BALL_START_Y;
+    // Determine an unoccupied spot starting from standard break position or custom position
+    let spawnX = customX !== undefined ? customX : CUE_BALL_START_X;
+    let spawnY = customY !== undefined ? customY : CUE_BALL_START_Y;
     const isOccupied = (x: number, y: number) =>
       ballsRef.current.some(
         (b) =>
@@ -504,10 +504,12 @@ export function usePhysicsEngine() {
           Math.hypot(b.position.x - x, b.position.y - y) < BALL_RADIUS * 2 + 4
       );
 
-    let attempts = 0;
-    while (isOccupied(spawnX, spawnY) && attempts < 25) {
-      spawnX += (attempts % 2 === 0 ? 1 : -1) * (BALL_RADIUS * 2.2);
-      attempts++;
+    if (customX === undefined || customY === undefined) {
+      let attempts = 0;
+      while (isOccupied(spawnX, spawnY) && attempts < 25) {
+        spawnX += (attempts % 2 === 0 ? 1 : -1) * (BALL_RADIUS * 2.2);
+        attempts++;
+      }
     }
 
     // Check if the cue ball was removed (potted) from world or active list
@@ -562,6 +564,40 @@ export function usePhysicsEngine() {
     return match ? parseInt(match[1], 10) : -1;
   }, []);
 
+  const syncSettledBalls = useCallback(
+    (remoteBalls: Array<{ id: number; x: number; y: number; isPotted: boolean }>) => {
+      const engine = engineRef.current;
+      if (!engine) return;
+
+      for (const rb of remoteBalls) {
+        const label = `ball-${rb.id}`;
+        const existing = ballsRef.current.find((b) => b.label === label);
+
+        if (rb.isPotted) {
+          if (existing) {
+            Body.setVelocity(existing, { x: 0, y: 0 });
+            Body.setAngularVelocity(existing, 0);
+            Composite.remove(engine.world, existing);
+            ballsRef.current = ballsRef.current.filter((b) => b.id !== existing.id);
+          }
+        } else {
+          if (existing) {
+            Body.setPosition(existing, { x: rb.x, y: rb.y });
+            Body.setVelocity(existing, { x: 0, y: 0 });
+            Body.setAngularVelocity(existing, 0);
+          } else if (rb.id === 0) {
+            const newCue = respotCueBall(rb.x, rb.y);
+            if (newCue) {
+              Body.setPosition(newCue, { x: rb.x, y: rb.y });
+              Body.setVelocity(newCue, { x: 0, y: 0 });
+            }
+          }
+        }
+      }
+    },
+    [respotCueBall]
+  );
+
   return {
     engineRef,
     ballsRef,
@@ -576,6 +612,7 @@ export function usePhysicsEngine() {
     respotCueBall,
     removeBall,
     getBallNumber,
+    syncSettledBalls,
     areAllBallsStopped: () => areAllBallsStopped(ballsRef.current),
     snapAllBallsToStop: () => snapAllBallsToStop(ballsRef.current),
   };
