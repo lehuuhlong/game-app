@@ -166,4 +166,16 @@ export const GAMES: GameInfo[] = [
     tags: ["Strategy", "Multiplayer", "Board Game", "Classic"],
     color: "from-amber-600 via-stone-700 to-slate-900",
   },
+  {
+    id: "pikachu",
+    title: "Pikachu Connect",
+    description:
+      "The legendary 3-line animal tile connection classic. Link identical pairs with unobstructed pathlines, trigger combo lightning storms, and beat the ticking timer.",
+    thumbnail: "/games/pikachu/thumbnail.svg",
+    route: "/games/pikachu",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Puzzle", "Single Player", "Classic", "Reflex"],
+    color: "from-amber-400 via-yellow-500 to-orange-600",
+  },
 ];
