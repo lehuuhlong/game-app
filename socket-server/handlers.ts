@@ -2608,7 +2608,18 @@ export function registerSocketHandlers(io: GameIO): void {
     });
 
     socket.on("billiards_restart", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.players.length < 2) {
+        socket.emit("error", { message: "Cannot restart: Opponent has left the room." });
+        return;
+      }
+      room.status = "playing";
       io.to(roomId).emit("billiards_game_restarted");
+      io.to(roomId).emit("billiards_game_started", {
+        room,
+        player1Id: room.players[0].id,
+        player2Id: room.players[1].id,
+      });
     });
 
     socket.on("billiards_sync_physics", (data) => {
@@ -2973,6 +2984,11 @@ export function registerSocketHandlers(io: GameIO): void {
           blackPlayerId: p2.id,
         });
       } else if (room.gameType === "billiards") {
+        if (room.players.length < 2) {
+          socket.emit("error", { message: "Cannot restart: Opponent has left the room." });
+          return;
+        }
+        room.status = "playing";
         io.to(roomId).emit("billiards_game_restarted");
         io.to(roomId).emit("billiards_game_started", {
           room,

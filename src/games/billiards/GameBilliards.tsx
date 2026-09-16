@@ -149,7 +149,7 @@ export function GameBilliards() {
     },
     onRemoteSyncPhysics: (data) => {
       // If we are the non-shooter, mirror the shooter's physics in real time
-      if (multiplayer.mode === "online" && !multiplayer.isMyTurn(rulesState.currentPlayer)) {
+      if (!multiplayer.isMyTurn(rulesState.currentPlayer)) {
         if (data.sunkBall) {
           const ball = ballsRef.current.find(
             (b) => b.label === `ball-${data.sunkBall!.id}`
@@ -255,7 +255,7 @@ export function GameBilliards() {
         addSinkingBall(ball.label, ball.position, pocketPos);
 
         // If online shooter, broadcast this sinking ball immediately to opponent
-        if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer)) {
+        if (multiplayer.isMyTurn(rulesState.currentPlayer)) {
           multiplayer.sendPhysicsTick({
             balls: ballsRef.current
               .filter((b) => b.parent === b && b !== ball)
@@ -307,40 +307,38 @@ export function GameBilliards() {
               phaseRef.current = "aiming";
             }
 
-            // Sync with opponent if online
-            if (multiplayer.mode === "online") {
-              const allBallData = BALL_CONFIGS.map((cfg) => {
-                const b = ballsRef.current.find((item) => item.label === cfg.label);
-                return {
-                  id: cfg.number,
-                  x: b ? b.position.x : -100,
-                  y: b ? b.position.y : -100,
-                  vx: 0,
-                  vy: 0,
-                  isPotted: !b,
-                };
-              });
+            // Sync with opponent
+            const allBallData = BALL_CONFIGS.map((cfg) => {
+              const b = ballsRef.current.find((item) => item.label === cfg.label);
+              return {
+                id: cfg.number,
+                x: b ? b.position.x : -100,
+                y: b ? b.position.y : -100,
+                vx: 0,
+                vy: 0,
+                isPotted: !b,
+              };
+            });
 
-              multiplayer.sendSettled({
-                balls: allBallData,
-                currentPlayer: rulesRef.current.currentPlayer,
-                assignedTypes: {
-                  1: rulesRef.current.player1.group,
-                  2: rulesRef.current.player2.group,
-                },
-                pottedHistory: {
-                  1: rulesRef.current.player1.pottedBalls,
-                  2: rulesRef.current.player2.pottedBalls,
-                },
-                winner: rulesRef.current.winner,
-                ballInHand: rulesRef.current.ballInHand,
-                fouled: Boolean(result.foul),
-                statusMessage: result.message,
-              });
-            }
+            multiplayer.sendSettled({
+              balls: allBallData,
+              currentPlayer: rulesRef.current.currentPlayer,
+              assignedTypes: {
+                1: rulesRef.current.player1.group,
+                2: rulesRef.current.player2.group,
+              },
+              pottedHistory: {
+                1: rulesRef.current.player1.pottedBalls,
+                2: rulesRef.current.player2.pottedBalls,
+              },
+              winner: rulesRef.current.winner,
+              ballInHand: rulesRef.current.ballInHand,
+              fouled: Boolean(result.foul),
+              statusMessage: result.message,
+            });
           }
         }
-      }, 200);
+      }, 50);
     },
     [areAllBallsStopped, snapAllBallsToStop, evaluateShot, respotCueBall, multiplayer, ballsRef, rulesRef]
   );
@@ -348,7 +346,7 @@ export function GameBilliards() {
   // ── Ball in Hand hook ────────────────────────────────────────────────────
   const handleBallInHandMove = useCallback(
     (pos: { x: number; y: number }) => {
-      if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer)) {
+      if (multiplayer.isMyTurn(rulesState.currentPlayer)) {
         multiplayer.sendBallInHandMove(pos);
       }
     },
@@ -358,7 +356,7 @@ export function GameBilliards() {
   const handleBallInHandConfirm = useCallback(
     (pos?: { x: number; y: number }) => {
       setBallInHand(false);
-      if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer) && pos) {
+      if (multiplayer.isMyTurn(rulesState.currentPlayer) && pos) {
         multiplayer.sendBallInHandConfirm(pos);
       }
     },
@@ -373,8 +371,8 @@ export function GameBilliards() {
     canvasRef,
     cueBallRef,
     ballsRef,
-    active: rulesState.ballInHand,
-    enabled: multiplayer.isMyTurn(rulesState.currentPlayer),
+    active: rulesState.ballInHand && !rulesState.gameOver && (multiplayer.room?.players.length ?? 0) >= 2,
+    enabled: multiplayer.isMyTurn(rulesState.currentPlayer) && !rulesState.gameOver && (multiplayer.room?.players.length ?? 0) >= 2,
     onConfirm: handleBallInHandConfirm,
     onMove: handleBallInHandMove,
     respotCueBall,
@@ -420,7 +418,8 @@ export function GameBilliards() {
       areAllBallsStopped() &&
       !rulesState.gameOver &&
       !rulesState.ballInHand &&
-      multiplayer.isMyTurn(rulesState.currentPlayer)
+      multiplayer.isMyTurn(rulesState.currentPlayer) &&
+      (multiplayer.room?.players.length ?? 0) >= 2
     );
   }, [areAllBallsStopped, rulesState.gameOver, rulesState.ballInHand, multiplayer, rulesState.currentPlayer]);
 
@@ -429,7 +428,7 @@ export function GameBilliards() {
       setAimPower(power);
       setIsAiming(dragging);
 
-      if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer)) {
+      if (multiplayer.isMyTurn(rulesState.currentPlayer)) {
         const now = Date.now();
         if (!dragging) {
           multiplayer.sendAim({ cueAngle: 0, aimDir: { x: 1, y: 0 }, power: 0 });
@@ -452,7 +451,7 @@ export function GameBilliards() {
       phaseRef.current = "shooting";
       onShotStart();
 
-      if (multiplayer.mode === "online" && multiplayer.isMyTurn(rulesState.currentPlayer)) {
+      if (multiplayer.isMyTurn(rulesState.currentPlayer)) {
         const initialBalls = ballsRef.current
           .filter((b) => b.parent === b)
           .map((b) => ({
@@ -512,7 +511,6 @@ export function GameBilliards() {
     setOnTick(() => {
       if (
         phaseRef.current === "shooting" &&
-        multiplayer.mode === "online" &&
         multiplayer.isMyTurn(rulesState.currentPlayer)
       ) {
         const now = performance.now();
@@ -573,8 +571,8 @@ export function GameBilliards() {
   // ── Record match when game ends ──────────────────────────────────────────
   useEffect(() => {
     if (rulesState.gameOver && rulesState.winner && !matchSavedRef.current) {
-      // In online mode, only the winner submits to /api/matches to prevent duplicate records
-      if (multiplayer.mode === "online" && multiplayer.myPlayerNum && rulesState.winner !== multiplayer.myPlayerNum) {
+      // Only the winner submits to /api/matches to prevent duplicate records
+      if (multiplayer.myPlayerNum && rulesState.winner !== multiplayer.myPlayerNum) {
         return;
       }
       matchSavedRef.current = true;
@@ -584,12 +582,8 @@ export function GameBilliards() {
       const p1Room = multiplayer.room?.players?.[0]?.username;
       const p2Room = multiplayer.room?.players?.[1]?.username;
 
-      const p1Name = multiplayer.mode === "online"
-        ? (p1Original || p1Room || "Player 1")
-        : (user?.username || "Player 1");
-      const p2Name = multiplayer.mode === "online"
-        ? (p2Original || p2Room || "Player 2")
-        : "Player 2";
+      const p1Name = p1Original || p1Room || "Player 1";
+      const p2Name = p2Original || p2Room || "Player 2";
 
       const p1Won = rulesState.winner === 1;
 
@@ -614,7 +608,7 @@ export function GameBilliards() {
           gameData: {
             reason: rulesState.winReason,
             winner: rulesState.winner,
-            mode: multiplayer.mode,
+            mode: "online",
           },
         }),
       })
@@ -634,15 +628,15 @@ export function GameBilliards() {
         })
         .catch(() => {});
     }
-  }, [rulesState.gameOver, rulesState.winner, rulesState.winReason, rulesState.player1.pottedBalls.length, rulesState.player2.pottedBalls.length, multiplayer.mode, multiplayer.myPlayerNum, multiplayer.room, multiplayer.originalPlayers, user]);
+  }, [rulesState.gameOver, rulesState.winner, rulesState.winReason, rulesState.player1.pottedBalls.length, rulesState.player2.pottedBalls.length, multiplayer.myPlayerNum, multiplayer.room, multiplayer.originalPlayers, user]);
 
   const handleRestart = useCallback(() => {
-    if (multiplayer.mode === "online") {
-      multiplayer.restartOnlineGame();
-    } else {
-      handleRestartLocal();
+    if (!multiplayer.room || multiplayer.room.players.length < 2) {
+      multiplayer.leaveRoom();
+      return;
     }
-  }, [multiplayer, handleRestartLocal]);
+    multiplayer.restartOnlineGame();
+  }, [multiplayer]);
 
   const handleCopyCode = async () => {
     if (!multiplayer.roomId) return;
@@ -675,14 +669,10 @@ export function GameBilliards() {
   const { currentPlayer, player1, player2, gameOver, winner, winReason, turnMessage, foulMessage, isBreakShot } = rulesState;
 
   const player1DisplayName =
-    multiplayer.mode === "online"
-      ? multiplayer.room?.players[0]?.username || "Player 1"
-      : user?.username || "Player 1";
+    multiplayer.originalPlayers?.[0]?.username || multiplayer.room?.players[0]?.username || "Player 1";
 
   const player2DisplayName =
-    multiplayer.mode === "online"
-      ? multiplayer.room?.players[1]?.username || "Player 2"
-      : "Player 2";
+    multiplayer.originalPlayers?.[1]?.username || multiplayer.room?.players[1]?.username || "Player 2";
 
   const isCurrentTurnMine = multiplayer.isMyTurn(currentPlayer);
 
@@ -705,12 +695,11 @@ export function GameBilliards() {
               🎱 8 Ball Pool
             </h1>
             <p className="text-sm text-foreground-secondary mt-0.5">
-              Classic 8-ball billiards • Online 2-player multiplayer & local pass & play
+              Classic 8-ball billiards • Real-time 1vs1 online multiplayer
             </p>
           </div>
 
           <BilliardsLobby
-            mode={multiplayer.mode}
             screen={multiplayer.screen}
             roomId={multiplayer.roomId}
             room={multiplayer.room}
@@ -720,7 +709,6 @@ export function GameBilliards() {
             onCreateRoom={handleCreateRoom}
             onJoinRoom={handleJoinRoom}
             onLeaveRoom={multiplayer.leaveRoom}
-            onSelectLocalMode={multiplayer.startLocalGame}
           />
         </div>
       </>
@@ -746,27 +734,19 @@ export function GameBilliards() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
               🎱 8 Ball Pool
             </h1>
-            {multiplayer.mode === "online" ? (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                Room: {multiplayer.roomId}
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-surface text-foreground-secondary border border-border">
-                Local Pass & Play
-              </span>
-            )}
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+              Room: {multiplayer.roomId}
+            </span>
           </div>
           <p className="text-xs sm:text-sm text-foreground-secondary mt-0.5">
-            {multiplayer.mode === "online"
-              ? `Playing as ${multiplayer.myPlayerNum === 1 ? "Player 1 (Host)" : "Player 2 (Guest)"} vs ${multiplayer.opponent?.username || "Opponent"}`
-              : "Classic 8-ball billiards — local 2-player. Pot your balls, then sink the 8."}
+            Playing as {multiplayer.myPlayerNum === 1 ? "Player 1 (Host)" : "Player 2 (Guest)"} vs {multiplayer.opponent?.username || "Opponent"}
           </p>
         </div>
 
         {/* Action buttons */}
         <div className="flex items-center gap-2">
-          {multiplayer.mode === "online" && user?.username && multiplayer.opponent?.username && (
+          {user?.username && multiplayer.opponent?.username && (
             <HeadToHeadBadge
               player1={user.username}
               player2={multiplayer.opponent.username}
@@ -774,44 +754,20 @@ export function GameBilliards() {
               compact
             />
           )}
-          {multiplayer.mode === "online" ? (
-            <>
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all cursor-pointer"
-                title="Copy room code"
-              >
-                {copiedRoomCode ? "✓ Copied" : `📋 ${multiplayer.roomId}`}
-              </button>
-              <button
-                type="button"
-                onClick={multiplayer.leaveRoom}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all cursor-pointer"
-              >
-                Leave
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => multiplayer.switchMode("online")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer shadow-xs"
-            >
-              🌐 Play Online
-            </button>
-          )}
-
           <button
             type="button"
-            onClick={handleRestart}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border bg-surface text-xs sm:text-sm font-semibold text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all hover:-translate-y-0.5 shadow-xs shrink-0 cursor-pointer"
+            onClick={handleCopyCode}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-all cursor-pointer"
+            title="Copy room code"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <polyline points="1 4 1 10 7 10" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
-            {multiplayer.mode === "online" ? "Rematch" : "New Game"}
+            {copiedRoomCode ? "✓ Copied" : `📋 ${multiplayer.roomId}`}
+          </button>
+          <button
+            type="button"
+            onClick={multiplayer.leaveRoom}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all cursor-pointer"
+          >
+            Leave
           </button>
         </div>
       </div>
@@ -826,7 +782,7 @@ export function GameBilliards() {
         width={Math.round(TABLE_WIDTH * canvasScale) + 84}
         player1Name={player1DisplayName}
         player2Name={player2DisplayName}
-        myPlayerNum={multiplayer.mode === "online" ? multiplayer.myPlayerNum : null}
+        myPlayerNum={multiplayer.myPlayerNum}
       />
 
       {/* ── Billiard Arena (Left Cue Power + Center Table) ── */}
@@ -839,7 +795,13 @@ export function GameBilliards() {
           power={aimPower}
           isAiming={isAiming}
           height={Math.round(TABLE_HEIGHT * canvasScale)}
-          disabled={!isCurrentTurnMine || phase !== "aiming" || rulesState.gameOver || rulesState.ballInHand}
+          disabled={
+            !isCurrentTurnMine ||
+            phase !== "aiming" ||
+            rulesState.gameOver ||
+            rulesState.ballInHand ||
+            (multiplayer.room?.players.length ?? 0) < 2
+          }
           onPowerChange={setGaugePower}
           onRelease={triggerGaugeShot}
         />
@@ -881,23 +843,18 @@ export function GameBilliards() {
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[4px] p-6 z-20">
               <div className="pointer-events-auto w-full max-w-[380px] rounded-3xl border border-white/20 bg-slate-950/95 p-8 text-center text-white shadow-2xl backdrop-blur-md">
                 <div className="text-6xl mb-3" aria-hidden="true">
-                  {multiplayer.mode === "online"
-                    ? winner === multiplayer.myPlayerNum
-                      ? "🏆"
-                      : "🏃"
-                    : "🏆"}
+                  {winner === multiplayer.myPlayerNum ? "🏆" : "🏃"}
                 </div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
-                  {winReason?.includes("left") || winReason?.includes("Opponent")
+                  {winReason?.includes("left") || winReason?.includes("Opponent") || winReason?.includes("disconnect")
                     ? "Opponent Disconnected"
-                    : "Game Over"}
+                    : "Match Finished"}
                 </div>
                 <h2 className="mt-2 text-3xl font-black tracking-tight">
-                  {multiplayer.mode === "online"
-                    ? winner === multiplayer.myPlayerNum
-                      ? "You Won!"
-                      : `${winner === 1 ? player1DisplayName : player2DisplayName} Won!`
-                    : `Player ${winner} Wins!`}
+                  {winner === multiplayer.myPlayerNum
+                    ? "You Won!"
+                    : `${winner === 1 ? player1DisplayName : player2DisplayName} Won!`
+                  }
                 </h2>
                 <p className="mt-2 text-sm leading-relaxed text-slate-300">
                   {winReason}
@@ -919,23 +876,37 @@ export function GameBilliards() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleRestart}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-green-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.02] hover:from-emerald-300 hover:to-green-500 active:scale-[0.98] cursor-pointer"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-                  </svg>
-                  Play Again
-                </button>
-
-                {multiplayer.mode === "online" && (
+                {/* Action buttons: if opponent left, only Back to Lobby is displayed */}
+                {multiplayer.room &&
+                multiplayer.room.players.length >= 2 &&
+                !winReason?.includes("left") &&
+                !winReason?.includes("Opponent") &&
+                !winReason?.includes("disconnect") ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleRestart}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-green-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.02] hover:from-emerald-300 hover:to-green-500 active:scale-[0.98] cursor-pointer"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <polyline points="1 4 1 10 7 10" />
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                      </svg>
+                      Play Again
+                    </button>
+                    <button
+                      type="button"
+                      onClick={multiplayer.leaveRoom}
+                      className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-2.5 text-xs font-bold text-foreground hover:bg-surface-hover transition-all cursor-pointer"
+                    >
+                      🚪 Back to Lobby
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
                     onClick={multiplayer.leaveRoom}
-                    className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-2.5 text-xs font-bold text-foreground hover:bg-surface-hover transition-all cursor-pointer"
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-green-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.02] hover:from-emerald-300 hover:to-green-500 active:scale-[0.98] cursor-pointer"
                   >
                     🚪 Back to Lobby
                   </button>
@@ -948,7 +919,7 @@ export function GameBilliards() {
 
       {/* ── Bottom Single Unified Status / Turn Banner (in English) ── */}
       <div className="w-full min-h-[44px] flex items-center justify-center">
-        {rulesState.ballInHand ? (
+        {rulesState.ballInHand && !rulesState.gameOver && (multiplayer.room?.players.length ?? 0) >= 2 ? (
           <div className="w-full max-w-[820px] flex flex-wrap items-center justify-between gap-3 px-4 py-2 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-slate-900/90 to-amber-500/15 backdrop-blur-md shadow-lg shadow-amber-500/10">
             <div className="flex items-center gap-2.5">
               <span className="text-xl select-none animate-bounce" aria-hidden="true">
@@ -957,7 +928,7 @@ export function GameBilliards() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black uppercase tracking-wider text-amber-300">
-                    Ball in Hand — {multiplayer.mode === "online" ? (isCurrentTurnMine ? "Your Turn" : `${currentPlayer === 1 ? player1DisplayName : player2DisplayName}'s Turn`) : `Player ${currentPlayer}`}
+                    Ball in Hand — {isCurrentTurnMine ? "Your Turn" : `${currentPlayer === 1 ? player1DisplayName : player2DisplayName}'s Turn`}
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
@@ -1006,11 +977,9 @@ export function GameBilliards() {
           </div>
         ) : turnMessage && !gameOver && phase === "aiming" ? (
           <div className="px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium text-center shadow-xs">
-            {multiplayer.mode === "online"
-              ? isCurrentTurnMine
-                ? `👉 Your Turn (${turnMessage})`
-                : `⏳ Opponent's Turn (${turnMessage})`
-              : turnMessage}
+            {isCurrentTurnMine
+              ? `👉 Your Turn (${turnMessage})`
+              : `⏳ Opponent's Turn (${turnMessage})`}
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-foreground-muted">
@@ -1025,18 +994,14 @@ export function GameBilliards() {
             } animate-pulse`} />
             <span className="font-medium">
               {gameOver
-                ? `🏆 ${multiplayer.mode === "online" ? (winner === multiplayer.myPlayerNum ? "You won!" : "Opponent won!") : `Player ${winner} wins!`} — ${winReason}`
+                ? `🏆 ${winner === multiplayer.myPlayerNum ? "You won!" : "Opponent won!"} — ${winReason}`
                 : phase === "shooting"
                 ? "Balls in motion..."
-                : multiplayer.mode === "online"
-                ? isCurrentTurnMine
-                  ? isBreakShot
-                    ? "Your Turn — Break shot: Drag cue ball to aim and strike"
-                    : "Your Turn — Click & drag cue ball to aim and strike"
-                  : `Waiting for ${currentPlayer === 1 ? player1DisplayName : player2DisplayName} to strike...`
-                : isBreakShot
-                ? "Break shot — Drag cue ball to aim and strike"
-                : "Click & drag cue ball to aim and strike"}
+                : isCurrentTurnMine
+                ? isBreakShot
+                  ? "Your Turn — Break shot: Drag cue ball to aim and strike"
+                  : "Your Turn — Click & drag cue ball to aim and strike"
+                : `Waiting for ${currentPlayer === 1 ? player1DisplayName : player2DisplayName} to strike...`}
             </span>
           </div>
         )}

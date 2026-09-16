@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { MultiplayerMode, MultiplayerScreen } from "../useBilliardsMultiplayer";
+import type { MultiplayerScreen } from "../useBilliardsMultiplayer";
 import type { Room } from "@/types/socket";
 
 interface BilliardsLobbyProps {
-  mode: MultiplayerMode;
   screen: MultiplayerScreen;
   roomId: string;
   room: Room | null;
@@ -16,11 +15,9 @@ interface BilliardsLobbyProps {
   onCreateRoom: () => void;
   onJoinRoom: (code: string) => void;
   onLeaveRoom: () => void;
-  onSelectLocalMode: () => void;
 }
 
 export function BilliardsLobby({
-  mode,
   screen,
   roomId,
   room,
@@ -30,7 +27,6 @@ export function BilliardsLobby({
   onCreateRoom,
   onJoinRoom,
   onLeaveRoom,
-  onSelectLocalMode,
 }: BilliardsLobbyProps) {
   const [joinInput, setJoinInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -55,31 +51,6 @@ export function BilliardsLobby({
 
   return (
     <div className="w-full max-w-md mx-auto space-y-4">
-      {/* ── Mode selector bar ── */}
-      <div className="flex p-1 rounded-2xl bg-surface border border-border">
-        <button
-          type="button"
-          onClick={() => {}}
-          className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${
-            mode === "online"
-              ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20"
-              : "text-foreground-secondary hover:text-foreground"
-          }`}
-        >
-          🌐 Online 2-Player
-        </button>
-        <button
-          type="button"
-          onClick={onSelectLocalMode}
-          className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${
-            mode === "local"
-              ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20"
-              : "text-foreground-secondary hover:text-foreground"
-          }`}
-        >
-          👥 Local Pass & Play
-        </button>
-      </div>
 
       {/* ── ERROR NOTICE ── */}
       {error && (

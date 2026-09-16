@@ -21,7 +21,6 @@ type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
 
-export type MultiplayerMode = "local" | "online";
 export type MultiplayerScreen = "lobby" | "waiting" | "playing";
 
 interface UseBilliardsMultiplayerOptions {
@@ -40,7 +39,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   const { user } = useAuth();
   const username = user?.username || "Guest";
 
-  const [mode, setMode] = useState<MultiplayerMode>("online");
   const [screen, setScreen] = useState<MultiplayerScreen>("lobby");
   const [room, setRoom] = useState<Room | null>(null);
   const [roomId, setRoomId] = useState<string>("");
@@ -53,7 +51,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   const roomIdRef = useRef<string>("");
   const playerIdRef = useRef<string>("");
   const screenRef = useRef<MultiplayerScreen>("lobby");
-  const modeRef = useRef<MultiplayerMode>("online");
   const myPlayerNumRef = useRef<1 | 2 | null>(null);
   const originalPlayersRef = useRef<Player[]>([]);
   const optionsRef = useRef(options);
@@ -62,10 +59,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
-
-  useEffect(() => {
-    modeRef.current = mode;
-  }, [mode]);
 
   useEffect(() => {
     myPlayerNumRef.current = myPlayerNum;
@@ -204,7 +197,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     roomIdRef.current = code;
     setRoomId(code);
-    setMode("online");
     const uName = explicitUsername || username || "Guest";
 
     const socket = getSocket();
@@ -230,7 +222,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
 
       roomIdRef.current = cleanCode;
       setRoomId(cleanCode);
-      setMode("online");
       const uName = explicitUsername || username || "Guest";
 
       const socket = getSocket();
@@ -245,27 +236,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     },
     [username, getSocket, setupSocket]
   );
-
-  const startLocalGame = useCallback(() => {
-    if (socketRef.current) {
-      if (roomIdRef.current) {
-        socketRef.current.emit("leave_room", { roomId: roomIdRef.current });
-      }
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-    setMode("local");
-    setScreen("playing");
-    setRoom(null);
-    setRoomId("");
-    roomIdRef.current = "";
-    setMyPlayerNum(null);
-    myPlayerNumRef.current = null;
-    setError(null);
-    setJoinError(null);
-    setStatusMsg("");
-    optionsRef.current.onGameStarted?.();
-  }, []);
 
   const leaveRoom = useCallback(() => {
     if (socketRef.current && roomIdRef.current) {
@@ -283,27 +253,19 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     setStatusMsg("");
   }, []);
 
-  const switchMode = useCallback(
-    (newMode: MultiplayerMode) => {
-      if (mode === "online" && newMode === "local") {
-        startLocalGame();
-      } else {
-        leaveRoom();
-        setMode(newMode);
-      }
-    },
-    [mode, startLocalGame, leaveRoom]
-  );
-
   const restartOnlineGame = useCallback(() => {
+    if (room?.players && room.players.length < 2) {
+      setError("Cannot restart: Opponent has left the room.");
+      return;
+    }
     if (socketRef.current && roomIdRef.current) {
       socketRef.current.emit("billiards_restart", { roomId: roomIdRef.current });
     }
-  }, []);
+  }, [room]);
 
   // ── Relay Emitters ───────────────────────────────────────────────────
   const sendAim = useCallback((data: { cueAngle: number; aimDir: { x: number; y: number }; power: number }) => {
-    if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+    if (!socketRef.current || !roomIdRef.current) return;
     socketRef.current.emit("billiards_aim", {
       roomId: roomIdRef.current,
       ...data,
@@ -311,7 +273,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   }, []);
 
   const sendShoot = useCallback((data: Omit<BilliardsShotData, "roomId">) => {
-    if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+    if (!socketRef.current || !roomIdRef.current) return;
     socketRef.current.emit("billiards_shoot", {
       roomId: roomIdRef.current,
       ...data,
@@ -319,7 +281,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   }, []);
 
   const sendSettled = useCallback((data: Omit<BilliardsSettledData, "roomId">) => {
-    if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+    if (!socketRef.current || !roomIdRef.current) return;
     socketRef.current.emit("billiards_settled", {
       roomId: roomIdRef.current,
       ...data,
@@ -327,7 +289,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   }, []);
 
   const sendBallInHandMove = useCallback((pos: { x: number; y: number }) => {
-    if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+    if (!socketRef.current || !roomIdRef.current) return;
     socketRef.current.emit("billiards_ball_in_hand_move", {
       roomId: roomIdRef.current,
       ...pos,
@@ -335,7 +297,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   }, []);
 
   const sendBallInHandConfirm = useCallback((pos: { x: number; y: number }) => {
-    if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+    if (!socketRef.current || !roomIdRef.current) return;
     socketRef.current.emit("billiards_ball_in_hand_confirm", {
       roomId: roomIdRef.current,
       ...pos,
@@ -344,7 +306,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
 
   const sendPhysicsTick = useCallback(
     (data: Omit<BilliardsPhysicsSyncData, "roomId">) => {
-      if (modeRef.current !== "online" || !socketRef.current || !roomIdRef.current) return;
+      if (!socketRef.current || !roomIdRef.current) return;
       socketRef.current.emit("billiards_sync_physics", {
         roomId: roomIdRef.current,
         ...data,
@@ -361,10 +323,10 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   // Turn check
   const isMyTurn = useCallback(
     (currentPlayer: 1 | 2): boolean => {
-      if (mode === "local") return true;
+      if (!room || room.players.length < 2) return false;
       return myPlayerNum === currentPlayer;
     },
-    [mode, myPlayerNum]
+    [myPlayerNum, room]
   );
 
   // Cleanup on unmount
@@ -381,7 +343,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   }, []);
 
   return {
-    mode,
     screen,
     room,
     roomId,
@@ -393,8 +354,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     createRoom,
     joinRoom,
     leaveRoom,
-    startLocalGame,
-    switchMode,
     restartOnlineGame,
     sendAim,
     sendShoot,
