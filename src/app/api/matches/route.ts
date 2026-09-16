@@ -149,6 +149,9 @@ export async function POST(request: Request) {
         } else if (gameType === "monopoly") {
           u.monopolyTotal = (u.monopolyTotal || 0) + 1;
           if (isWin) u.monopolyWins = (u.monopolyWins || 0) + 1;
+        } else if (gameType === "billiards") {
+          u.billiardsTotal = (u.billiardsTotal || 0) + 1;
+          if (isWin) u.billiardsWins = (u.billiardsWins || 0) + 1;
         }
         await u.save();
       }

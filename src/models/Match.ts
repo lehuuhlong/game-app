@@ -57,6 +57,7 @@ const MatchSchema = new Schema<IMatch>(
         "trex",
         "flappybird",
         "sudoku",
+        "billiards",
       ],
     },
     players: [

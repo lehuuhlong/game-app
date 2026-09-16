@@ -38,6 +38,8 @@ export interface IUser extends Document {
   battleshipTotal: number;        // Battleship: total games played
   monopolyWins: number;           // Monopoly: total wins
   monopolyTotal: number;          // Monopoly: total games played
+  billiardsWins: number;          // Billiards: total wins
+  billiardsTotal: number;         // Billiards: total games played
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,6 +86,8 @@ const UserSchema = new Schema<IUser>(
     battleshipTotal:        { type: Number, default: 0 },
     monopolyWins:           { type: Number, default: 0 },
     monopolyTotal:          { type: Number, default: 0 },
+    billiardsWins:          { type: Number, default: 0 },
+    billiardsTotal:         { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -94,6 +98,7 @@ UserSchema.index({ caroWins: -1, caroTotal: -1 });
 UserSchema.index({ chessWins: -1, chessTotal: -1 });
 UserSchema.index({ battleshipWins: -1, battleshipTotal: -1 });
 UserSchema.index({ monopolyWins: -1, monopolyTotal: -1 });
+UserSchema.index({ billiardsWins: -1, billiardsTotal: -1 });
 UserSchema.index({ wordchainWins: -1, wordchainTotal: -1 });
 UserSchema.index({ bestScoreTrex: -1 });
 UserSchema.index({ bestScoreFlappy: -1 });

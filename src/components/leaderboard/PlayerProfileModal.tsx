@@ -38,6 +38,8 @@ interface PlayerProfileData {
   battleshipTotal: number;
   monopolyWins: number;
   monopolyTotal: number;
+  billiardsWins: number;
+  billiardsTotal: number;
 }
 
 interface PlayerProfileModalProps {
@@ -104,14 +106,16 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     (profile?.chessWins || 0) +
     (profile?.battleshipWins || 0) +
     (profile?.wordchainWins || 0) +
-    (profile?.monopolyWins || 0);
+    (profile?.monopolyWins || 0) +
+    (profile?.billiardsWins || 0);
 
   const totalMultiplayerGames =
     (profile?.caroTotal || 0) +
     (profile?.chessTotal || 0) +
     (profile?.battleshipTotal || 0) +
     (profile?.wordchainTotal || 0) +
-    (profile?.monopolyTotal || 0);
+    (profile?.monopolyTotal || 0) +
+    (profile?.billiardsTotal || 0);
 
   const overallWinRate = totalMultiplayerGames > 0 ? Math.round((totalMultiplayerWins / totalMultiplayerGames) * 100) : 0;
 
@@ -287,6 +291,22 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     </span>
                     <span className="text-foreground-muted ml-1.5">
                       ({(profile.monopolyTotal || 0) > 0 ? Math.round(((profile.monopolyWins || 0) / profile.monopolyTotal) * 100) : 0}%)
+                    </span>
+                  </div>
+                </div>
+
+                {/* 8 Ball Pool */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>🎱</span>
+                    <span className="font-semibold text-foreground">8 Ball Pool</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-foreground">
+                      {profile.billiardsWins || 0}W / {profile.billiardsTotal || 0}G
+                    </span>
+                    <span className="text-foreground-muted ml-1.5">
+                      ({(profile.billiardsTotal || 0) > 0 ? Math.round(((profile.billiardsWins || 0) / profile.billiardsTotal) * 100) : 0}%)
                     </span>
                   </div>
                 </div>
