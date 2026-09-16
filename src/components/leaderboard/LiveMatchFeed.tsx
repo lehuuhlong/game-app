@@ -43,6 +43,12 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="1.2" fill="currentColor" />
     </svg>
   ),
+  billiards: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" fill="currentColor" />
+    </svg>
+  ),
   "2048": (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
       <rect x="3" y="3" width="8" height="8" rx="1.5" />
@@ -266,6 +272,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="battleship">Battleship (1v1)</option>
             <option value="wordchain">Word Chain (1v1)</option>
             <option value="monopoly">Monopoly (2-4p)</option>
+            <option value="billiards">8 Ball Pool (1v1)</option>
             <option value="2048">2048</option>
             <option value="aimtrainer">Aim Trainer</option>
             <option value="minesweeper">Minesweeper</option>

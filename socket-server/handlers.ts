@@ -3189,6 +3189,23 @@ function handleLeaveRoom(
     }
   }
 
+  // Handle Billiards disconnect
+  if (room.gameType === "billiards" && room.status === "playing") {
+    const leavingPlayer = room.players.find((p) => p.socketId === socket.id);
+    const stayingPlayer = room.players.find((p) => p.socketId !== socket.id);
+
+    if (leavingPlayer && stayingPlayer) {
+      room.status = "finished";
+      const winnerNum: 1 | 2 = room.players.indexOf(stayingPlayer) === 0 ? 1 : 2;
+
+      io.to(roomId).emit("billiards_game_over", {
+        winner: winnerNum,
+        reason: "disconnect",
+      });
+      console.log(`🎱 Billiards game over in room ${roomId}: ${stayingPlayer.username} wins by disconnect of ${leavingPlayer.username}`);
+    }
+  }
+
   room.players = room.players.filter((p) => p.socketId !== socket.id);
   console.log(
     `👤 ${socket.data.username || socket.id} left room ${roomId} (${room.players.length} remaining)`

@@ -33,6 +33,7 @@ interface UseBilliardsMultiplayerOptions {
   onRemoteSyncPhysics?: (data: BilliardsPhysicsSyncData) => void;
   onGameStarted?: () => void;
   onGameRestarted?: () => void;
+  onGameOver?: (data: { winner: 1 | 2; reason: string }) => void;
 }
 
 export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions = {}) {
@@ -54,6 +55,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
   const screenRef = useRef<MultiplayerScreen>("lobby");
   const modeRef = useRef<MultiplayerMode>("online");
   const myPlayerNumRef = useRef<1 | 2 | null>(null);
+  const originalPlayersRef = useRef<Player[]>([]);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -113,6 +115,13 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
       if (screenRef.current === "playing") {
         setStatusMsg("Opponent left the room.");
         setError("Opponent disconnected.");
+        // Fallback: if in game and opponent left, award win to remaining player
+        if (myPlayerNumRef.current) {
+          optionsRef.current.onGameOver?.({
+            winner: myPlayerNumRef.current,
+            reason: "disconnect",
+          });
+        }
       } else if (r.status === "waiting") {
         setStatusMsg("Opponent left. Waiting for another player...");
       }
@@ -120,6 +129,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
 
     socket.on("billiards_game_started", ({ room: r, player1Id, player2Id }) => {
       setRoom(r);
+      originalPlayersRef.current = [...r.players];
       setRoomId(r.id);
       roomIdRef.current = r.id;
 
@@ -135,6 +145,10 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
       setStatusMsg("");
       setError(null);
       optionsRef.current.onGameStarted?.();
+    });
+
+    socket.on("billiards_game_over", ({ winner, reason }) => {
+      optionsRef.current.onGameOver?.({ winner, reason });
     });
 
     socket.on("billiards_remote_aim", (data) => {
@@ -389,5 +403,6 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     sendBallInHandConfirm,
     sendPhysicsTick,
     isMyTurn,
+    originalPlayers: originalPlayersRef.current,
   };
 }

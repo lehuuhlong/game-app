@@ -225,6 +225,27 @@ export function GameBilliards() {
     onGameRestarted: () => {
       handleRestartLocal();
     },
+    onGameOver: ({ winner, reason }) => {
+      setPhase("idle");
+      phaseRef.current = "idle";
+      setIsAiming(false);
+      setAimPower(0);
+      setBallInHand(false);
+
+      const isWinner = winner === multiplayer.myPlayerNum;
+      let displayReason = rulesState.winReason;
+      if (reason === "disconnect") {
+        displayReason = isWinner
+          ? "🏃 Opponent left the match — You win!"
+          : "🚪 You left the match";
+      }
+
+      syncRulesState({
+        gameOver: true,
+        winner,
+        winReason: displayReason,
+      });
+    },
   });
 
   // ── Ball removal in pockets ──────────────────────────────────────────────
@@ -552,12 +573,22 @@ export function GameBilliards() {
   // ── Record match when game ends ──────────────────────────────────────────
   useEffect(() => {
     if (rulesState.gameOver && rulesState.winner && !matchSavedRef.current) {
+      // In online mode, only the winner submits to /api/matches to prevent duplicate records
+      if (multiplayer.mode === "online" && multiplayer.myPlayerNum && rulesState.winner !== multiplayer.myPlayerNum) {
+        return;
+      }
       matchSavedRef.current = true;
+
+      const p1Original = multiplayer.originalPlayers?.[0]?.username;
+      const p2Original = multiplayer.originalPlayers?.[1]?.username;
+      const p1Room = multiplayer.room?.players?.[0]?.username;
+      const p2Room = multiplayer.room?.players?.[1]?.username;
+
       const p1Name = multiplayer.mode === "online"
-        ? (multiplayer.room?.players[0]?.username || "Player 1")
+        ? (p1Original || p1Room || "Player 1")
         : (user?.username || "Player 1");
       const p2Name = multiplayer.mode === "online"
-        ? (multiplayer.room?.players[1]?.username || "Player 2")
+        ? (p2Original || p2Room || "Player 2")
         : "Player 2";
 
       const p1Won = rulesState.winner === 1;
@@ -586,9 +617,24 @@ export function GameBilliards() {
             mode: multiplayer.mode,
           },
         }),
-      }).catch(() => {});
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          try {
+            const stored = localStorage.getItem("game-portal-user");
+            if (stored && data.users) {
+              const u = JSON.parse(stored);
+              const updated = data.users.find((x: any) => x.username === u.username);
+              if (updated) {
+                Object.assign(u, updated);
+                localStorage.setItem("game-portal-user", JSON.stringify(u));
+              }
+            }
+          } catch {}
+        })
+        .catch(() => {});
     }
-  }, [rulesState.gameOver, rulesState.winner, rulesState.winReason, rulesState.player1.pottedBalls.length, rulesState.player2.pottedBalls.length, multiplayer.mode, multiplayer.room, user]);
+  }, [rulesState.gameOver, rulesState.winner, rulesState.winReason, rulesState.player1.pottedBalls.length, rulesState.player2.pottedBalls.length, multiplayer.mode, multiplayer.myPlayerNum, multiplayer.room, multiplayer.originalPlayers, user]);
 
   const handleRestart = useCallback(() => {
     if (multiplayer.mode === "online") {
@@ -835,10 +881,16 @@ export function GameBilliards() {
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[4px] p-6 z-20">
               <div className="pointer-events-auto w-full max-w-[380px] rounded-3xl border border-white/20 bg-slate-950/95 p-8 text-center text-white shadow-2xl backdrop-blur-md">
                 <div className="text-6xl mb-3" aria-hidden="true">
-                  🏆
+                  {multiplayer.mode === "online"
+                    ? winner === multiplayer.myPlayerNum
+                      ? "🏆"
+                      : "🏃"
+                    : "🏆"}
                 </div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
-                  Game Over
+                  {winReason?.includes("left") || winReason?.includes("Opponent")
+                    ? "Opponent Disconnected"
+                    : "Game Over"}
                 </div>
                 <h2 className="mt-2 text-3xl font-black tracking-tight">
                   {multiplayer.mode === "online"

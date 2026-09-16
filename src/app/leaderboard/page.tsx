@@ -18,6 +18,7 @@ type GameTab =
   | "battleship"
   | "wordchain"
   | "monopoly"
+  | "billiards"
   | "2048"
   | "aimtrainer"
   | "minesweeper"
@@ -122,6 +123,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "battleship", label: "Battleship", category: "multiplayer" },
   { id: "wordchain", label: "Word Chain", category: "multiplayer" },
   { id: "monopoly", label: "Monopoly", category: "multiplayer" },
+  { id: "billiards", label: "8 Ball Pool", category: "multiplayer" },
   { id: "2048", label: "2048", category: "singleplayer" },
   { id: "aimtrainer", label: "Aim Trainer", category: "singleplayer" },
   { id: "minesweeper", label: "Minesweeper", category: "singleplayer" },
@@ -165,6 +167,12 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" />
       <circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" />
       <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  ),
+  billiards: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" fill="currentColor" />
     </svg>
   ),
   "2048": (
@@ -243,6 +251,7 @@ const TAB_INDEX: Record<string, number> = {
   flappybird: 10,
   wordle: 11,
   pikachu: 12,
+  billiards: 13,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -343,6 +352,7 @@ export default function LeaderboardPage() {
   const [dataBattleship, setDataBattleship] = useState<EntryMultiplayer[]>([]);
   const [dataWordChain, setDataWordChain] = useState<EntryMultiplayer[]>([]);
   const [dataMonopoly, setDataMonopoly] = useState<EntryMultiplayer[]>([]);
+  const [dataBilliards, setDataBilliards] = useState<EntryMultiplayer[]>([]);
   const [dataAimTrainer, setDataAimTrainer] = useState<EntryAimTrainer[]>([]);
   const [dataMs, setDataMs] = useState<EntryMinesweeper[]>([]);
   const [dataWordle, setDataWordle] = useState<EntryWordle[]>([]);
@@ -438,6 +448,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "battleship") setDataBattleship(json.leaderboard || []);
           else if (activeGame === "wordchain") setDataWordChain(json.leaderboard || []);
           else if (activeGame === "monopoly") setDataMonopoly(json.leaderboard || []);
+          else if (activeGame === "billiards") setDataBilliards(json.leaderboard || []);
           else if (activeGame === "aimtrainer") setDataAimTrainer(json.leaderboard || []);
           else if (activeGame === "minesweeper") setDataMs(json.leaderboard || []);
           else if (activeGame === "wordle") setDataWordle(json.leaderboard || []);
@@ -529,6 +540,15 @@ export default function LeaderboardPage() {
         metricLabel: "Win Rate",
       };
     }
+    if (activeGame === "billiards") {
+      if (dataBilliards.length === 0) return null;
+      return {
+        first: dataBilliards[0] ? { rank: 1 as const, username: dataBilliards[0].username, avatarUrl: dataBilliards[0].avatarUrl, primaryStat: `${dataBilliards[0].winRate}% Win Rate`, secondaryStat: `${dataBilliards[0].wins}W / ${dataBilliards[0].total}G` } : null,
+        second: dataBilliards[1] ? { rank: 2 as const, username: dataBilliards[1].username, avatarUrl: dataBilliards[1].avatarUrl, primaryStat: `${dataBilliards[1].winRate}% Win Rate`, secondaryStat: `${dataBilliards[1].wins}W / ${dataBilliards[1].total}G` } : null,
+        third: dataBilliards[2] ? { rank: 3 as const, username: dataBilliards[2].username, avatarUrl: dataBilliards[2].avatarUrl, primaryStat: `${dataBilliards[2].winRate}% Win Rate`, secondaryStat: `${dataBilliards[2].wins}W / ${dataBilliards[2].total}G` } : null,
+        metricLabel: "Win Rate",
+      };
+    }
     if (activeGame === "aimtrainer") {
       if (dataAimTrainer.length === 0) return null;
       return {
@@ -593,7 +613,7 @@ export default function LeaderboardPage() {
       };
     }
     return null;
-  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu]);
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu]);
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
@@ -1192,6 +1212,44 @@ export default function LeaderboardPage() {
                                   <span className="text-sm font-bold text-foreground text-right font-mono">{e.wins}</span>
                                   <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
                                   <span className="text-sm font-semibold text-accent text-right font-mono">{e.winRate}%</span>
+                                </TableRow>
+                              ))
+                          )}
+                        </>
+                      )}
+
+                      {/* ── 8 Ball Pool (Billiards) ── */}
+                      {activeGame === "billiards" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_100px_100px_100px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Wins</span>
+                            <span className="text-right">Games</span>
+                            <span className="text-right">Win %</span>
+                          </TableHeader>
+                          {dataBilliards.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No 8 Ball Pool matches recorded yet. Jump in and play a match!"} />
+                          ) : (
+                            dataBilliards
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataBilliards.length - 1}
+                                  cols="grid-cols-[56px_1fr_100px_100px_100px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-foreground text-right font-mono">{e.wins}</span>
+                                  <span className="text-sm text-foreground-secondary text-right font-mono">{e.total}</span>
+                                  <span className="text-sm text-right font-mono">
+                                    <span className={`font-semibold ${e.winRate >= 60 ? "text-emerald-500" : e.winRate >= 40 ? "text-amber-500" : "text-foreground-muted"}`}>
+                                      {e.winRate}%
+                                    </span>
+                                  </span>
                                 </TableRow>
                               ))
                           )}

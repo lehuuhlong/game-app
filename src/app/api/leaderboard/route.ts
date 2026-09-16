@@ -360,6 +360,29 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "billiards") {
+      const leaderboard = await User.find({ billiardsTotal: { $gt: 0 } })
+        .select("username avatarUrl billiardsWins billiardsTotal")
+        .sort({ billiardsWins: -1, billiardsTotal: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "billiards",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          wins: u.billiardsWins || 0,
+          total: u.billiardsTotal || 0,
+          winRate:
+            (u.billiardsTotal || 0) > 0
+              ? Math.round(((u.billiardsWins || 0) / u.billiardsTotal!) * 100)
+              : 0,
+        })),
+      });
+    }
+
     return NextResponse.json({ error: "Missing or invalid ?game= parameter" }, { status: 400 });
   } catch (error) {
     console.error("GET /api/leaderboard error:", error);

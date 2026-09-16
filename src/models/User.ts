@@ -40,6 +40,8 @@ export interface IUser extends Document {
   monopolyTotal: number;          // Monopoly: total games played
   pikachuBestScore: number;       // Pikachu Connect: best score
   pikachuHighestLevel: number;    // Pikachu Connect: highest level reached
+  billiardsWins: number;          // Billiards: total wins
+  billiardsTotal: number;         // Billiards: total games played
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,6 +90,8 @@ const UserSchema = new Schema<IUser>(
     monopolyTotal:          { type: Number, default: 0 },
     pikachuBestScore:       { type: Number, default: 0 },
     pikachuHighestLevel:    { type: Number, default: 0 },
+    billiardsWins:          { type: Number, default: 0 },
+    billiardsTotal:         { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -99,6 +103,7 @@ UserSchema.index({ caroWins: -1, caroTotal: -1 });
 UserSchema.index({ chessWins: -1, chessTotal: -1 });
 UserSchema.index({ battleshipWins: -1, battleshipTotal: -1 });
 UserSchema.index({ monopolyWins: -1, monopolyTotal: -1 });
+UserSchema.index({ billiardsWins: -1, billiardsTotal: -1 });
 UserSchema.index({ wordchainWins: -1, wordchainTotal: -1 });
 UserSchema.index({ bestScoreTrex: -1 });
 UserSchema.index({ bestScoreFlappy: -1 });
