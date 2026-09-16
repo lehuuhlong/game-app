@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { GAMES } from '@/config/games';
 
 export function Footer() {
   return (
@@ -20,7 +21,7 @@ export function Footer() {
               Home
             </Link>
             <Link href="/games" className="hover:text-foreground transition-colors">
-              Arcade ({11} Games)
+              Arcade ({GAMES.length} Games)
             </Link>
             <Link href="/leaderboard" className="hover:text-foreground transition-colors">
               Leaderboards

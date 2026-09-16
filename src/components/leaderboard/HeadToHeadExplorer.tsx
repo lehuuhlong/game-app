@@ -94,6 +94,12 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="1.2" fill="currentColor" />
     </svg>
   ),
+  billiards: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" fill="currentColor" />
+    </svg>
+  ),
 };
 
 export function HeadToHeadExplorer({
@@ -225,6 +231,7 @@ export function HeadToHeadExplorer({
               <option value="battleship">Battleship</option>
               <option value="wordchain">Word Chain</option>
               <option value="monopoly">Monopoly</option>
+              <option value="billiards">8 Ball Pool</option>
             </select>
           </div>
         </div>

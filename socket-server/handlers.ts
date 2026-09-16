@@ -1444,6 +1444,16 @@ export function registerSocketHandlers(io: GameIO): void {
             if (gs) {
               socket.emit("wc_game_started", { room, gameState: gs });
             }
+          } else if (room.gameType === "billiards") {
+            const p1 = room.players[0];
+            const p2 = room.players[1];
+            if (p1 && p2) {
+              socket.emit("billiards_game_started", {
+                room,
+                player1Id: p1.id,
+                player2Id: p2.id,
+              });
+            }
           }
         }
         return;
@@ -1510,6 +1520,14 @@ export function registerSocketHandlers(io: GameIO): void {
             gameState,
             whitePlayerId: p1.id,
             blackPlayerId: p2.id,
+          });
+        } else if (room.gameType === "billiards") {
+          const p1 = room.players[0];
+          const p2 = room.players[1];
+          io.to(roomId).emit("billiards_game_started", {
+            room,
+            player1Id: p1.id,
+            player2Id: p2.id,
           });
         }
 
@@ -2566,6 +2584,49 @@ export function registerSocketHandlers(io: GameIO): void {
     });
 
     // ══════════════════════════════════════════════════════════════
+    //  BILLIARDS EVENTS
+    // ══════════════════════════════════════════════════════════════
+
+    socket.on("billiards_aim", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_aim", data);
+    });
+
+    socket.on("billiards_shoot", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_shoot", data);
+    });
+
+    socket.on("billiards_settled", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_settled", data);
+    });
+
+    socket.on("billiards_ball_in_hand_move", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_ball_in_hand_move", data);
+    });
+
+    socket.on("billiards_ball_in_hand_confirm", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_ball_in_hand_confirm", data);
+    });
+
+    socket.on("billiards_restart", ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room || room.players.length < 2) {
+        socket.emit("error", { message: "Cannot restart: Opponent has left the room." });
+        return;
+      }
+      room.status = "playing";
+      io.to(roomId).emit("billiards_game_restarted");
+      io.to(roomId).emit("billiards_game_started", {
+        room,
+        player1Id: room.players[0].id,
+        player2Id: room.players[1].id,
+      });
+    });
+
+    socket.on("billiards_sync_physics", (data) => {
+      socket.to(data.roomId).emit("billiards_remote_sync_physics", data);
+    });
+
+    // ══════════════════════════════════════════════════════════════
     //  CARO EVENTS
     // ══════════════════════════════════════════════════════════════
 
@@ -2922,6 +2983,18 @@ export function registerSocketHandlers(io: GameIO): void {
           whitePlayerId: p1.id,
           blackPlayerId: p2.id,
         });
+      } else if (room.gameType === "billiards") {
+        if (room.players.length < 2) {
+          socket.emit("error", { message: "Cannot restart: Opponent has left the room." });
+          return;
+        }
+        room.status = "playing";
+        io.to(roomId).emit("billiards_game_restarted");
+        io.to(roomId).emit("billiards_game_started", {
+          room,
+          player1Id: room.players[0].id,
+          player2Id: room.players[1].id,
+        });
       }
 
       console.log(`🔄 Game restarted in room ${roomId}`);
@@ -3129,6 +3202,23 @@ function handleLeaveRoom(
           io.to(roomId).emit("mp_game_update", { gameState: { ...state } });
         }
       }
+    }
+  }
+
+  // Handle Billiards disconnect
+  if (room.gameType === "billiards" && room.status === "playing") {
+    const leavingPlayer = room.players.find((p) => p.socketId === socket.id);
+    const stayingPlayer = room.players.find((p) => p.socketId !== socket.id);
+
+    if (leavingPlayer && stayingPlayer) {
+      room.status = "finished";
+      const winnerNum: 1 | 2 = room.players.indexOf(stayingPlayer) === 0 ? 1 : 2;
+
+      io.to(roomId).emit("billiards_game_over", {
+        winner: winnerNum,
+        reason: "disconnect",
+      });
+      console.log(`🎱 Billiards game over in room ${roomId}: ${stayingPlayer.username} wins by disconnect of ${leavingPlayer.username}`);
     }
   }
 
