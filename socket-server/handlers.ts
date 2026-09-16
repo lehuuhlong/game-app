@@ -354,7 +354,7 @@ function isValidChain(
 async function validateEnglishWord(word: string): Promise<boolean> {
   try {
     const res = await fetch(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(
+      `https://freedictionaryapi.com/api/v1/entries/en/${encodeURIComponent(
         word.trim().toLowerCase()
       )}`
     );
