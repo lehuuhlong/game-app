@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Cell, Point, LevelConfig } from './types';
 import {
   LEVELS,
+  getLevelConfig,
   BASE_MATCH_SCORE,
   TIME_BONUS_PER_MATCH,
   COMBO_WINDOW_MS,
@@ -26,7 +27,7 @@ export type PikachuGameStatus = 'ready' | 'playing' | 'paused' | 'level_cleared'
 
 export function usePikachuLogic() {
   const [levelIdx, setLevelIdx] = useState(0);
-  const currentConfig: LevelConfig = LEVELS[levelIdx] || LEVELS[0];
+  const currentConfig: LevelConfig = getLevelConfig(levelIdx);
 
   const [board, setBoard] = useState<Cell[][]>([]);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
@@ -56,8 +57,8 @@ export function usePikachuLogic() {
   // ── 1. Start / Reset Level ──────────────────────────────────────────
   const startLevel = useCallback(
     (targetLevelIdx: number, carryOverScore = 0) => {
-      const idx = Math.max(0, Math.min(targetLevelIdx, LEVELS.length - 1));
-      const config = LEVELS[idx];
+      const idx = Math.max(0, targetLevelIdx);
+      const config = getLevelConfig(idx);
       setLevelIdx(idx);
 
       const newBoard = generateBoard(config);
@@ -195,9 +196,6 @@ export function usePikachuLogic() {
       const points = Math.round(BASE_MATCH_SCORE * comboMultiplier);
       setScore((s) => s + points);
 
-      // Award time bonus
-      setTimeLeft((t) => Math.min(t + TIME_BONUS_PER_MATCH, currentConfig.timeLimit));
-
       // Display path animation
       setActivePath(pathResult.path);
 
@@ -240,12 +238,7 @@ export function usePikachuLogic() {
             // Award time bonus: 10 points per remaining second
             const timeBonus = timeLeft * 10;
             setScore((s) => s + timeBonus + 500);
-
-            if (levelIdx + 1 < LEVELS.length) {
-              setStatus('level_cleared');
-            } else {
-              setStatus('victory');
-            }
+            setStatus('level_cleared');
           } else {
             // Check if moves are still possible
             const available = findAvailableMove(updated);
@@ -333,9 +326,7 @@ export function usePikachuLogic() {
   }, []);
 
   const nextLevel = useCallback(() => {
-    if (levelIdx + 1 < LEVELS.length) {
-      startLevel(levelIdx + 1, score);
-    }
+    startLevel(levelIdx + 1, score);
   }, [levelIdx, score, startLevel]);
 
   const restartGame = useCallback(() => {

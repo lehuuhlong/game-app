@@ -278,6 +278,27 @@ export function applyGravity(board: Cell[][], gravity: GravityType): Cell[][] {
       for (let r = 0; r < bottomTiles.length; r++) newBoard[mid + r][c].tile = bottomTiles[r];
       for (let r = mid + bottomTiles.length; r < rows; r++) newBoard[r][c].tile = null;
     }
+  } else if (gravity === 'center-horizontal') {
+    // Left half shifts right toward center, right half shifts left toward center
+    const mid = Math.floor(cols / 2);
+    for (let r = 0; r < rows; r++) {
+      // Left half (0 to mid - 1): shift right toward mid - 1
+      const leftTiles: TileItem[] = [];
+      for (let c = 0; c < mid; c++) {
+        if (newBoard[r][c].tile !== null) leftTiles.push(newBoard[r][c].tile!);
+      }
+      const leftEmpty = mid - leftTiles.length;
+      for (let c = 0; c < leftEmpty; c++) newBoard[r][c].tile = null;
+      for (let c = 0; c < leftTiles.length; c++) newBoard[r][leftEmpty + c].tile = leftTiles[c];
+
+      // Right half (mid to cols - 1): shift left toward mid
+      const rightTiles: TileItem[] = [];
+      for (let c = mid; c < cols; c++) {
+        if (newBoard[r][c].tile !== null) rightTiles.push(newBoard[r][c].tile!);
+      }
+      for (let c = 0; c < rightTiles.length; c++) newBoard[r][mid + c].tile = rightTiles[c];
+      for (let c = mid + rightTiles.length; c < cols; c++) newBoard[r][c].tile = null;
+    }
   }
 
   return newBoard;

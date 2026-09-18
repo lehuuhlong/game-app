@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/components/auth';
@@ -35,13 +35,38 @@ export function GamePikachu() {
     restartGame,
   } = usePikachuLogic();
 
-  // ── Sync High Score to Database ─────────────────────────────────────
-  const scoreSavedRef = useRef(false);
+  // ── Sync High Score & Persistence ──────────────────────────────────
+  const [localBestScore, setLocalBestScore] = useState(0);
+  const lastSavedScoreRef = useRef(-1);
+  const lastSavedStatusRef = useRef<string>('');
 
+  // Load local best score on mount
   useEffect(() => {
-    if (status === 'game_over' || status === 'victory') {
-      if (scoreSavedRef.current) return;
-      scoreSavedRef.current = true;
+    try {
+      const saved = Number(localStorage.getItem('pikachu_best_score') || '0');
+      if (saved > 0) setLocalBestScore(saved);
+    } catch (e) {}
+  }, []);
+
+  // Update local best score when current score exceeds it
+  useEffect(() => {
+    if (score > localBestScore) {
+      setLocalBestScore(score);
+      try {
+        localStorage.setItem('pikachu_best_score', String(score));
+      } catch (e) {}
+    }
+  }, [score, localBestScore]);
+
+  // Sync to database on level clear, game over, or victory
+  useEffect(() => {
+    const isTerminal = status === 'game_over' || status === 'victory';
+    const isLevelCleared = status === 'level_cleared';
+
+    if ((isTerminal || isLevelCleared) && score > 0) {
+      if (lastSavedScoreRef.current === score && lastSavedStatusRef.current === status) return;
+      lastSavedScoreRef.current = score;
+      lastSavedStatusRef.current = status;
 
       // Save match to /api/matches
       fetch('/api/matches', {
@@ -51,9 +76,10 @@ export function GamePikachu() {
           gameType: 'pikachu',
           players: [
             {
+              userId: user?.id,
               username: user ? user.username : 'Guest',
               score,
-              result: status === 'victory' ? 'win' : 'loss',
+              result: status === 'victory' || status === 'level_cleared' ? 'win' : 'loss',
             },
           ],
           duration: levelConfig.timeLimit - timeLeft,
@@ -74,7 +100,7 @@ export function GamePikachu() {
         })
           .then((r) => r.json())
           .then((d) => {
-            if (d.pikachuBestScore !== undefined) {
+            if (d && d.pikachuBestScore !== undefined) {
               refreshUser({
                 pikachuBestScore: d.pikachuBestScore,
                 pikachuHighestLevel: d.pikachuHighestLevel,
@@ -83,12 +109,10 @@ export function GamePikachu() {
           })
           .catch((e) => console.error('Failed to save pikachu score:', e));
       }
-    } else {
-      scoreSavedRef.current = false;
     }
   }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser]);
 
-  const bestScore = Math.max(user?.pikachuBestScore || 0, score);
+  const bestScore = Math.max(user?.pikachuBestScore || 0, localBestScore, score);
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));
 
   return (
@@ -237,16 +261,34 @@ export function GamePikachu() {
           className="relative w-full grid gap-1 sm:gap-1.5 md:gap-2 z-10"
           style={{
             gridTemplateColumns: `repeat(${levelConfig.cols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${levelConfig.rows}, minmax(0, 1fr))`,
           }}
         >
+          {/* Subtle background empty slot placeholders */}
           {board.map((row) =>
             row.map((cell) => (
-              <PikachuTile
-                key={`cell_${cell.r}_${cell.c}`}
-                cell={cell}
-                onSelect={selectCell}
+              <div
+                key={`slot_${cell.r}_${cell.c}`}
+                className="aspect-square w-full rounded-xl bg-surface/30 border border-border/40 pointer-events-none"
+                style={{
+                  gridRowStart: cell.r + 1,
+                  gridColumnStart: cell.c + 1,
+                }}
               />
             ))
+          )}
+
+          {/* Active tiles with smooth layout sliding */}
+          {board.flatMap((row) =>
+            row
+              .filter((cell) => cell.tile !== null)
+              .map((cell) => (
+                <PikachuTile
+                  key={cell.tile!.id}
+                  cell={cell}
+                  onSelect={selectCell}
+                />
+              ))
           )}
 
           {/* Electric Neon SVG Path Overlay */}
@@ -359,13 +401,17 @@ export function GamePikachu() {
               className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-surface border border-emerald-500/40 shadow-[0_0_50px_rgba(16,185,129,0.3)] text-center"
             >
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl">
-                ✨
+                {levelConfig.level >= 6 ? '👑' : '✨'}
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mb-2">
                 LEVEL {levelConfig.level} CLEARED!
               </h2>
               <p className="text-sm text-foreground-secondary mb-6">
-                You have successfully conquered {levelConfig.name}.
+                {levelConfig.level === 6
+                  ? 'Congratulations! You conquered the main campaign! Ready for Endless Mode?'
+                  : levelConfig.level > 6
+                  ? `Endless Loop Master! You completed ${levelConfig.name}.`
+                  : `You have successfully conquered ${levelConfig.name}.`}
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
@@ -382,9 +428,15 @@ export function GamePikachu() {
               <button
                 type="button"
                 onClick={nextLevel}
-                className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-emerald-500 to-sky-500 text-white shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all text-sm sm:text-base"
+                className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm sm:text-base ${
+                  levelConfig.level === 6
+                    ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:shadow-amber-500/40 hover:-translate-y-0.5'
+                    : 'bg-gradient-to-r from-emerald-500 to-sky-500 hover:shadow-emerald-500/30 hover:-translate-y-0.5'
+                }`}
               >
-                Next Level ➔
+                {levelConfig.level === 6
+                  ? 'Enter Endless Mode (Level 7) ➔'
+                  : `Next Level (Level ${levelConfig.level + 1}) ➔`}
               </button>
             </motion.div>
           </motion.div>

@@ -35,7 +35,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 12,
-    timeLimit: 180, // 3 mins
+    timeLimit: 150, // fixed 150s
     gravity: 'none',
   },
   {
@@ -45,7 +45,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 14,
-    timeLimit: 160,
+    timeLimit: 150,
     gravity: 'down',
   },
   {
@@ -65,7 +65,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 18,
-    timeLimit: 140,
+    timeLimit: 150,
     gravity: 'right',
   },
   {
@@ -75,7 +75,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 20,
-    timeLimit: 130,
+    timeLimit: 150,
     gravity: 'center-vertical',
   },
   {
@@ -85,13 +85,80 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 22,
-    timeLimit: 120,
+    timeLimit: 150,
     gravity: 'up',
   },
 ];
 
 export const BASE_MATCH_SCORE = 100;
-export const TIME_BONUS_PER_MATCH = 3; // +3 seconds per match
+export const TIME_BONUS_PER_MATCH = 0; // No time bonus on match
 export const COMBO_WINDOW_MS = 3500; // 3.5s to maintain streak
 export const INITIAL_HINTS = 3;
 export const INITIAL_SHUFFLES = 3;
+
+/**
+ * Returns LevelConfig for any level (including Endless Mode Level 7+).
+ * Seamlessly rotates gravity patterns and increases difficulty.
+ */
+export function getLevelConfig(levelIdx: number): LevelConfig {
+  if (levelIdx < LEVELS.length) {
+    return LEVELS[levelIdx];
+  }
+
+  const levelNumber = levelIdx + 1;
+  const loopNumber = Math.floor(levelIdx / LEVELS.length) + 1;
+
+  const endlessGravities: { gravity: LevelConfig['gravity']; name: string; desc: string }[] = [
+    {
+      gravity: 'down',
+      name: 'Downfall Shift',
+      desc: 'Downward gravity pulls tiles to the bottom as space opens.',
+    },
+    {
+      gravity: 'left',
+      name: 'Leftward Drift',
+      desc: 'Leftward gravity constantly compresses the grid to the left.',
+    },
+    {
+      gravity: 'right',
+      name: 'Rightward Surge',
+      desc: 'Rightward gravity pulls all tiles toward the right border.',
+    },
+    {
+      gravity: 'center-vertical',
+      name: 'Vortex Inward',
+      desc: 'Top and bottom halves converge toward the vertical center.',
+    },
+    {
+      gravity: 'center-horizontal',
+      name: 'Horizontal Pinch',
+      desc: 'Left and right columns compress toward the horizontal center.',
+    },
+    {
+      gravity: 'up',
+      name: 'Ascension Rush',
+      desc: 'Upward gravity challenges your reflex with upward displacement.',
+    },
+  ];
+
+  const cycleIdx = (levelIdx - LEVELS.length) % endlessGravities.length;
+  const g = endlessGravities[cycleIdx];
+
+  // Increase to 23 at Level 7, and max 24 unique creatures at Level 8+
+  const uniqueTilesCount = Math.min(
+    TILE_DEFINITIONS.length,
+    22 + Math.min(2, Math.floor((levelIdx - 5) / 2))
+  );
+
+  return {
+    level: levelNumber,
+    name: `${g.name} (Loop ${loopNumber})`,
+    description: `[Endless Loop ${loopNumber}] ${g.desc}`,
+    rows: 8,
+    cols: 12,
+    uniqueTilesCount,
+    timeLimit: 150, // Fixed 150 seconds per level
+    gravity: g.gravity,
+  };
+}
+

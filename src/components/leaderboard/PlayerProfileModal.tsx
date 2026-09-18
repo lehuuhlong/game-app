@@ -40,6 +40,8 @@ interface PlayerProfileData {
   monopolyTotal: number;
   billiardsWins: number;
   billiardsTotal: number;
+  pikachuBestScore?: number;
+  pikachuHighestLevel?: number;
 }
 
 interface PlayerProfileModalProps {
@@ -350,6 +352,18 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                         ? ` / ${profile.wordleTotal} (${Math.round(((profile.wordleWins || 0) / profile.wordleTotal) * 100)}%)`
                         : ''}
                     </strong>
+                  </div>
+                </div>
+
+                {/* Pikachu Connect */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>⚡</span>
+                    <span className="font-semibold text-foreground">Pikachu Connect</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px]">
+                    Best: <strong className="text-foreground">{profile.pikachuBestScore?.toLocaleString() || 0} pts</strong> • Max:{' '}
+                    <strong className="text-foreground">Level {profile.pikachuHighestLevel || 1}</strong>
                   </div>
                 </div>
               </div>
