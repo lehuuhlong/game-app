@@ -513,7 +513,83 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
         </div>
       )}
 
-      {/* ── 13. 8 BALL POOL (BILLIARDS) ─────────────────────────── */}
+      {/* ── 13. PIKACHU CONNECT ───────────────────────────────────── */}
+      {id === 'pikachu' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-amber-100/90 via-yellow-50 to-orange-100/80 dark:from-slate-950 dark:via-amber-950/30 dark:to-slate-950">
+          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Pikachu Connect">
+            <defs>
+              <linearGradient id="pika-lightning" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#fef08a" />
+                <stop offset="50%" stopColor="#38bdf8" />
+                <stop offset="100%" stopColor="#f59e0b" />
+              </linearGradient>
+              <filter id="pika-glow">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Background Grid Accent */}
+            <rect x="24" y="16" width="144" height="80" rx="12" fill="none" stroke="#e2e8f0" className="dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3 3" />
+
+            {/* Inactive Tiles */}
+            <rect x="36" y="28" width="24" height="24" rx="6" className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800" strokeWidth="1" />
+            <text x="48" y="44" fontSize="12" textAnchor="middle">🔥</text>
+
+            <rect x="132" y="60" width="24" height="24" rx="6" className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800" strokeWidth="1" />
+            <text x="144" y="76" fontSize="12" textAnchor="middle">💧</text>
+
+            {/* Connecting Neon Electric Lightning Beam (L-shape/Z-shape path) */}
+            <path
+              d="M 58 72 L 96 72 L 96 40 L 124 40"
+              stroke="#38bdf8"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+              opacity="0.4"
+              filter="url(#pika-glow)"
+            />
+            <path
+              d="M 58 72 L 96 72 L 96 40 L 124 40"
+              stroke="url(#pika-lightning)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <path
+              d="M 58 72 L 96 72 L 96 40 L 124 40"
+              stroke="#ffffff"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+
+            {/* Sparks */}
+            <circle cx="96" cy="72" r="3" fill="#fef08a" filter="url(#pika-glow)" />
+            <circle cx="96" cy="40" r="3" fill="#38bdf8" filter="url(#pika-glow)" />
+
+            {/* Matched Pikachu Tile 1 */}
+            <g transform="translate(36, 60)">
+              <rect x="0" y="0" width="24" height="24" rx="6" className="fill-amber-50 dark:fill-slate-900 stroke-amber-400" strokeWidth="2" filter="url(#pika-glow)" />
+              <text x="12" y="16.5" fontSize="13" textAnchor="middle">⚡</text>
+            </g>
+
+            {/* Matched Pikachu Tile 2 */}
+            <g transform="translate(124, 28)">
+              <rect x="0" y="0" width="24" height="24" rx="6" className="fill-amber-50 dark:fill-slate-900 stroke-amber-400" strokeWidth="2" filter="url(#pika-glow)" />
+              <text x="12" y="16.5" fontSize="13" textAnchor="middle">⚡</text>
+            </g>
+          </svg>
+        </div>
+      )}
+
+      {/* ── 14. 8 BALL POOL (BILLIARDS) ─────────────────────────── */}
       {id === 'billiards' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-emerald-900 via-teal-950 to-slate-950">
           <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="8 Ball Pool">

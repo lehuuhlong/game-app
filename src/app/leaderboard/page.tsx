@@ -25,7 +25,16 @@ type GameTab =
   | "sudoku"
   | "trex"
   | "flappybird"
-  | "wordle";
+  | "wordle"
+  | "pikachu";
+
+interface EntryPikachu {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  score: number;
+  highestLevel?: number;
+}
 
 type MsLevel = "beginner" | "intermediate" | "expert";
 type SudokuLevel = "easy" | "medium" | "hard";
@@ -122,6 +131,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "trex", label: "T-Rex", category: "singleplayer" },
   { id: "flappybird", label: "Flappy Bird", category: "singleplayer" },
   { id: "wordle", label: "Wordle", category: "singleplayer" },
+  { id: "pikachu", label: "Pikachu", category: "singleplayer" },
 ];
 
 const GAME_ICONS: Record<GameTab, React.ReactNode> = {
@@ -220,6 +230,11 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <path d="M7 8h10M12 8v8" />
     </svg>
   ),
+  pikachu: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
 };
 
 const TAB_INDEX: Record<string, number> = {
@@ -228,14 +243,15 @@ const TAB_INDEX: Record<string, number> = {
   battleship: 2,
   wordchain: 3,
   monopoly: 4,
-  billiards: 5,
-  "2048": 6,
-  aimtrainer: 7,
-  minesweeper: 8,
-  sudoku: 9,
-  trex: 10,
-  flappybird: 11,
-  wordle: 12,
+  "2048": 5,
+  aimtrainer: 6,
+  minesweeper: 7,
+  sudoku: 8,
+  trex: 9,
+  flappybird: 10,
+  wordle: 11,
+  pikachu: 12,
+  billiards: 13,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -343,6 +359,7 @@ export default function LeaderboardPage() {
   const [dataTrex, setDataTrex] = useState<EntryTrex[]>([]);
   const [dataFlappy, setDataFlappy] = useState<EntryFlappy[]>([]);
   const [dataSudoku, setDataSudoku] = useState<EntrySudoku[]>([]);
+  const [dataPikachu, setDataPikachu] = useState<EntryPikachu[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected player profile modal
@@ -438,6 +455,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "trex") setDataTrex(json.leaderboard || []);
           else if (activeGame === "flappybird") setDataFlappy(json.leaderboard || []);
           else if (activeGame === "sudoku") setDataSudoku(json.leaderboard || []);
+          else if (activeGame === "pikachu") setDataPikachu(json.leaderboard || []);
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -585,8 +603,17 @@ export default function LeaderboardPage() {
         metricLabel: "Wins",
       };
     }
+    if (activeGame === "pikachu") {
+      if (dataPikachu.length === 0) return null;
+      return {
+        first: dataPikachu[0] ? { rank: 1 as const, username: dataPikachu[0].username, avatarUrl: dataPikachu[0].avatarUrl, primaryStat: `${dataPikachu[0].score.toLocaleString()} pts`, secondaryStat: `Level ${dataPikachu[0].highestLevel || 1}` } : null,
+        second: dataPikachu[1] ? { rank: 2 as const, username: dataPikachu[1].username, avatarUrl: dataPikachu[1].avatarUrl, primaryStat: `${dataPikachu[1].score.toLocaleString()} pts`, secondaryStat: `Level ${dataPikachu[1].highestLevel || 1}` } : null,
+        third: dataPikachu[2] ? { rank: 3 as const, username: dataPikachu[2].username, avatarUrl: dataPikachu[2].avatarUrl, primaryStat: `${dataPikachu[2].score.toLocaleString()} pts`, secondaryStat: `Level ${dataPikachu[2].highestLevel || 1}` } : null,
+        metricLabel: "Score",
+      };
+    }
     return null;
-  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataWordChain, dataMonopoly, dataBilliards, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle]);
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu]);
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
@@ -677,9 +704,9 @@ export default function LeaderboardPage() {
                 </span>
                 <div className="flex items-center gap-1">
                   {[
-                    { id: "all", label: "All Games (11)" },
-                    { id: "multiplayer", label: "Multiplayer (5)" },
-                    { id: "singleplayer", label: "Singleplayer (6)" },
+                    { id: "all", label: `All Games (${ALL_GAMES.length})` },
+                    { id: "multiplayer", label: `Multiplayer (${ALL_GAMES.filter((g) => g.category === "multiplayer").length})` },
+                    { id: "singleplayer", label: `Singleplayer (${ALL_GAMES.filter((g) => g.category === "singleplayer").length})` },
                   ].map((cat) => {
                     const isCatActive = categoryFilter === cat.id;
                     return (
@@ -1477,6 +1504,43 @@ export default function LeaderboardPage() {
                                   ))
                               )}
                             </>
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Pikachu Connect ── */}
+                      {activeGame === "pikachu" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_110px_120px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Max Level</span>
+                            <span className="text-right">High Score</span>
+                          </TableHeader>
+                          {dataPikachu.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Pikachu Connect scores recorded yet. Connect tiles and beat the clock!"} />
+                          ) : (
+                            dataPikachu
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataPikachu.length - 1}
+                                  cols="grid-cols-[56px_1fr_110px_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono self-center justify-self-end">
+                                    Level {e.highestLevel || 1}
+                                  </span>
+                                  <span className="text-sm font-bold text-amber-400 text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span>⚡</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
                           )}
                         </>
                       )}

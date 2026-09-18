@@ -313,11 +313,31 @@ export function WordChainIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function PikachuIcon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
 /**
  * Returns the matching SVG icon for any game ID
  */
 export function getGameSvgIcon(id: string, className = '', size = 20) {
   switch (id) {
+    case 'pikachu':
+      return <PikachuIcon className={className} size={size} />;
     case 'chess':
       return <ChessIcon className={className} size={size} />;
     case 'monopoly':

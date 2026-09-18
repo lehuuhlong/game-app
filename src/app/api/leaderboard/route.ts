@@ -341,6 +341,25 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "pikachu") {
+      const leaderboard = await User.find({ pikachuBestScore: { $gt: 0 } })
+        .select("username avatarUrl pikachuBestScore pikachuHighestLevel")
+        .sort({ pikachuBestScore: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "pikachu",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.pikachuBestScore,
+          highestLevel: (u as any).pikachuHighestLevel || 1,
+        })),
+      });
+    }
+
     if (game === "billiards") {
       const leaderboard = await User.find({ billiardsTotal: { $gt: 0 } })
         .select("username avatarUrl billiardsWins billiardsTotal")

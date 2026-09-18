@@ -21,6 +21,7 @@ export type AllGameType =
   | "trex"
   | "flappybird"
   | "sudoku"
+  | "pikachu"
   | "billiards";
 
 export interface IMatchPlayer {
@@ -57,6 +58,7 @@ const MatchSchema = new Schema<IMatch>(
         "trex",
         "flappybird",
         "sudoku",
+        "pikachu",
         "billiards",
       ],
     },

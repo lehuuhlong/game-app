@@ -38,6 +38,7 @@ const HOT_GAME_IDS = [
 
 // All completed browser games for the Arcade Bento Grid
 const COMPLETED_GAME_IDS = [
+  'pikachu',
   'chess',
   'caro',
   'monopoly',
@@ -56,19 +57,19 @@ const COMPLETED_GAME_IDS = [
 // Upcoming teaser game profiles
 const COMING_SOON_GAMES = [
   {
-    id: 'pikachu',
-    title: 'Pikachu Connect (Onet Link)',
-    category: 'Animal Pair Matching',
+    id: 'tetris',
+    title: 'Neon Tetris Classic',
+    category: 'Voxel Block Puzzle',
     description:
-      'The legendary 3-line animal tile connection classic. Link identical pairs with unobstructed pathlines, trigger combo lightning storms, and beat the ticking timer.',
+      'The iconic falling block puzzle with glowing cyber voxels. Rotate tetrominoes, execute T-spins, clear multi-lines, and survive escalating drop speeds.',
     features: [
-      'Classic & Shuffle challenge modes',
-      'Dynamic pathfinding electric lines',
-      'Multi-stage level progression',
-      'Score multiplier combos',
+      'Super Rotation System (SRS)',
+      'Ghost piece & Hold queue',
+      'T-spin & Back-to-Back bonuses',
+      'Endless speed progression',
     ],
-    accentColor: 'from-amber-400 to-yellow-600',
-    glowColor: 'bg-amber-500',
+    accentColor: 'from-cyan-400 to-indigo-600',
+    glowColor: 'bg-cyan-500',
     icon: 'lightning' as const,
     status: 'In Active Development',
   },

@@ -17,7 +17,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
-const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'flappybird', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly'];
+const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'flappybird', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly', 'pikachu'];
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
   beginner: 'msBestBeginner',
   intermediate: 'msBestIntermediate',
@@ -163,6 +163,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (won === true) {
         user.monopolyWins = (user.monopolyWins || 0) + 1;
       }
+    } else if (game === 'pikachu') {
+      const { score, level } = body;
+      if (typeof score !== 'number' || score < 0) {
+        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
+      }
+      if (score > (user.pikachuBestScore || 0)) {
+        user.pikachuBestScore = score;
+      }
+      if (typeof level === 'number' && level > (user.pikachuHighestLevel || 0)) {
+        user.pikachuHighestLevel = level;
+      }
     }
 
     await user.save();
@@ -198,6 +209,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       battleshipTotal: user.battleshipTotal,
       monopolyWins: user.monopolyWins,
       monopolyTotal: user.monopolyTotal,
+      pikachuBestScore: user.pikachuBestScore,
+      pikachuHighestLevel: user.pikachuHighestLevel,
     });
   } catch (error) {
     console.error('PATCH /api/users/[id]/score error:', error);
