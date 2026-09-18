@@ -21,7 +21,10 @@ export type AllGameType =
   | "trex"
   | "flappybird"
   | "sudoku"
+<<<<<<< HEAD
   | "pikachu"
+=======
+>>>>>>> origin
   | "billiards";
 
 export interface IMatchPlayer {

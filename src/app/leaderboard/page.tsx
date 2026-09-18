@@ -613,7 +613,11 @@ export default function LeaderboardPage() {
       };
     }
     return null;
+<<<<<<< HEAD
   }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu]);
+=======
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataWordChain, dataMonopoly, dataBilliards, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle]);
+>>>>>>> origin
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
