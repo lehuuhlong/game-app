@@ -26,7 +26,15 @@ type GameTab =
   | "trex"
   | "flappybird"
   | "wordle"
-  | "pikachu";
+  | "pikachu"
+  | "line98";
+
+interface EntryLine98 {
+  rank: number;
+  username: string;
+  avatarUrl: string | null;
+  score: number;
+}
 
 interface EntryPikachu {
   rank: number;
@@ -132,6 +140,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "flappybird", label: "Flappy Bird", category: "singleplayer" },
   { id: "wordle", label: "Wordle", category: "singleplayer" },
   { id: "pikachu", label: "Pikachu", category: "singleplayer" },
+  { id: "line98", label: "Line 98", category: "singleplayer" },
 ];
 
 const GAME_ICONS: Record<GameTab, React.ReactNode> = {
@@ -235,6 +244,15 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   ),
+  line98: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <circle cx="6" cy="6" r="3" fill="currentColor" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+      <circle cx="18" cy="18" r="3" fill="currentColor" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+    </svg>
+  ),
 };
 
 const TAB_INDEX: Record<string, number> = {
@@ -252,6 +270,7 @@ const TAB_INDEX: Record<string, number> = {
   wordle: 11,
   pikachu: 12,
   billiards: 13,
+  line98: 14,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -360,6 +379,7 @@ export default function LeaderboardPage() {
   const [dataFlappy, setDataFlappy] = useState<EntryFlappy[]>([]);
   const [dataSudoku, setDataSudoku] = useState<EntrySudoku[]>([]);
   const [dataPikachu, setDataPikachu] = useState<EntryPikachu[]>([]);
+  const [dataLine98, setDataLine98] = useState<EntryLine98[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected player profile modal
@@ -456,6 +476,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "flappybird") setDataFlappy(json.leaderboard || []);
           else if (activeGame === "sudoku") setDataSudoku(json.leaderboard || []);
           else if (activeGame === "pikachu") setDataPikachu(json.leaderboard || []);
+          else if (activeGame === "line98") setDataLine98(json.leaderboard || []);
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -612,8 +633,17 @@ export default function LeaderboardPage() {
         metricLabel: "Score",
       };
     }
+    if (activeGame === "line98") {
+      if (dataLine98.length === 0) return null;
+      return {
+        first: dataLine98[0] ? { rank: 1 as const, username: dataLine98[0].username, avatarUrl: dataLine98[0].avatarUrl, primaryStat: `${dataLine98[0].score.toLocaleString()} pts`, secondaryStat: "Color Lines Grandmaster" } : null,
+        second: dataLine98[1] ? { rank: 2 as const, username: dataLine98[1].username, avatarUrl: dataLine98[1].avatarUrl, primaryStat: `${dataLine98[1].score.toLocaleString()} pts`, secondaryStat: "Color Lines Master" } : null,
+        third: dataLine98[2] ? { rank: 3 as const, username: dataLine98[2].username, avatarUrl: dataLine98[2].avatarUrl, primaryStat: `${dataLine98[2].score.toLocaleString()} pts`, secondaryStat: "Color Lines Expert" } : null,
+        metricLabel: "Score",
+      };
+    }
     return null;
-  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu]);
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu, dataLine98]);
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
@@ -1537,6 +1567,39 @@ export default function LeaderboardPage() {
                                   </span>
                                   <span className="text-sm font-bold text-amber-400 text-right font-mono flex items-center justify-end gap-1.5">
                                     <span>⚡</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Line 98 ── */}
+                      {activeGame === "line98" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Score</span>
+                          </TableHeader>
+                          {dataLine98.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Line 98 scores recorded yet. Clear lines and claim #1!"} />
+                          ) : (
+                            dataLine98
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataLine98.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-violet-400 text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span>🔮</span>
                                     {e.score.toLocaleString()}
                                   </span>
                                 </TableRow>
