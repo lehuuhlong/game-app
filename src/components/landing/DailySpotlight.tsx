@@ -20,6 +20,7 @@ const DAILY_CHALLENGES: Record<string, { goal: string; reward: string; difficult
   'battleship': { goal: 'Sink the enemy carrier within first 12 rounds', reward: '+220 Arcade XP', difficulty: 'Strategy' },
   'monopoly': { goal: 'Acquire 3 complete property sets in multiplayer', reward: '+350 Arcade XP', difficulty: 'Empire' },
   'wordchain': { goal: 'Keep a 15-word combo chain running without stalling', reward: '+180 Arcade XP', difficulty: 'Speed' },
+  'mazemuncher': { goal: 'Devour all 139 pellets and outsmart the 3 Chasers', reward: '+250 Arcade XP', difficulty: 'Arcade' },
 };
 
 export function DailySpotlight() {

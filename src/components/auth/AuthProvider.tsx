@@ -45,6 +45,7 @@ export interface AuthUser {
   monopolyTotal?: number;
   pikachuBestScore?: number;
   pikachuHighestLevel?: number;
+  bestScoreMazeMuncher?: number;
 }
 
 interface AuthContextValue {

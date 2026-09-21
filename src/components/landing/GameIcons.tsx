@@ -331,11 +331,33 @@ export function PikachuIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function MazeMuncherIcon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12 12 L19 8 A9 9 0 1 0 19 16 Z" fill="currentColor" fillOpacity="0.15" />
+      <circle cx="12" cy="7.5" r="1" fill="currentColor" />
+      <circle cx="21" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 /**
  * Returns the matching SVG icon for any game ID
  */
 export function getGameSvgIcon(id: string, className = '', size = 20) {
   switch (id) {
+    case 'mazemuncher':
+      return <MazeMuncherIcon className={className} size={size} />;
     case 'pikachu':
       return <PikachuIcon className={className} size={size} />;
     case 'chess':

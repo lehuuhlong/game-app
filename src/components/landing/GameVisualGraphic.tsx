@@ -692,6 +692,79 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+
+      {/* ── 15. MAZE MUNCHER ────────────────────────────────────── */}
+      {id === 'mazemuncher' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-[#090e1d] to-[#04060b]">
+          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Maze Muncher">
+            <defs>
+              <linearGradient id="maze-wall-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#60a5fa" />
+                <stop offset="100%" stopColor="#2563eb" />
+              </linearGradient>
+              <filter id="muncher-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            {/* Neon Wall Corridors */}
+            <g stroke="url(#maze-wall-grad)" strokeWidth="2" fill="rgba(30,58,138,0.25)" strokeLinejoin="round">
+              <rect x="8" y="8" width="176" height="96" rx="8" />
+              <rect x="28" y="24" width="36" height="24" rx="4" />
+              <rect x="128" y="24" width="36" height="24" rx="4" />
+              <rect x="28" y="64" width="36" height="24" rx="4" />
+              <rect x="128" y="64" width="36" height="24" rx="4" />
+              <path d="M80 24 H112 V50 H80 Z" />
+              <path d="M80 62 H112 V88 H80 Z" />
+            </g>
+
+            {/* Glowing Pellets */}
+            <g fill="#facc15" opacity="0.9">
+              <circle cx="20" cy="56" r="1.8" />
+              <circle cx="72" cy="56" r="1.8" />
+              <circle cx="120" cy="56" r="1.8" />
+              <circle cx="172" cy="56" r="1.8" />
+              <circle cx="96" cy="16" r="1.8" />
+              <circle cx="96" cy="96" r="1.8" />
+            </g>
+
+            {/* Power Pellet with subtle pulse */}
+            <g transform="translate(20, 20)">
+              <circle cx="0" cy="0" r="4.5" fill="#f59e0b" opacity="0.8">
+                <animate attributeName="r" values="4;5.5;4" dur="1.4s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
+            </g>
+
+            {/* Chaser 1: Cyan Azure */}
+            <g transform="translate(68, 56) scale(0.7)">
+              <path d="M-10 2 C-10 -10 10 -10 10 2 L10 10 Q6 14 3 10 Q0 14 -3 10 Q-6 14 -10 10 Z" fill="#06b6d4" />
+              <ellipse cx="-4" cy="0" rx="3.5" ry="4.5" fill="#ffffff" />
+              <ellipse cx="4" cy="0" rx="3.5" ry="4.5" fill="#ffffff" />
+              <circle cx="-5.5" cy="0" r="2" fill="#0f172a" />
+              <circle cx="2.5" cy="0" r="2" fill="#0f172a" />
+            </g>
+
+            {/* Chaser 2: Crimson Red */}
+            <g transform="translate(100, 56) scale(0.7)">
+              <path d="M-10 2 C-10 -10 10 -10 10 2 L10 10 Q6 14 3 10 Q0 14 -3 10 Q-6 14 -10 10 Z" fill="#ef4444" />
+              <ellipse cx="-4" cy="0" rx="3.5" ry="4.5" fill="#ffffff" />
+              <ellipse cx="4" cy="0" rx="3.5" ry="4.5" fill="#ffffff" />
+              <circle cx="-5.5" cy="0" r="2" fill="#0f172a" />
+              <circle cx="2.5" cy="0" r="2" fill="#0f172a" />
+            </g>
+
+            {/* Muncher with Animated Champing Mouth & Motion */}
+            <g filter="url(#muncher-glow)">
+              <animateTransform attributeName="transform" type="translate" values="136 56; 148 56; 136 56" dur="2s" repeatCount="indefinite" />
+              <path d="M0 0 L7 -4.5 A9 9 0 1 0 7 4.5 Z" fill="#facc15" />
+              <circle cx="1.5" cy="-4.5" r="1.5" fill="#0f172a" />
+              <circle cx="2" cy="-4.8" r="0.6" fill="#ffffff" />
+            </g>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

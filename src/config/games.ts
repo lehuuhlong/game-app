@@ -190,4 +190,16 @@ export const GAMES: GameInfo[] = [
     tags: ["Puzzle", "Single Player", "Classic", "Reflex"],
     color: "from-amber-400 via-yellow-500 to-orange-600",
   },
+  {
+    id: "mazemuncher",
+    title: "Maze Muncher",
+    description:
+      "A fast-paced arcade maze runner. Devour energy pellets, outsmart the Chasers, and conquer the neon labyrinth.",
+    thumbnail: "/games/mazemuncher/thumbnail.svg",
+    route: "/games/mazemuncher",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Arcade", "Single Player", "Classic", "Reflex"],
+    color: "from-amber-400 via-yellow-500 to-blue-600",
+  },
 ];

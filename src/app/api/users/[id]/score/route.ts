@@ -17,7 +17,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
-const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'flappybird', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly', 'pikachu'];
+const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'flappybird', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly', 'pikachu', 'mazemuncher'];
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
   beginner: 'msBestBeginner',
   intermediate: 'msBestIntermediate',
@@ -174,6 +174,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (typeof level === 'number' && level > (user.pikachuHighestLevel || 0)) {
         user.pikachuHighestLevel = level;
       }
+    } else if (game === 'mazemuncher') {
+      const { score } = body;
+      if (typeof score !== 'number' || score < 0) {
+        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
+      }
+      if (score > (user.bestScoreMazeMuncher || 0)) {
+        user.bestScoreMazeMuncher = score;
+      }
     }
 
     await user.save();
@@ -211,6 +219,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       monopolyTotal: user.monopolyTotal,
       pikachuBestScore: user.pikachuBestScore,
       pikachuHighestLevel: user.pikachuHighestLevel,
+      bestScoreMazeMuncher: user.bestScoreMazeMuncher,
     });
   } catch (error) {
     console.error('PATCH /api/users/[id]/score error:', error);
