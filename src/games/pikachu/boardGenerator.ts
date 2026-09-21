@@ -3,6 +3,19 @@ import { TILE_DEFINITIONS } from './constants';
 import { findAvailableMove } from './pathfinding';
 
 /**
+ * Randomly samples `count` unique tile definitions from the entire pool of 24 creatures.
+ * Ensures every level / game has a varied, fresh selection of Pokémon.
+ */
+function getRandomAvailableTiles(count: number): typeof TILE_DEFINITIONS {
+  const shuffled = [...TILE_DEFINITIONS];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, Math.min(count, TILE_DEFINITIONS.length));
+}
+
+/**
  * Generates an initial board for the given level configuration.
  * Guarantees that the total number of cells is even and paired,
  * and ensures there is at least one valid starting move.
@@ -15,7 +28,7 @@ export function generateBoard(config: LevelConfig): Cell[][] {
   }
 
   const totalPairs = totalCells / 2;
-  const availableTiles = TILE_DEFINITIONS.slice(0, uniqueTilesCount);
+  const availableTiles = getRandomAvailableTiles(uniqueTilesCount);
 
   let attempts = 0;
   while (attempts < 20) {
@@ -75,21 +88,23 @@ export function generateBoard(config: LevelConfig): Cell[][] {
   }
 
   // Fallback: If 20 random layouts didn't yield a move, force adjacent pairs on the outer edge
-  return createGuaranteedBoard(config);
+  return createGuaranteedBoard(config, availableTiles);
 }
 
 /**
  * Fallback to construct a board with guaranteed starting moves.
  */
-function createGuaranteedBoard(config: LevelConfig): Cell[][] {
+function createGuaranteedBoard(config: LevelConfig, availableTiles?: typeof TILE_DEFINITIONS): Cell[][] {
   const { rows, cols, uniqueTilesCount } = config;
   const totalCells = rows * cols;
   const totalPairs = totalCells / 2;
-  const availableTiles = TILE_DEFINITIONS.slice(0, uniqueTilesCount);
+  const tiles = availableTiles && availableTiles.length > 0
+    ? availableTiles
+    : getRandomAvailableTiles(uniqueTilesCount);
 
   const tileList: TileItem[] = [];
   for (let i = 0; i < totalPairs; i++) {
-    const def = availableTiles[i % availableTiles.length];
+    const def = tiles[i % tiles.length];
     tileList.push(
       {
         id: `tile_${i * 2}_${def.type}`,

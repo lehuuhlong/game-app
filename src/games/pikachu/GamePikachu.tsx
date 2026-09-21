@@ -37,8 +37,7 @@ export function GamePikachu() {
 
   // ── Sync High Score & Persistence ──────────────────────────────────
   const [localBestScore, setLocalBestScore] = useState(0);
-  const lastSavedScoreRef = useRef(-1);
-  const lastSavedStatusRef = useRef<string>('');
+  const scoreSavedRef = useRef(false);
 
   // Load local best score on mount
   useEffect(() => {
@@ -58,57 +57,57 @@ export function GamePikachu() {
     }
   }, [score, localBestScore]);
 
-  // Sync to database on level clear, game over, or victory
+  // Sync to database only when the player loses / finishes the game (game_over)
   useEffect(() => {
-    const isTerminal = status === 'game_over' || status === 'victory';
-    const isLevelCleared = status === 'level_cleared';
+    if (status === 'playing') {
+      scoreSavedRef.current = false;
+    }
 
-    if ((isTerminal || isLevelCleared) && score > 0) {
-      if (lastSavedScoreRef.current === score && lastSavedStatusRef.current === status) return;
-      lastSavedScoreRef.current = score;
-      lastSavedStatusRef.current = status;
+    const isGameOver = status === 'game_over' || status === 'victory';
+    if (!isGameOver || score <= 0) return;
+    if (scoreSavedRef.current) return;
+    scoreSavedRef.current = true;
 
-      // Save match to /api/matches
-      fetch('/api/matches', {
-        method: 'POST',
+    // Save final match session to /api/matches (score-based format like 2048)
+    fetch('/api/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameType: 'pikachu',
+        players: [
+          {
+            userId: user?.id,
+            username: user ? user.username : 'Guest',
+            score,
+            result: 'loss',
+          },
+        ],
+        duration: Math.max(0, levelConfig.timeLimit - timeLeft),
+        gameData: { level: levelIdx + 1, score },
+      }),
+    }).catch((e) => console.error('Failed to post match:', e));
+
+    // Save user record ONLY if the score is greater than current user's best score
+    if (user && user.id && score > (user.pikachuBestScore || 0)) {
+      fetch(`/api/users/${user.id}/score`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          gameType: 'pikachu',
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : 'Guest',
-              score,
-              result: status === 'victory' || status === 'level_cleared' ? 'win' : 'loss',
-            },
-          ],
-          duration: levelConfig.timeLimit - timeLeft,
-          gameData: { level: levelIdx + 1, score },
+          game: 'pikachu',
+          score,
+          level: levelIdx + 1,
         }),
-      }).catch((e) => console.error('Failed to post match:', e));
-
-      // Save user record if logged in
-      if (user && user.id) {
-        fetch(`/api/users/${user.id}/score`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            game: 'pikachu',
-            score,
-            level: levelIdx + 1,
-          }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.pikachuBestScore !== undefined) {
+            refreshUser({
+              pikachuBestScore: d.pikachuBestScore,
+              pikachuHighestLevel: d.pikachuHighestLevel,
+            });
+          }
         })
-          .then((r) => r.json())
-          .then((d) => {
-            if (d && d.pikachuBestScore !== undefined) {
-              refreshUser({
-                pikachuBestScore: d.pikachuBestScore,
-                pikachuHighestLevel: d.pikachuHighestLevel,
-              });
-            }
-          })
-          .catch((e) => console.error('Failed to save pikachu score:', e));
-      }
+        .catch((e) => console.error('Failed to save pikachu score:', e));
     }
   }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser]);
 

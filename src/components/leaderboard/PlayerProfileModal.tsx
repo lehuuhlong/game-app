@@ -378,22 +378,31 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     const myPlayer = m.players?.find((p: any) => p.username.toLowerCase() === username.toLowerCase());
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
+                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer'].includes(m.gameType);
 
                     return (
                       <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs">
                         <div className="flex items-center gap-2.5">
-                          <span
-                            className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${
-                              isWin
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                : isDraw
-                                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                            }`}
-                          >
-                            {myPlayer?.result || 'Played'}
+                          {isScoreGame ? (
+                            <span className="px-2 py-0.5 rounded-md font-bold text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                              {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} PTS
+                            </span>
+                          ) : (
+                            <span
+                              className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase ${
+                                isWin
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                  : isDraw
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                              }`}
+                            >
+                              {myPlayer?.result || 'Played'}
+                            </span>
+                          )}
+                          <span className="font-semibold text-foreground capitalize">
+                            {m.gameType === 'pikachu' ? 'Pikachu Connect' : m.gameType}
                           </span>
-                          <span className="font-semibold text-foreground capitalize">{m.gameType}</span>
                           {/* Game Specific Details */}
                           {m.gameType === 'wordle' && m.gameData?.solution ? (
                             <span className="text-[11px] font-mono">
@@ -416,9 +425,10 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 <span>{capitalize(m.gameData?.difficulty || 'Normal')}</span>
                               )}
                             </span>
-                          ) : m.gameType === '2048' || m.gameType === 'trex' || m.gameType === 'flappybird' || m.gameType === 'aimtrainer' ? (
+                          ) : m.gameType === '2048' || m.gameType === 'pikachu' || m.gameType === 'trex' || m.gameType === 'flappybird' || m.gameType === 'aimtrainer' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
+                              {m.gameType === 'pikachu' && m.gameData?.level ? ` • Lvl ${m.gameData.level}` : ''}
                             </span>
                           ) : (
                             <span className="text-foreground-muted text-[11px]">

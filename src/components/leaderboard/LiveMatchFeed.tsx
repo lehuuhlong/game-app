@@ -49,6 +49,11 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="4" fill="currentColor" />
     </svg>
   ),
+  pikachu: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
+    </svg>
+  ),
   "2048": (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
       <rect x="3" y="3" width="8" height="8" rx="1.5" />
@@ -201,13 +206,23 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
-    // 3. Score-based games: 2048, Trex, Aim Trainer
+    // 3. Score-based games: 2048, Pikachu, Trex, Aim Trainer
     if (gameType === "2048") {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
       const tile = gameData.highestTile ? ` • Tile ${gameData.highestTile}` : "";
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
           {score} pts{tile}
+        </span>
+      );
+    }
+
+    if (gameType === "pikachu") {
+      const score = (p.score ?? gameData.score ?? 0).toLocaleString();
+      const lvl = gameData.level ? ` • Lvl ${gameData.level}` : "";
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+          {score} pts{lvl}
         </span>
       );
     }
@@ -274,6 +289,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="monopoly">Monopoly (2-4p)</option>
             <option value="billiards">8 Ball Pool (1v1)</option>
             <option value="2048">2048</option>
+            <option value="pikachu">Pikachu Connect</option>
             <option value="aimtrainer">Aim Trainer</option>
             <option value="minesweeper">Minesweeper</option>
             <option value="sudoku">Sudoku</option>
