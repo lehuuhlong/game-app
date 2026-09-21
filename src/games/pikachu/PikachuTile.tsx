@@ -3,13 +3,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Cell } from './types';
+import { CreatureIcon } from './CreatureIcons';
 
 interface PikachuTileProps {
   cell: Cell;
   onSelect: (cell: Cell) => void;
 }
 
-export const PikachuTile: React.FC<PikachuTileProps> = ({ cell, onSelect }) => {
+export const PikachuTile: React.FC<PikachuTileProps> = React.memo(({ cell, onSelect }) => {
   const { tile, isSelected, isHinted, isRemoving, r, c } = cell;
 
   if (!tile) {
@@ -40,7 +41,7 @@ export const PikachuTile: React.FC<PikachuTileProps> = ({ cell, onSelect }) => {
         },
         duration: isRemoving ? 0.25 : 0.15,
       }}
-      className={`relative aspect-square w-full rounded-xl select-none flex flex-col items-center justify-center cursor-pointer p-1 sm:p-1.5 focus:outline-none z-10 ${
+      className={`relative aspect-square w-full rounded-xl select-none flex flex-col items-center justify-center cursor-pointer p-0.5 sm:p-1 md:p-1.5 focus:outline-none z-10 ${
         isSelected
           ? 'ring-2 sm:ring-4 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.6)] z-20 bg-surface/90'
           : isHinted
@@ -63,13 +64,13 @@ export const PikachuTile: React.FC<PikachuTileProps> = ({ cell, onSelect }) => {
         }}
       />
 
-      {/* Emoji Character */}
-      <span className="relative z-10 text-xl sm:text-2xl md:text-3xl filter drop-shadow-sm select-none">
-        {tile.emoji}
-      </span>
+      {/* Synchronized Vector SVG Creature Icon */}
+      <div className="relative z-10 w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center filter drop-shadow-sm select-none p-0.5">
+        <CreatureIcon type={tile.type} className="w-full h-full object-contain" />
+      </div>
 
       {/* Subtle Mini Name Label on larger screens */}
-      <span className="hidden sm:inline-block relative z-10 text-[9px] md:text-[10px] font-mono tracking-tight font-semibold text-foreground-secondary truncate max-w-full px-0.5">
+      <span className="hidden sm:inline-block relative z-10 text-[9px] md:text-[10px] font-mono tracking-tight font-semibold text-foreground-secondary truncate max-w-full px-0.5 leading-none mt-0.5">
         {tile.name}
       </span>
 
@@ -83,4 +84,6 @@ export const PikachuTile: React.FC<PikachuTileProps> = ({ cell, onSelect }) => {
       )}
     </motion.button>
   );
-};
+});
+
+PikachuTile.displayName = 'PikachuTile';

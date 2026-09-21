@@ -18,13 +18,13 @@ export const TILE_DEFINITIONS = [
   { type: 14, name: 'Meowth', emoji: '🪙', glowColor: '#f59e0b', badgeBg: 'from-yellow-500 to-amber-600' },
   { type: 15, name: 'Machop', emoji: '🥊', glowColor: '#cbd5e1', badgeBg: 'from-slate-500 to-zinc-700' },
   { type: 16, name: 'Geodude', emoji: '🪨', glowColor: '#a1a1aa', badgeBg: 'from-stone-500 to-neutral-700' },
-  { type: 17, name: 'Abra', emoji: '🌀', glowColor: '#818cf8', badgeBg: 'from-indigo-400 to-purple-600' },
+  { type: 17, name: 'Abra', emoji: '💫', glowColor: '#818cf8', badgeBg: 'from-indigo-400 to-purple-600' },
   { type: 18, name: 'Zubat', emoji: '🦇', glowColor: '#3b82f6', badgeBg: 'from-blue-600 to-indigo-800' },
   { type: 19, name: 'Butterfree', emoji: '🦋', glowColor: '#67e8f9', badgeBg: 'from-cyan-300 to-blue-500' },
   { type: 20, name: 'Poliwag', emoji: '🌀', glowColor: '#60a5fa', badgeBg: 'from-blue-400 to-sky-600' },
   { type: 21, name: 'Diglett', emoji: '🌱', glowColor: '#b45309', badgeBg: 'from-amber-700 to-yellow-900' },
   { type: 22, name: 'Togepi', emoji: '🥚', glowColor: '#fef08a', badgeBg: 'from-yellow-200 to-amber-400' },
-  { type: 23, name: 'Rayquaza', emoji: '⚡', glowColor: '#10b981', badgeBg: 'from-emerald-500 to-teal-700' },
+  { type: 23, name: 'Rayquaza', emoji: '🐲', glowColor: '#10b981', badgeBg: 'from-emerald-500 to-teal-700' },
 ];
 
 export const LEVELS: LevelConfig[] = [
