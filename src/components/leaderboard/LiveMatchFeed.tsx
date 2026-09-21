@@ -154,8 +154,15 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     }
 
     fetchMatches();
+
+    const handleProfileUpdated = () => {
+      fetchMatches();
+    };
+    window.addEventListener("userProfileUpdated", handleProfileUpdated);
+
     return () => {
       active = false;
+      window.removeEventListener("userProfileUpdated", handleProfileUpdated);
     };
   }, [filterGame]);
 

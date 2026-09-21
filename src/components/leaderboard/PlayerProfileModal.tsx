@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/components/auth';
 
 interface PlayerProfileData {
+  _id?: string;
+  id?: string;
   username: string;
   avatarUrl: string | null;
   createdAt?: string;
@@ -96,8 +98,15 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     }
 
     fetchUserData();
+
+    const handleProfileUpdated = () => {
+      fetchUserData();
+    };
+    window.addEventListener("userProfileUpdated", handleProfileUpdated);
+
     return () => {
       active = false;
+      window.removeEventListener("userProfileUpdated", handleProfileUpdated);
     };
   }, [username]);
 
@@ -375,7 +384,12 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                 <h4 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Recent Match Activity</h4>
                 <div className="space-y-1.5">
                   {recentMatches.map((m: any) => {
-                    const myPlayer = m.players?.find((p: any) => p.username.toLowerCase() === username.toLowerCase());
+                    const myPlayer = m.players?.find(
+                      (p: any) =>
+                        (profile?._id && p.userId && p.userId.toString() === profile._id.toString()) ||
+                        (profile?.id && p.userId && p.userId.toString() === profile.id.toString()) ||
+                        p.username.toLowerCase() === username.toLowerCase()
+                    );
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
                     const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer'].includes(m.gameType);

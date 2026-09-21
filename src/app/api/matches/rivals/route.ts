@@ -28,17 +28,38 @@ export async function GET(request: Request) {
       );
     }
 
-    const matches = await Match.find({
-      "players.username": { $regex: `^${username}$`, $options: "i" },
-      "players.1": { $exists: true }, // multiplayer matches (at least 2 players)
+    const targetUser = await User.findOne({
+      username: { $regex: `^${username}$`, $options: "i" },
     })
+      .select("_id username")
+      .lean();
+
+    const matchQuery: Record<string, unknown> = {
+      "players.1": { $exists: true }, // multiplayer matches (at least 2 players)
+    };
+
+    if (targetUser) {
+      matchQuery.$or = [
+        { "players.userId": targetUser._id },
+        { "players.username": { $regex: `^${username}$`, $options: "i" } },
+      ];
+    } else {
+      matchQuery["players.username"] = { $regex: `^${username}$`, $options: "i" };
+    }
+
+    const matches = await Match.find(matchQuery)
       .select("-__v")
       .sort({ createdAt: -1 })
       .lean();
 
+    const isMe = (p: any) =>
+      (targetUser && p.userId?.toString() === targetUser._id.toString()) ||
+      p.username.toLowerCase() === username.toLowerCase();
+
     const rivalMap: Record<
       string,
       {
+        userId: string | null;
         username: string;
         totalMatches: number;
         wins: number;
@@ -50,19 +71,16 @@ export async function GET(request: Request) {
     > = {};
 
     matches.forEach((m) => {
-      const myRecord = m.players.find(
-        (p) => p.username.toLowerCase() === username.toLowerCase()
-      );
+      const myRecord = m.players.find(isMe);
       if (!myRecord) return;
 
-      const opponents = m.players.filter(
-        (p) => p.username.toLowerCase() !== username.toLowerCase()
-      );
+      const opponents = m.players.filter((p) => !isMe(p));
 
       opponents.forEach((opp) => {
-        const oppKey = opp.username.toLowerCase();
+        const oppKey = opp.userId ? opp.userId.toString() : opp.username.toLowerCase();
         if (!rivalMap[oppKey]) {
           rivalMap[oppKey] = {
+            userId: opp.userId ? opp.userId.toString() : null,
             username: opp.username,
             totalMatches: 0,
             wins: 0,
@@ -91,34 +109,64 @@ export async function GET(request: Request) {
       });
     });
 
+    const rivalUserIds = Object.values(rivalMap)
+      .map((r) => r.userId)
+      .filter(Boolean) as string[];
     const rivalUsernames = Object.values(rivalMap).map((r) => r.username);
-    const users = await User.find({ username: { $in: rivalUsernames } })
-      .select("username avatarUrl")
-      .lean();
 
-    const avatarMap = new Map<string, string | null>(
-      users.map((u) => [u.username.toLowerCase(), u.avatarUrl || null])
-    );
+    const queryOr: Record<string, unknown>[] = [];
+    if (rivalUserIds.length > 0) {
+      queryOr.push({ _id: { $in: rivalUserIds } });
+    }
+    if (rivalUsernames.length > 0) {
+      queryOr.push({
+        username: {
+          $in: rivalUsernames.map((name) => new RegExp(`^${name}$`, "i")),
+        },
+      });
+    }
+
+    const users = queryOr.length > 0
+      ? await User.find({ $or: queryOr })
+          .select("_id username avatarUrl")
+          .lean()
+      : [];
+
+    const userById = new Map<string, { username: string; avatarUrl: string | null }>();
+    const userByName = new Map<string, { username: string; avatarUrl: string | null }>();
+    for (const u of users) {
+      const data = { username: u.username, avatarUrl: u.avatarUrl || null };
+      userById.set(u._id.toString(), data);
+      userByName.set(u.username.toLowerCase(), data);
+    }
 
     const rivals = Object.values(rivalMap)
-      .map((r) => ({
-        username: r.username,
-        avatarUrl: avatarMap.get(r.username.toLowerCase()) || null,
-        totalMatches: r.totalMatches,
-        wins: r.wins,
-        losses: r.losses,
-        draws: r.draws,
-        winRate:
-          r.totalMatches > 0
-            ? Math.round((r.wins / r.totalMatches) * 100)
-            : 0,
-        lastPlayed: r.lastPlayed,
-        games: Array.from(r.games),
-      }))
+      .map((r) => {
+        const u =
+          (r.userId ? userById.get(r.userId) : null) ||
+          userByName.get(r.username.toLowerCase());
+        const finalUsername = u ? u.username : r.username;
+        const finalAvatar = u ? u.avatarUrl : null;
+
+        return {
+          username: finalUsername,
+          avatarUrl: finalAvatar,
+          totalMatches: r.totalMatches,
+          wins: r.wins,
+          losses: r.losses,
+          draws: r.draws,
+          winRate:
+            r.totalMatches > 0
+              ? Math.round((r.wins / r.totalMatches) * 100)
+              : 0,
+          lastPlayed: r.lastPlayed,
+          games: Array.from(r.games),
+        };
+      })
       .sort((a, b) => b.totalMatches - a.totalMatches || b.wins - a.wins);
 
     return NextResponse.json({
-      username,
+      username: targetUser ? targetUser.username : username,
       totalRivals: rivals.length,
       rivals,
     });

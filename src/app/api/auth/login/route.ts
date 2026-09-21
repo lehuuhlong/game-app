@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+import Match from "@/models/Match";
 
 function validateUsername(username: string) {
   const u = username.trim();
@@ -83,7 +84,9 @@ export async function PATCH(request: Request) {
     await dbConnect();
 
     const cleanUsername = newUsername.trim();
-    const existing = await User.findOne({ username: cleanUsername });
+    const existing = await User.findOne({
+      username: { $regex: `^${cleanUsername}$`, $options: "i" },
+    });
     if (existing && existing._id.toString() !== id) {
       return NextResponse.json(
         { error: "Username already taken" },
@@ -91,13 +94,33 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      { username: cleanUsername },
-      { new: true }
+    const user = await User.findById(id);
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    const oldUsername = user.username;
+    user.username = cleanUsername;
+    await user.save();
+
+    // 1. Update all matches where this user played by userId
+    await Match.updateMany(
+      { "players.userId": user._id },
+      { $set: { "players.$[elem].username": cleanUsername } },
+      { arrayFilters: [{ "elem.userId": user._id }] }
     );
 
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    // 2. Also update any legacy matches where players.username was oldUsername (and link their userId)
+    if (oldUsername && oldUsername.toLowerCase() !== cleanUsername.toLowerCase()) {
+      await Match.updateMany(
+        { "players.username": { $regex: `^${oldUsername}$`, $options: "i" } },
+        {
+          $set: {
+            "players.$[elem].username": cleanUsername,
+            "players.$[elem].userId": user._id,
+          },
+        },
+        { arrayFilters: [{ "elem.username": { $regex: `^${oldUsername}$`, $options: "i" } }] }
+      );
+    }
 
     return NextResponse.json({ user: toClientUser(user) });
   } catch (error) {

@@ -39,15 +39,24 @@ export async function GET(request: Request) {
 
     // Fetch user profiles for avatars & display
     const [user1, user2] = await Promise.all([
-      User.findOne({ username: p1 }).select("username avatarUrl").lean(),
-      User.findOne({ username: p2 }).select("username avatarUrl").lean(),
+      User.findOne({ username: { $regex: `^${p1}$`, $options: "i" } })
+        .select("_id username avatarUrl")
+        .lean(),
+      User.findOne({ username: { $regex: `^${p2}$`, $options: "i" } })
+        .select("_id username avatarUrl")
+        .lean(),
     ]);
 
+    const user1Filter = user1
+      ? { $or: [{ "players.userId": user1._id }, { "players.username": { $regex: `^${p1}$`, $options: "i" } }] }
+      : { "players.username": { $regex: `^${p1}$`, $options: "i" } };
+
+    const user2Filter = user2
+      ? { $or: [{ "players.userId": user2._id }, { "players.username": { $regex: `^${p2}$`, $options: "i" } }] }
+      : { "players.username": { $regex: `^${p2}$`, $options: "i" } };
+
     const query: Record<string, unknown> = {
-      $and: [
-        { "players.username": { $regex: `^${p1}$`, $options: "i" } },
-        { "players.username": { $regex: `^${p2}$`, $options: "i" } },
-      ],
+      $and: [user1Filter, user2Filter],
     };
 
     if (gameType && gameType !== "all") {
@@ -58,6 +67,14 @@ export async function GET(request: Request) {
       .select("-__v")
       .sort({ createdAt: -1 })
       .lean();
+
+    const isP1 = (p: any) =>
+      (user1 && p.userId?.toString() === user1._id.toString()) ||
+      p.username.toLowerCase() === p1.toLowerCase();
+
+    const isP2 = (p: any) =>
+      (user2 && p.userId?.toString() === user2._id.toString()) ||
+      p.username.toLowerCase() === p2.toLowerCase();
 
     let p1Wins = 0;
     let p2Wins = 0;
@@ -75,12 +92,8 @@ export async function GET(request: Request) {
     > = {};
 
     matches.forEach((m) => {
-      const p1Record = m.players.find(
-        (p) => p.username.toLowerCase() === p1.toLowerCase()
-      );
-      const p2Record = m.players.find(
-        (p) => p.username.toLowerCase() === p2.toLowerCase()
-      );
+      const p1Record = m.players.find(isP1);
+      const p2Record = m.players.find(isP2);
 
       if (!byGame[m.gameType]) {
         byGame[m.gameType] = {
@@ -120,12 +133,8 @@ export async function GET(request: Request) {
       totalMatches > 0 ? Math.round((p2Wins / totalMatches) * 100) : 0;
 
     const recentMatches = matches.slice(0, 15).map((m) => {
-      const p1Record = m.players.find(
-        (p) => p.username.toLowerCase() === p1.toLowerCase()
-      );
-      const p2Record = m.players.find(
-        (p) => p.username.toLowerCase() === p2.toLowerCase()
-      );
+      const p1Record = m.players.find(isP1);
+      const p2Record = m.players.find(isP2);
       let outcome: "p1" | "p2" | "draw" = "draw";
       if (p1Record?.result === "win") outcome = "p1";
       else if (p2Record?.result === "win") outcome = "p2";
@@ -144,13 +153,13 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       player1: {
-        username: p1,
+        username: user1?.username || p1,
         avatarUrl: user1?.avatarUrl || null,
         wins: p1Wins,
         winRate: p1WinRate,
       },
       player2: {
-        username: p2,
+        username: user2?.username || p2,
         avatarUrl: user2?.avatarUrl || null,
         wins: p2Wins,
         winRate: p2WinRate,

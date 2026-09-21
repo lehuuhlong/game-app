@@ -104,6 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (!res.ok) return { error: data.error || "Failed to change username" };
       persistUser(data.user);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+      }
       return {};
     } catch {
       return { error: "Network error. Please try again." };
@@ -121,6 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (!res.ok) return { error: data.error || "Failed to update avatar" };
       persistUser({ ...user, avatarUrl: data.avatarUrl });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+      }
       return {};
     } catch {
       return { error: "Network error. Please try again." };
