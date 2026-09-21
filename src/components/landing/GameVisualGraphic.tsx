@@ -692,6 +692,121 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+
+      {/* ── 15. LINE 98 (COLOR LINES) ─────────────────────────────── */}
+      {id === 'line98' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-indigo-950 via-slate-950 to-violet-950">
+          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Line 98">
+            <defs>
+              <radialGradient id="l98-ball-gloss" cx="35%" cy="28%" r="65%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                <stop offset="35%" stopColor="#ffffff" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
+              </radialGradient>
+            </defs>
+
+            {/* Subtle grid lines */}
+            <g stroke="#ffffff" strokeWidth="0.3" opacity="0.06">
+              {[0,1,2,3,4,5,6,7,8,9].map(i => (
+                <line key={`h${i}`} x1="28" y1={12 + i * 10} x2="164" y2={12 + i * 10} />
+              ))}
+              {[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(i => (
+                <line key={`v${i}`} x1={28 + i * 9.7} y1="12" x2={28 + i * 9.7} y2="102" />
+              ))}
+            </g>
+
+            {/* Board border */}
+            <rect x="28" y="12" width="136" height="90" rx="5" fill="none" stroke="#6366f1" strokeWidth="1" opacity="0.3" />
+
+            {/* Static balls on grid */}
+            {/* Red ball */}
+            <g transform="translate(52, 32)">
+              <circle cx="0" cy="0" r="6" fill="#ef4444" />
+              <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
+            </g>
+            {/* Blue ball */}
+            <g transform="translate(72, 52)">
+              <circle cx="0" cy="0" r="6" fill="#3b82f6" />
+              <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
+            </g>
+            {/* Green ball */}
+            <g transform="translate(112, 32)">
+              <circle cx="0" cy="0" r="6" fill="#22c55e" />
+              <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
+            </g>
+            {/* Yellow ball */}
+            <g transform="translate(92, 72)">
+              <circle cx="0" cy="0" r="6" fill="#eab308" />
+              <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
+            </g>
+            {/* Orange ball */}
+            <g transform="translate(132, 72)">
+              <circle cx="0" cy="0" r="6" fill="#f97316" />
+              <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
+            </g>
+
+            {/* Animated row of 5 purple balls forming a line — the core mechanic */}
+            {/* Existing 4 purple balls */}
+            <g transform="translate(52, 82)">
+              <circle cx="0" cy="0" r="5.5" fill="#a855f7" />
+              <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
+            </g>
+            <g transform="translate(72, 82)">
+              <circle cx="0" cy="0" r="5.5" fill="#a855f7" />
+              <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
+            </g>
+            <g transform="translate(92, 82)">
+              <circle cx="0" cy="0" r="5.5" fill="#a855f7" />
+              <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
+            </g>
+            <g transform="translate(112, 82)">
+              <circle cx="0" cy="0" r="5.5" fill="#a855f7" />
+              <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
+            </g>
+
+            {/* 5th purple ball slides in to complete the line */}
+            <g>
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="132 52; 132 52; 132 82; 132 82"
+                keyTimes="0; 0.3; 0.5; 1"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+              <circle cx="0" cy="0" r="5.5" fill="#a855f7" />
+              <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
+            </g>
+
+            {/* Match flash line — appears when 5th ball arrives */}
+            <line x1="46" y1="82" x2="138" y2="82" stroke="#c084fc" strokeWidth="2" opacity="0">
+              <animate attributeName="opacity" values="0;0;0.8;0" keyTimes="0;0.5;0.6;1" dur="3s" repeatCount="indefinite" />
+            </line>
+
+            {/* Sparkle effects on match */}
+            <g opacity="0">
+              <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.55;0.65;0.85" dur="3s" repeatCount="indefinite" />
+              <circle cx="62" cy="78" r="1.5" fill="#e9d5ff" />
+              <circle cx="82" cy="86" r="1" fill="#e9d5ff" />
+              <circle cx="102" cy="77" r="1.5" fill="#e9d5ff" />
+              <circle cx="122" cy="87" r="1" fill="#e9d5ff" />
+              <circle cx="132" cy="77" r="1.5" fill="#e9d5ff" />
+            </g>
+
+            {/* Cyan ball top-left */}
+            <g transform="translate(142, 42)">
+              <circle cx="0" cy="0" r="6" fill="#06b6d4" />
+              <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
+            </g>
+
+            {/* Selection ring on the moving ball — visible before move */}
+            <circle cx="132" cy="52" r="8" fill="none" stroke="#c084fc" strokeWidth="1.2" opacity="0">
+              <animate attributeName="opacity" values="0.7;0.7;0;0" keyTimes="0;0.25;0.35;1" dur="3s" repeatCount="indefinite" />
+              <animate attributeName="r" values="8;9;9;9" keyTimes="0;0.15;0.35;1" dur="3s" repeatCount="indefinite" />
+            </circle>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

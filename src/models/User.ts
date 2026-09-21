@@ -42,6 +42,7 @@ export interface IUser extends Document {
   pikachuHighestLevel: number;    // Pikachu Connect: highest level reached
   billiardsWins: number;          // Billiards: total wins
   billiardsTotal: number;         // Billiards: total games played
+  bestScoreLine98: number;        // Line 98: best score
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,12 +93,14 @@ const UserSchema = new Schema<IUser>(
     pikachuHighestLevel:    { type: Number, default: 0 },
     billiardsWins:          { type: Number, default: 0 },
     billiardsTotal:         { type: Number, default: 0 },
+    bestScoreLine98:        { type: Number, default: 0 },
   },
   { timestamps: true }
 );
 
 // Indexes for Leaderboard & Stats queries
 UserSchema.index({ bestScore2048: -1 });
+UserSchema.index({ bestScoreLine98: -1 });
 UserSchema.index({ pikachuBestScore: -1 });
 UserSchema.index({ caroWins: -1, caroTotal: -1 });
 UserSchema.index({ chessWins: -1, chessTotal: -1 });

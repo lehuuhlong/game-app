@@ -190,4 +190,16 @@ export const GAMES: GameInfo[] = [
     tags: ["Puzzle", "Single Player", "Classic", "Reflex"],
     color: "from-amber-400 via-yellow-500 to-orange-600",
   },
+  {
+    id: "line98",
+    title: "Line 98",
+    description:
+      "Classic Color Lines puzzle. Move balls on a 9×9 grid to align 5+ of the same color. Score combos with intersecting lines and earn length bonuses!",
+    thumbnail: "/games/line98/thumbnail.svg",
+    route: "/games/line98",
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ["Puzzle", "Single Player", "Strategy", "Classic"],
+    color: "from-violet-500 via-indigo-600 to-blue-700",
+  },
 ];

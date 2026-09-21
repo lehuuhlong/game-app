@@ -50,6 +50,11 @@ function toClientUser(user: InstanceType<typeof User>) {
     battleshipTotal: user.battleshipTotal ?? 0,
     monopolyWins: user.monopolyWins ?? 0,
     monopolyTotal: user.monopolyTotal ?? 0,
+    pikachuBestScore: (user as any).pikachuBestScore ?? 0,
+    pikachuHighestLevel: (user as any).pikachuHighestLevel ?? 0,
+    billiardsWins: (user as any).billiardsWins ?? 0,
+    billiardsTotal: (user as any).billiardsTotal ?? 0,
+    bestScoreLine98: user.bestScoreLine98 ?? 0,
   };
 }
 

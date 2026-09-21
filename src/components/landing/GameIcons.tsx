@@ -331,6 +331,34 @@ export function PikachuIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function Line98Icon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Grid hint */}
+      <rect x="2" y="2" width="20" height="20" rx="3" />
+      {/* Row of 5 balls — the core mechanic */}
+      <circle cx="6" cy="12" r="2.2" fill="currentColor" />
+      <circle cx="10" cy="12" r="2.2" fill="currentColor" />
+      <circle cx="14" cy="12" r="2.2" fill="currentColor" />
+      <circle cx="18" cy="12" r="2.2" fill="currentColor" />
+      {/* Single ball above — next move */}
+      <circle cx="10" cy="7" r="1.8" />
+      {/* Connecting line for matched row */}
+      <line x1="4" y1="12" x2="20" y2="12" strokeDasharray="1.5 1" opacity="0.5" />
+    </svg>
+  );
+}
+
 /**
  * Returns the matching SVG icon for any game ID
  */
@@ -364,6 +392,8 @@ export function getGameSvgIcon(id: string, className = '', size = 20) {
       return <WordChainIcon className={className} size={size} />;
     case 'billiards':
       return <BilliardsIcon className={className} size={size} />;
+    case 'line98':
+      return <Line98Icon className={className} size={size} />;
     default:
       return <Puzzle2048Icon className={className} size={size} />;
   }

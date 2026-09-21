@@ -383,6 +383,24 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "line98") {
+      const leaderboard = await User.find({ bestScoreLine98: { $gt: 0 } })
+        .select("username avatarUrl bestScoreLine98")
+        .sort({ bestScoreLine98: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "line98",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.bestScoreLine98,
+        })),
+      });
+    }
+
     return NextResponse.json({ error: "Missing or invalid ?game= parameter" }, { status: 400 });
   } catch (error) {
     console.error("GET /api/leaderboard error:", error);

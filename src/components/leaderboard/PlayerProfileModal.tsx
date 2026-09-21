@@ -44,6 +44,7 @@ interface PlayerProfileData {
   billiardsTotal: number;
   pikachuBestScore?: number;
   pikachuHighestLevel?: number;
+  bestScoreLine98?: number;
 }
 
 interface PlayerProfileModalProps {
@@ -375,6 +376,17 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     <strong className="text-foreground">Level {profile.pikachuHighestLevel || 1}</strong>
                   </div>
                 </div>
+
+                {/* Line 98 */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>🔮</span>
+                    <span className="font-semibold text-foreground">Line 98</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px]">
+                    Best: <strong className="text-foreground">{profile.bestScoreLine98?.toLocaleString() || 0} pts</strong>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -392,7 +404,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     );
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
-                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer'].includes(m.gameType);
+                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer', 'line98'].includes(m.gameType);
 
                     return (
                       <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs">
@@ -415,7 +427,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             </span>
                           )}
                           <span className="font-semibold text-foreground capitalize">
-                            {m.gameType === 'pikachu' ? 'Pikachu Connect' : m.gameType}
+                            {m.gameType === 'pikachu' ? 'Pikachu Connect' : m.gameType === 'line98' ? 'Line 98' : m.gameType}
                           </span>
                           {/* Game Specific Details */}
                           {m.gameType === 'wordle' && m.gameData?.solution ? (
@@ -439,10 +451,11 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 <span>{capitalize(m.gameData?.difficulty || 'Normal')}</span>
                               )}
                             </span>
-                          ) : m.gameType === '2048' || m.gameType === 'pikachu' || m.gameType === 'trex' || m.gameType === 'flappybird' || m.gameType === 'aimtrainer' ? (
+                          ) : m.gameType === '2048' || m.gameType === 'pikachu' || m.gameType === 'trex' || m.gameType === 'flappybird' || m.gameType === 'aimtrainer' || m.gameType === 'line98' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
                               {m.gameType === 'pikachu' && m.gameData?.level ? ` • Lvl ${m.gameData.level}` : ''}
+                              {m.gameType === 'line98' && m.gameData?.moveCount ? ` • ${m.gameData.moveCount} moves` : ''}
                             </span>
                           ) : (
                             <span className="text-foreground-muted text-[11px]">

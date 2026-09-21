@@ -109,6 +109,15 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
       <path d="M7 8h10M12 8v8" />
     </svg>
   ),
+  line98: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <circle cx="6" cy="6" r="3" fill="currentColor" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+      <circle cx="18" cy="18" r="3" fill="currentColor" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+    </svg>
+  ),
 };
 
 function formatTime(seconds: number): string {
@@ -253,24 +262,35 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
+    if (gameType === "line98") {
+      const score = (p.score ?? gameData.score ?? 0).toLocaleString();
+      const moves = gameData.moveCount ? ` • ${gameData.moveCount} moves` : "";
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20 font-mono">
+          {score} pts{moves}
+        </span>
+      );
+    }
+
     // Default fallback
+    const scoreText = (p.score !== undefined && p.score > 0) ? ` • ${p.score.toLocaleString()} pts` : "";
     if (isWin) {
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          WIN
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+          WIN{scoreText}
         </span>
       );
     }
     if (isLoss) {
       return (
-        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
-          LOSS
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono">
+          {p.score > 0 ? `${p.score.toLocaleString()} pts` : "LOSS"}
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
-        {p.score !== undefined ? `${p.score} pts` : "Played"}
+      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border font-mono">
+        {p.score !== undefined ? `${p.score.toLocaleString()} pts` : "Played"}
       </span>
     );
   };
@@ -303,6 +323,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="trex">T-Rex</option>
             <option value="flappybird">Flappy Bird</option>
             <option value="wordle">Wordle</option>
+            <option value="line98">Line 98</option>
           </select>
         </div>
 
@@ -363,6 +384,11 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                       >
                         <Avatar avatarUrl={p1.avatarUrl} username={p1.username} />
                         <span>{p1.username}</span>
+                        {p1.score !== undefined && p1.score > 0 && (
+                          <span className="font-mono text-[11px] text-amber-400 font-bold">
+                            ({p1.score.toLocaleString()} pts)
+                          </span>
+                        )}
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
                             p1.result === "win"
@@ -386,6 +412,11 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                       >
                         <Avatar avatarUrl={p2.avatarUrl} username={p2.username} />
                         <span>{p2.username}</span>
+                        {p2.score !== undefined && p2.score > 0 && (
+                          <span className="font-mono text-[11px] text-amber-400 font-bold">
+                            ({p2.score.toLocaleString()} pts)
+                          </span>
+                        )}
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
                             p2.result === "win"
