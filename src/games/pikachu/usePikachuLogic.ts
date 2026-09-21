@@ -67,7 +67,10 @@ export function usePikachuLogic() {
       setActivePath(null);
       setPairsLeft((config.rows * config.cols) / 2);
       setTimeLeft(config.timeLimit);
-      setHintsLeft(INITIAL_HINTS);
+      // Hints are limited to 3 max for the entire run; do not reset on level up
+      if (idx === 0) {
+        setHintsLeft(INITIAL_HINTS);
+      }
       setShufflesLeft(INITIAL_SHUFFLES);
       setCombo(0);
       setScore(carryOverScore);

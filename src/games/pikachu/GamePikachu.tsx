@@ -22,13 +22,11 @@ export function GamePikachu() {
     timeLeft,
     combo,
     hintsLeft,
-    shufflesLeft,
     isMuted,
     status,
     message,
     selectCell,
     useHint,
-    useShuffle,
     togglePause,
     toggleMute,
     nextLevel,
@@ -324,49 +322,26 @@ export function GamePikachu() {
       </div>
 
       {/* ── 4. Control Action Bar ────────────────────────────────────── */}
-      <div className="w-full max-w-5xl mt-4 sm:mt-6 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-surface/70 border border-border/80 backdrop-blur-xl">
+      <div className="w-full max-w-5xl mt-4 sm:mt-6 flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-surface/70 border border-border/80 backdrop-blur-xl shadow-lg">
         {/* Status: Pairs left */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-foreground-secondary">
           <span>Pairs Left:</span>
           <span className="font-mono font-bold text-foreground">{pairsLeft} pairs</span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Hint Button */}
+        {/* Hint Button (Max 3 for entire session, no reset on level up) */}
+        <div>
           <button
             type="button"
             onClick={useHint}
             disabled={hintsLeft <= 0 || status !== 'playing'}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-surface border border-border hover:border-sky-400/60 hover:bg-surface-hover text-xs sm:text-sm font-semibold transition-all disabled:opacity-40 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border hover:border-sky-400/60 hover:bg-surface-hover text-xs sm:text-sm font-semibold transition-all disabled:opacity-40 disabled:pointer-events-none"
+            title="Hint (Max 3 for the entire run)"
           >
             <span>💡 Hint</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-sky-500/20 text-sky-400 font-mono text-[10px] font-bold">
-              {hintsLeft}
+            <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-mono text-[11px] font-bold">
+              {hintsLeft} / 3
             </span>
-          </button>
-
-          {/* Shuffle Button */}
-          <button
-            type="button"
-            onClick={useShuffle}
-            disabled={shufflesLeft <= 0 || status !== 'playing'}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-surface border border-border hover:border-amber-400/60 hover:bg-surface-hover text-xs sm:text-sm font-semibold transition-all disabled:opacity-40 disabled:pointer-events-none"
-          >
-            <span>🔀 Shuffle</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold">
-              {shufflesLeft}
-            </span>
-          </button>
-
-          {/* Reset Button */}
-          <button
-            type="button"
-            onClick={restartGame}
-            className="px-3 sm:px-4 py-2 rounded-xl bg-surface border border-border hover:border-red-400/60 hover:bg-surface-hover text-xs sm:text-sm font-semibold text-foreground-secondary hover:text-red-400 transition-all"
-            title="Restart from Level 1"
-          >
-            🔄 Restart
           </button>
         </div>
       </div>
