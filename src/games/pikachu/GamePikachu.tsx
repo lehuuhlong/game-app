@@ -188,7 +188,7 @@ export function GamePikachu() {
               )}
             </button>
 
-            {/* Pause Button */}
+            {/* Pause Button 
             <button
               type="button"
               onClick={togglePause}
@@ -206,6 +206,7 @@ export function GamePikachu() {
                 </svg>
               )}
             </button>
+            */}
           </div>
         </div>
 
