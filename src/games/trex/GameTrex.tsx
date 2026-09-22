@@ -4,15 +4,30 @@ import { useEffect, useRef, useState } from "react";
 import { useTrexEngine } from "./useTrexEngine";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
+import { useGameSession } from "@/hooks/useGameSession";
 
 export function GameTrex() {
   const { canvasRef, gameState, startGame, handleTouch, config } =
     useTrexEngine();
   const { user, refreshUser } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession("trex");
 
   const scoreSavedRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wasPlayingRef = useRef(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username]);
+
+  // ── Auto-renew session on game start/restart (Space, ↑, tap canvas, or restart button) ──
+  useEffect(() => {
+    if (gameState.isPlaying && !wasPlayingRef.current) {
+      startSession(user?.id, user?.username, true);
+    }
+    wasPlayingRef.current = gameState.isPlaying;
+  }, [gameState.isPlaying, startSession, user?.id, user?.username]);
 
   // ── Responsive canvas sizing ────────────────────────────────────
   const [canvasScale, setCanvasScale] = useState(1);
@@ -46,40 +61,50 @@ export function GameTrex() {
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
-    // Record match history
-    fetch("/api/matches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameType: "trex",
-        players: [
-          {
-            userId: user?.id,
-            username: user ? user.username : "Guest",
-            score: gameState.score,
-            result: gameState.score >= 500 ? "win" : "loss",
-          },
-        ],
-        duration: 0,
-        gameData: { score: gameState.score },
-      }),
-    }).catch((err) => console.error("Failed to save T-Rex match:", err));
+    (async () => {
+      // Record match history
+      const sessionToken = await ensureSessionToken(user?.id, user?.username);
+      const elapsed = getElapsedDuration();
+      fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "trex",
+          sessionToken,
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : "Guest",
+              score: gameState.score,
+              result: gameState.score >= 500 ? "win" : "loss",
+            },
+          ],
+          duration: elapsed,
+          gameData: { score: gameState.score },
+        }),
+      }).catch((err) => console.error("Failed to save T-Rex match:", err));
 
-    if (!user) return;
+      if (!user) return;
 
-    fetch(`/api/users/${user.id}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "trex", score: gameState.score }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.bestScoreTrex !== undefined) {
-          refreshUser({ bestScoreTrex: d.bestScoreTrex });
-        }
+      fetch(`/api/users/${user.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          game: "trex",
+          score: gameState.score,
+          sessionToken,
+          duration: elapsed,
+        }),
       })
-      .catch((err) => console.error("Failed to save T-Rex score:", err));
-  }, [gameState.isGameOver, gameState.score, user, refreshUser]);
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.bestScoreTrex !== undefined) {
+            refreshUser({ bestScoreTrex: d.bestScoreTrex });
+          }
+        })
+        .catch((err) => console.error("Failed to save T-Rex score:", err));
+    })();
+  }, [gameState.isGameOver, gameState.score, user, refreshUser, ensureSessionToken, getElapsedDuration]);
 
   const displayHighScore = user
     ? Math.max(user.bestScoreTrex || 0, gameState.highScore)
@@ -126,7 +151,7 @@ export function GameTrex() {
               <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
                 Best
               </span>
-              <span className="text-lg font-bold text-accent tabular-nums">
+              <span className="text-lg font-bold text-accent tabular-nums" suppressHydrationWarning>
                 {displayHighScore}
               </span>
             </div>

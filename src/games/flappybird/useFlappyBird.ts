@@ -279,7 +279,7 @@ export function useFlappyBird(externalHighScore = 0) {
 
   const [gameState, setGameState] = useState<FlappyGameState>({
     score: 0,
-    highScore: Math.max(readHighScore(), externalHighScore),
+    highScore: externalHighScore || 0,
     isPlaying: false,
     isGameOver: false,
     isNewHighScore: false,

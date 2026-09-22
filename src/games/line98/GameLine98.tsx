@@ -19,6 +19,7 @@ import { useLine98, GamePhase, ScoreEvent, PreviewBall } from "./useLine98";
 import { BallColor, BOARD_SIZE, Coord, Cell } from "./types";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
+import { useGameSession } from "@/hooks/useGameSession";
 
 // ─── Ball Color Config ───────────────────────────────────────────────
 
@@ -336,12 +337,27 @@ export function GameLine98() {
     onRemovalComplete,
     onSpawnComplete,
     dismissScoreEvent,
+    getActionLog,
   } = game;
 
   const { user, refreshUser } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession("line98");
   const matchSavedRef = useRef(false);
   const userScoreSavedRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
+  const wasGameOverRef = useRef(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username]);
+
+  // Auto-renew session when game restarts after game over
+  useEffect(() => {
+    if (!isGameOver && wasGameOverRef.current) {
+      startSession(user?.id, user?.username, true);
+    }
+    wasGameOverRef.current = isGameOver;
+  }, [isGameOver, startSession, user?.id, user?.username]);
 
   const displayHighScore = Math.max(user?.bestScoreLine98 || 0, highScore);
 
@@ -389,55 +405,69 @@ export function GameLine98() {
   useEffect(() => {
     if (!isGameOver) return;
 
-    // 1. Save match history once per game over
-    if (!matchSavedRef.current && score > 0) {
-      matchSavedRef.current = true;
-      fetch("/api/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameType: "line98",
-          players: [
-            {
-              userId: user?.id || null,
-              username: user ? user.username : "Guest",
-              score,
-              result: score >= 500 ? "win" : "loss",
-            },
-          ],
-          duration: 0,
-          gameData: { score, moveCount },
-        }),
-      }).catch((err) => console.error("Failed to save Line 98 match:", err));
-    }
+    (async () => {
+      const sessionToken = await ensureSessionToken(user?.id, user?.username);
+      const elapsed = getElapsedDuration();
+      const actionLog = getActionLog();
 
-    // 2. Save user score if logged in and exceeds current DB high score
-    const userDbBest = user?.bestScoreLine98 || 0;
-    if (user && !userScoreSavedRef.current && score > 0) {
-      userScoreSavedRef.current = true;
-      if (score > userDbBest) {
-        fetch(`/api/users/${user.id}/score`, {
-          method: "PATCH",
+      // 1. Save match history once per game over
+      if (!matchSavedRef.current && score > 0) {
+        matchSavedRef.current = true;
+        fetch("/api/matches", {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ game: "line98", score }),
-        })
-          .then((r) => r.json())
-          .then((d) => {
-            if (d.bestScoreLine98 !== undefined) {
-              refreshUser({ bestScoreLine98: d.bestScoreLine98 });
-            }
-          })
-          .catch((err) => console.error("Failed to save score:", err));
+          body: JSON.stringify({
+            gameType: "line98",
+            sessionToken,
+            players: [
+              {
+                userId: user?.id || null,
+                username: user ? user.username : "Guest",
+                score,
+                result: score >= 500 ? "win" : "loss",
+              },
+            ],
+            duration: elapsed,
+            gameData: { score, moveCount, actionLog },
+          }),
+        }).catch((err) => console.error("Failed to save Line 98 match:", err));
       }
-    }
-  }, [isGameOver, score, moveCount, user, refreshUser]);
+
+      // 2. Save user score if logged in and exceeds current DB high score
+      const userDbBest = user?.bestScoreLine98 || 0;
+      if (user && !userScoreSavedRef.current && score > 0) {
+        userScoreSavedRef.current = true;
+        if (score > userDbBest) {
+          fetch(`/api/users/${user.id}/score`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              game: "line98",
+              score,
+              sessionToken,
+              moveCount,
+              actionLog,
+            }),
+          })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.bestScoreLine98 !== undefined) {
+                refreshUser({ bestScoreLine98: d.bestScoreLine98 });
+              }
+            })
+            .catch((err) => console.error("Failed to save score:", err));
+        }
+      }
+    })();
+  }, [isGameOver, score, moveCount, user, refreshUser, ensureSessionToken, getElapsedDuration, getActionLog]);
 
   const handleRestart = useCallback(() => {
     matchSavedRef.current = false;
     userScoreSavedRef.current = false;
     setShowLogin(false);
     resetGame();
-  }, [resetGame]);
+    startSession(user?.id, user?.username, true);
+  }, [resetGame, startSession, user?.id, user?.username]);
 
   // ── Helper: Check if a cell is in the removing set ─────────────────
   const isCellRemoving = useCallback(

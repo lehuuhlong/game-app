@@ -33,7 +33,7 @@ export async function PATCH(
     const user = await User.findByIdAndUpdate(
       id,
       { avatarUrl },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!user) {

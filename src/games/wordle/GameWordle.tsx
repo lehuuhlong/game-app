@@ -7,6 +7,7 @@ import { WordleTile } from "./WordleTile";
 import { WordleKeyboard } from "./WordleKeyboard";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
+import { useGameSession } from "@/hooks/useGameSession";
 
 export function GameWordle() {
   const {
@@ -21,8 +22,13 @@ export function GameWordle() {
   } = useWordle();
 
   const { user, refreshUser } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession("wordle");
   const scoreSavedRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username]);
 
   const gameOver = gameStatus === "won" || gameStatus === "lost";
 
@@ -54,57 +60,64 @@ export function GameWordle() {
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
-    const finalGuessesCount = currentRow;
+    (async () => {
+      const finalGuessesCount = currentRow;
+      const sessionToken = await ensureSessionToken(user?.id, user?.username);
+      const elapsed = getElapsedDuration();
 
-    // Record match history
-    fetch("/api/matches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameType: "wordle",
-        players: [
-          {
-            userId: user?.id,
-            username: user ? user.username : "Guest",
-            score: gameStatus === "won" ? 1 : 0,
-            result: gameStatus === "won" ? "win" : "loss",
-          },
-        ],
-        duration: 0,
-        gameData: { won: gameStatus === "won", solution, guessesCount: finalGuessesCount },
-      }),
-    }).catch((err) => console.error("Failed to save wordle match:", err));
+      // Record match history
+      fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "wordle",
+          sessionToken,
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : "Guest",
+              score: gameStatus === "won" ? 1 : 0,
+              result: gameStatus === "won" ? "win" : "loss",
+            },
+          ],
+          duration: elapsed,
+          gameData: { won: gameStatus === "won", solution, guessesCount: finalGuessesCount },
+        }),
+      }).catch((err) => console.error("Failed to save wordle match:", err));
 
-    if (!user) return;
+      if (!user) return;
 
-    fetch(`/api/users/${user.id}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        game: "wordle",
-        won: gameStatus === "won",
-        guessesCount: gameStatus === "won" ? finalGuessesCount : undefined,
-      }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        try {
-          if (refreshUser) {
-            refreshUser({
-              wordleWins: d.wordleWins,
-              wordleTotal: d.wordleTotal,
-              wordleGuesses1: d.wordleGuesses1,
-              wordleGuesses2: d.wordleGuesses2,
-              wordleGuesses3: d.wordleGuesses3,
-              wordleGuesses4: d.wordleGuesses4,
-              wordleGuesses5: d.wordleGuesses5,
-              wordleGuesses6: d.wordleGuesses6,
-            });
-          }
-        } catch { /* ignore */ }
+      fetch(`/api/users/${user.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          game: "wordle",
+          won: gameStatus === "won",
+          guessesCount: gameStatus === "won" ? finalGuessesCount : undefined,
+          sessionToken,
+          duration: elapsed,
+        }),
       })
-      .catch((err) => console.error("Failed to save wordle score:", err));
-  }, [gameOver, gameStatus, user, solution, currentRow, refreshUser]);
+        .then((r) => r.json())
+        .then((d) => {
+          try {
+            if (refreshUser) {
+              refreshUser({
+                wordleWins: d.wordleWins,
+                wordleTotal: d.wordleTotal,
+                wordleGuesses1: d.wordleGuesses1,
+                wordleGuesses2: d.wordleGuesses2,
+                wordleGuesses3: d.wordleGuesses3,
+                wordleGuesses4: d.wordleGuesses4,
+                wordleGuesses5: d.wordleGuesses5,
+                wordleGuesses6: d.wordleGuesses6,
+              });
+            }
+          } catch { /* ignore */ }
+        })
+        .catch((err) => console.error("Failed to save wordle score:", err));
+    })();
+  }, [gameOver, gameStatus, user, solution, currentRow, refreshUser, ensureSessionToken, getElapsedDuration]);
 
   const isRestartingRef = useRef(false);
 
@@ -119,9 +132,10 @@ export function GameWordle() {
     // Wait for the exit animation to finish before resetting the game state
     setTimeout(() => {
       restart();
+      startSession(user?.id, user?.username, true);
       isRestartingRef.current = false;
     }, 500);
-  }, [restart]);
+  }, [restart, startSession, user?.id, user?.username]);
 
   return (
     <div className="flex flex-col items-center gap-6">

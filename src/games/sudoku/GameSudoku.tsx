@@ -8,6 +8,7 @@ import { Numpad } from './Numpad';
 import { Difficulty, MAX_ERRORS, BOARD_SIZE, EMPTY_CELL, formatTime } from './utils';
 import { useAuth } from '@/components/auth';
 import { LoginModal } from '@/components/auth/LoginModal';
+import { useGameSession } from '@/hooks/useGameSession';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -184,16 +185,26 @@ export function GameSudoku() {
 
   const [savedTime, setSavedTime] = useState<number | null>(null);
   const { user } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken } = useGameSession('sudoku');
   const [showLogin, setShowLogin] = useState(false);
   const scoreSavedRef = useRef(false);
+  const wasPlayingRef = useRef(false);
 
-  // Reset flags when game starts
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username, difficulty]);
+
+  // Reset flags and auto-renew session when game starts/restarts
   useEffect(() => {
     if (gameState === 'playing') {
       scoreSavedRef.current = false;
       setShowLogin(false);
+      if (!wasPlayingRef.current) {
+        startSession(user?.id, user?.username, true);
+      }
     }
-  }, [gameState]);
+    wasPlayingRef.current = gameState === 'playing';
+  }, [gameState, startSession, user?.id, user?.username]);
 
   // Show login if won and not logged in
   useEffect(() => {
@@ -210,73 +221,85 @@ export function GameSudoku() {
       if (scoreSavedRef.current) return;
       scoreSavedRef.current = true;
 
-      // Save match to global history
-      fetch('/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameType: 'sudoku',
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : 'Guest',
-              score: elapsedSeconds,
-              result: 'win',
-            },
-          ],
-          duration: elapsedSeconds,
-          gameData: { difficulty, time: elapsedSeconds },
-        }),
-      }).catch((err) => console.error('Failed to save sudoku match:', err));
+      (async () => {
+        // Save match to global history
+        const sessionToken = await ensureSessionToken(user?.id, user?.username);
+        fetch('/api/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameType: 'sudoku',
+            sessionToken,
+            players: [
+              {
+                userId: user?.id,
+                username: user ? user.username : 'Guest',
+                score: elapsedSeconds,
+                result: 'win',
+              },
+            ],
+            duration: elapsedSeconds,
+            gameData: { difficulty, time: elapsedSeconds },
+          }),
+        }).catch((err) => console.error('Failed to save sudoku match:', err));
 
-      if (!user) return;
+        if (!user) return;
 
-      fetch(`/api/users/${user.id}/score`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ game: 'sudoku', difficulty, time: elapsedSeconds }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          try {
-            const stored = localStorage.getItem('game-portal-user');
-            if (stored) {
-              const u = JSON.parse(stored);
-              if (d.sudokuBestEasy !== undefined) u.sudokuBestEasy = d.sudokuBestEasy;
-              if (d.sudokuBestMedium !== undefined) u.sudokuBestMedium = d.sudokuBestMedium;
-              if (d.sudokuBestHard !== undefined) u.sudokuBestHard = d.sudokuBestHard;
-              localStorage.setItem('game-portal-user', JSON.stringify(u));
-            }
-          } catch {
-            /* ignore */
-          }
+        fetch(`/api/users/${user.id}/score`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game: 'sudoku',
+            difficulty,
+            time: elapsedSeconds,
+            sessionToken,
+          }),
         })
-        .catch(console.error);
+          .then((r) => r.json())
+          .then((d) => {
+            try {
+              const stored = localStorage.getItem('game-portal-user');
+              if (stored) {
+                const u = JSON.parse(stored);
+                if (d.sudokuBestEasy !== undefined) u.sudokuBestEasy = d.sudokuBestEasy;
+                if (d.sudokuBestMedium !== undefined) u.sudokuBestMedium = d.sudokuBestMedium;
+                if (d.sudokuBestHard !== undefined) u.sudokuBestHard = d.sudokuBestHard;
+                localStorage.setItem('game-portal-user', JSON.stringify(u));
+              }
+            } catch {
+              /* ignore */
+            }
+          })
+          .catch(console.error);
+      })();
     } else if (gameState === 'gameover') {
       if (scoreSavedRef.current) return;
       scoreSavedRef.current = true;
 
-      // Save loss to match history
-      fetch('/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameType: 'sudoku',
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : 'Guest',
-              score: 0,
-              result: 'loss',
-            },
-          ],
-          duration: elapsedSeconds,
-          gameData: { difficulty, time: elapsedSeconds },
-        }),
-      }).catch((err) => console.error('Failed to save sudoku match:', err));
+      (async () => {
+        const sessionToken = await ensureSessionToken(user?.id, user?.username);
+        // Save loss to match history
+        fetch('/api/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameType: 'sudoku',
+            sessionToken,
+            players: [
+              {
+                userId: user?.id,
+                username: user ? user.username : 'Guest',
+                score: 0,
+                result: 'loss',
+              },
+            ],
+            duration: elapsedSeconds,
+            gameData: { difficulty, time: elapsedSeconds },
+          }),
+        }).catch((err) => console.error('Failed to save sudoku match:', err));
+      })();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, user, difficulty, elapsedSeconds]);
+  }, [gameState, user, difficulty, elapsedSeconds, ensureSessionToken]);
 
   // Compute remaining counts for each digit
   const remainingCounts = useCallback(() => {

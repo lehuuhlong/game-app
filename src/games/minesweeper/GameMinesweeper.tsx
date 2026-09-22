@@ -7,6 +7,7 @@ import { MinesweeperCell } from './MinesweeperCell';
 import { DIFFICULTY_PRESETS, type Difficulty } from './types';
 import { LoginModal } from '@/components/auth/LoginModal';
 import { useAuth } from '@/components/auth';
+import { useGameSession } from '@/hooks/useGameSession';
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -50,18 +51,32 @@ export function GameMinesweeper() {
     revealCell,
     toggleFlag,
     chordReveal,
-    restart,
+    restart: restartGame,
     changeDifficulty,
     isGameInProgress,
   } = useMinesweeper('beginner');
 
-  const { user } = useAuth();
-  const scoreSavedRef = useRef(false);
+  const { user, refreshUser } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken } = useGameSession('minesweeper');
   const [showLogin, setShowLogin] = useState(false);
+  const scoreSavedRef = useRef(false);
+  const wasGameOverRef = useRef(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username, difficulty]);
 
   const config = DIFFICULTY_PRESETS[difficulty];
   const cellSize = useCellSize(config.cols);
   const gameOver = gameStatus === 'won' || gameStatus === 'lost';
+
+  // Auto-renew session when game restarts after game over
+  useEffect(() => {
+    if (gameStatus === 'playing' && wasGameOverRef.current) {
+      startSession(user?.id, user?.username, true);
+    }
+    wasGameOverRef.current = gameOver;
+  }, [gameStatus, gameOver, startSession, user?.id, user?.username]);
 
   // ── Login prompt on game end (if not logged in) ─────────────────
   useEffect(() => {
@@ -81,34 +96,38 @@ export function GameMinesweeper() {
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
-    // Record match history
-    fetch('/api/matches', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gameType: 'minesweeper',
-        players: [
-          {
-            userId: user?.id,
-            username: user ? user.username : 'Guest',
-            score: elapsedTime,
-            result: gameStatus === 'won' ? 'win' : 'loss',
-          },
-        ],
-        duration: elapsedTime,
-        gameData: { difficulty, time: elapsedTime },
-      }),
-    }).catch((err) => console.error('Failed to save minesweeper match:', err));
+    (async () => {
+      // Record match history
+      const sessionToken = await ensureSessionToken(user?.id, user?.username);
+      fetch('/api/matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameType: 'minesweeper',
+          sessionToken,
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : 'Guest',
+              score: elapsedTime,
+              result: gameStatus === 'won' ? 'win' : 'loss',
+            },
+          ],
+          duration: elapsedTime,
+          gameData: { difficulty, time: elapsedTime },
+        }),
+      }).catch((err) => console.error('Failed to save minesweeper match:', err));
 
-    if (!user || gameStatus !== 'won') return;
+      if (!user || gameStatus !== 'won') return;
 
-    fetch(`/api/users/${user.id}/score`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      fetch(`/api/users/${user.id}/score`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         game: 'minesweeper',
         difficulty,
         time: elapsedTime,
+        sessionToken,
       }),
     })
       .then((r) => r.json())
@@ -127,7 +146,8 @@ export function GameMinesweeper() {
         }
       })
       .catch((err) => console.error('Failed to save minesweeper score:', err));
-  }, [gameOver, gameStatus, user, difficulty, elapsedTime]);
+    })();
+  }, [gameOver, gameStatus, user, difficulty, elapsedTime, ensureSessionToken]);
 
   // ── Confirmation dialog state ───────────────────────────────────
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);
@@ -171,8 +191,9 @@ export function GameMinesweeper() {
   const handleRestart = useCallback(() => {
     scoreSavedRef.current = false;
     setShowLogin(false);
-    restart();
-  }, [restart]);
+    restartGame();
+    startSession(user?.id, user?.username, true);
+  }, [restartGame, startSession, user?.id, user?.username]);
 
   return (
     <div className="flex flex-col items-center gap-6">

@@ -7,6 +7,7 @@ import { ScoreBoard } from "./ScoreBoard";
 import { GameOverlay } from "./GameOverlay";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
+import { useGameSession } from "@/hooks/useGameSession";
 import type { Direction } from "./types";
 
 export function Game2048() {
@@ -24,9 +25,23 @@ export function Game2048() {
   } = use2048Logic();
 
   const { user, refreshUser } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession("2048");
   const boardRef = useRef<HTMLDivElement>(null);
   const scoreSavedRef = useRef(false);
   const [showLogin, setShowLogin] = useState(false);
+  const wasPlayingRef = useRef(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username]);
+
+  // Auto-renew session when game transitions to playing
+  useEffect(() => {
+    if (gameStatus === "playing" && !wasPlayingRef.current) {
+      startSession(user?.id, user?.username, true);
+    }
+    wasPlayingRef.current = gameStatus === "playing";
+  }, [gameStatus, startSession, user?.id, user?.username]);
 
   // Show login prompt when game ends and user is not logged in
   useEffect(() => {
@@ -47,42 +62,53 @@ export function Game2048() {
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
-    const highestTile = Math.max(...tiles.map((t) => t.value), 0);
+    (async () => {
+      const highestTile = Math.max(...tiles.map((t) => t.value), 0);
+      const sessionToken = await ensureSessionToken(user?.id, user?.username);
+      const elapsed = getElapsedDuration();
 
-    // Save to global matches history
-    fetch("/api/matches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameType: "2048",
-        players: [
-          {
-            userId: user?.id,
-            username: user ? user.username : "Guest",
-            score,
-            result: gameStatus === "won" ? "win" : "loss",
-          },
-        ],
-        duration: 0,
-        gameData: { score, highestTile },
-      }),
-    }).catch((err) => console.error("Failed to save 2048 match:", err));
+      // Save to global matches history
+      fetch("/api/matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "2048",
+          sessionToken,
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : "Guest",
+              score,
+              result: gameStatus === "won" ? "win" : "loss",
+            },
+          ],
+          duration: elapsed,
+          gameData: { score, highestTile, moveCount },
+        }),
+      }).catch((err) => console.error("Failed to save 2048 match:", err));
 
-    if (!user) return;
+      if (!user) return;
 
-    fetch(`/api/users/${user.id}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "2048", score, highestTile }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.bestScore2048 !== undefined) {
-          refreshUser({ bestScore2048: d.bestScore2048, highest2048Tile: d.highest2048Tile });
-        }
+      fetch(`/api/users/${user.id}/score`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          game: "2048",
+          score,
+          highestTile,
+          sessionToken,
+          duration: elapsed,
+        }),
       })
-      .catch((err) => console.error("Failed to save score:", err));
-  }, [gameStatus, score, tiles, user, refreshUser]);
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.bestScore2048 !== undefined) {
+            refreshUser({ bestScore2048: d.bestScore2048, highest2048Tile: d.highest2048Tile });
+          }
+        })
+        .catch((err) => console.error("Failed to save score:", err));
+    })();
+  }, [gameStatus, score, tiles, user, refreshUser, moveCount, ensureSessionToken, getElapsedDuration]);
 
   const displayBestScore = user ? Math.max(user.bestScore2048 || 0, score) : bestScore;
 
@@ -90,7 +116,8 @@ export function Game2048() {
     scoreSavedRef.current = false;
     setShowLogin(false);
     restart();
-  }, [restart]);
+    startSession(user?.id, user?.username, true);
+  }, [restart, startSession, user?.id, user?.username]);
 
   // ── Keyboard Controls ──────────────────────────────────────────
   const handleKeyDown = useCallback(

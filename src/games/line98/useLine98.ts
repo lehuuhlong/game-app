@@ -109,6 +109,8 @@ export interface Line98State {
   onSpawnComplete: () => void;
   /** Dismiss a score event popup. */
   dismissScoreEvent: (id: number) => void;
+  /** Get full move action log for anti-cheat verification */
+  getActionLog: () => Array<{ t: number; from: { r: number; c: number }; to: { r: number; c: number } }>;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────
@@ -269,6 +271,9 @@ export function useLine98(): Line98State {
   } | null>(null);
 
   const scoreEventIdRef = useRef(0);
+  const actionLogRef = useRef<
+    Array<{ t: number; from: { r: number; c: number }; to: { r: number; c: number } }>
+  >([]);
 
   // ── Load high score from localStorage ──────────────────────────────
   useEffect(() => {
@@ -315,6 +320,7 @@ export function useLine98(): Line98State {
 
   // ── Initialize Game (spawn first 5 balls + place 3 previews) ───────
   const initGame = useCallback(() => {
+    actionLogRef.current = [];
     const newBoard = createEmptyBoard();
     const initialColors = Array.from({ length: INITIAL_SPAWN_COUNT }, () =>
       randomColor()
@@ -417,6 +423,13 @@ export function useLine98(): Line98State {
     const color = newBoard[from.row][from.col];
     newBoard[from.row][from.col] = null;
     newBoard[to.row][to.col] = color;
+
+    // Record action log entry with timestamp for anti-cheat verification
+    actionLogRef.current.push({
+      t: Date.now(),
+      from: { r: from.row, c: from.col },
+      to: { r: to.row, c: to.col },
+    });
 
     // Check for matches at the destination
     const matchResult = detectMatches(newBoard, to.row, to.col);
@@ -527,5 +540,6 @@ export function useLine98(): Line98State {
     onRemovalComplete,
     onSpawnComplete,
     dismissScoreEvent,
+    getActionLog: useCallback(() => actionLogRef.current, []),
   };
 }

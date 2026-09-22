@@ -128,18 +128,83 @@ export async function GET(request: Request) {
   }
 }
 
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { verifyAndConsumeGameSession } from "@/lib/gameSession";
+
+const MULTIPLAYER_GAMES = [
+  "caro",
+  "chess",
+  "battleship",
+  "wordchain",
+  "monopoly",
+  "billiards",
+];
+
 export async function POST(request: Request) {
   try {
-    await dbConnect();
+    const clientIp = getClientIp(request);
+    const body = await request.json().catch(() => ({}));
+    const { gameType, players, duration, gameData, sessionToken } = body;
 
-    const body = await request.json();
-    const { gameType, players, duration, gameData } = body;
+    const isFastArcade = gameType === "flappybird" || gameType === "trex";
+    const limit = isFastArcade ? 60 : 25;
+    const rateCheck = checkRateLimit(`match_post:${clientIp}`, limit, 60_000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: "Too many match submissions. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(rateCheck.retryAfter) } }
+      );
+    }
+
+    await dbConnect();
 
     if (!gameType || !players || !Array.isArray(players) || players.length === 0) {
       return NextResponse.json(
         { error: "gameType and players[] are required" },
         { status: 400 }
       );
+    }
+
+    // Multiplayer integrity check: At least 2 distinct players, at most 1 winner
+    if (MULTIPLAYER_GAMES.includes(gameType)) {
+      if (players.length < 2) {
+        return NextResponse.json(
+          { error: "Multiplayer match requires at least 2 distinct players" },
+          { status: 400 }
+        );
+      }
+      const p1Name = (players[0].username || "").trim().toLowerCase();
+      const p2Name = (players[1].username || "").trim().toLowerCase();
+      if (p1Name && p2Name && p1Name === p2Name) {
+        return NextResponse.json(
+          { error: "Match cannot be recorded with identical players" },
+          { status: 400 }
+        );
+      }
+      const winCount = players.filter((p: any) => p.result === "win").length;
+      if (winCount > 1) {
+        return NextResponse.json(
+          { error: "Multiplayer match cannot have more than 1 winner" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Optional cryptographic session verification (if passed by client)
+    let matchDuration = duration || 0;
+    if (sessionToken && typeof sessionToken === "string") {
+      const sessionVerification = await verifyAndConsumeGameSession(
+        sessionToken,
+        gameType,
+        { action: "match" }
+      );
+      if (!sessionVerification.valid) {
+        return NextResponse.json(
+          { error: sessionVerification.error || "Invalid game session" },
+          { status: sessionVerification.status || 400 }
+        );
+      }
+      matchDuration = sessionVerification.elapsedSeconds || matchDuration;
     }
 
     // Auto-link user IDs if not provided & load full user models to update stats
@@ -193,7 +258,7 @@ export async function POST(request: Request) {
     const match = await Match.create({
       gameType,
       players: formattedPlayers,
-      duration: duration || 0,
+      duration: matchDuration,
       gameData: gameData || {},
     });
 

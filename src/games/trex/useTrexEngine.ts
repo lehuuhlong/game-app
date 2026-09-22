@@ -294,10 +294,18 @@ export function useTrexEngine(config: Partial<EngineConfig> = {}) {
   // React state (only updated on meaningful events, not every frame)
   const [gameState, setGameState] = useState<TrexGameState>({
     score: 0,
-    highScore: loadHighScore(),
+    highScore: 0,
     isGameOver: false,
     isPlaying: false,
   });
+
+  useEffect(() => {
+    const saved = loadHighScore();
+    if (saved > 0) {
+      highScoreRef.current = Math.max(highScoreRef.current, saved);
+      setGameState((prev) => ({ ...prev, highScore: Math.max(prev.highScore, saved) }));
+    }
+  }, []);
 
   // Canvas ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

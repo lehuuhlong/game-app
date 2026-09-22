@@ -25,14 +25,31 @@ export function useAimTrainer() {
   }, []);
 
   const scoreSavedRef = useRef(false);
+  const sessionTokenRef = useRef<string | null>(null);
 
   const startGame = useCallback(() => {
     scoreSavedRef.current = false;
+    sessionTokenRef.current = null;
     setGameState('playing');
     setScore(0);
     setMisses(0);
     setTimeLeft(60);
     spawnTarget();
+
+    try {
+      const stored = localStorage.getItem("game-portal-user");
+      const u = stored ? JSON.parse(stored) : null;
+      fetch('/api/games/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameType: 'aimtrainer', userId: u?.id, username: u?.username }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.sessionToken) sessionTokenRef.current = d.sessionToken;
+        })
+        .catch(() => {});
+    } catch {}
   }, [spawnTarget]);
 
   const scoreRef = useRef(score);
@@ -52,12 +69,18 @@ export function useAimTrainer() {
 
       const totalShots = finalScore + finalMisses;
       const accuracy = totalShots > 0 ? Math.round((finalScore / totalShots) * 100) : 0;
+      const sessionToken = sessionTokenRef.current;
 
       // Update user score
       fetch(`/api/users/${u.id}/score`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game: "aimtrainer", score: finalScore, accuracy }),
+        body: JSON.stringify({
+          game: "aimtrainer",
+          score: finalScore,
+          accuracy,
+          sessionToken,
+        }),
       })
         .then((r) => r.json())
         .then((d) => {
@@ -75,6 +98,7 @@ export function useAimTrainer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gameType: "aimtrainer",
+          sessionToken,
           players: [{ username: u.username, score: finalScore, result: "win" }],
           duration: 60,
           gameData: { accuracy, misses: finalMisses },

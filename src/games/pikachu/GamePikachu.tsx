@@ -7,6 +7,7 @@ import { useAuth } from '@/components/auth';
 import { usePikachuLogic } from './usePikachuLogic';
 import { PikachuTile } from './PikachuTile';
 import { ElectricPathOverlay } from './ElectricPathOverlay';
+import { useGameSession } from '@/hooks/useGameSession';
 
 export function GamePikachu() {
   const { user, refreshUser } = useAuth();
@@ -34,8 +35,22 @@ export function GamePikachu() {
   } = usePikachuLogic();
 
   // ── Sync High Score & Persistence ──────────────────────────────────
+  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
   const [localBestScore, setLocalBestScore] = useState(0);
   const scoreSavedRef = useRef(false);
+  const wasPlayingRef = useRef(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username]);
+
+  // ── Auto-renew session on game start/restart ───────────────────────
+  useEffect(() => {
+    if (status === 'playing' && !wasPlayingRef.current) {
+      startSession(user?.id, user?.username, true);
+    }
+    wasPlayingRef.current = status === 'playing';
+  }, [status, startSession, user?.id, user?.username]);
 
   // Load local best score on mount
   useEffect(() => {
@@ -66,48 +81,56 @@ export function GamePikachu() {
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
-    // Save final match session to /api/matches (score-based format like 2048)
-    fetch('/api/matches', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gameType: 'pikachu',
-        players: [
-          {
-            userId: user?.id,
-            username: user ? user.username : 'Guest',
-            score,
-            result: 'loss',
-          },
-        ],
-        duration: Math.max(0, levelConfig.timeLimit - timeLeft),
-        gameData: { level: levelIdx + 1, score },
-      }),
-    }).catch((e) => console.error('Failed to post match:', e));
+    (async () => {
+      const sessionToken = await ensureSessionToken(user?.id, user?.username);
+      const elapsed = getElapsedDuration();
 
-    // Save user record ONLY if the score is greater than current user's best score
-    if (user && user.id && score > (user.pikachuBestScore || 0)) {
-      fetch(`/api/users/${user.id}/score`, {
-        method: 'PATCH',
+      // Save final match session to /api/matches (score-based format like 2048)
+      fetch('/api/matches', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          game: 'pikachu',
-          score,
-          level: levelIdx + 1,
+          gameType: 'pikachu',
+          sessionToken,
+          players: [
+            {
+              userId: user?.id,
+              username: user ? user.username : 'Guest',
+              score,
+              result: 'loss',
+            },
+          ],
+          duration: elapsed,
+          gameData: { level: levelIdx + 1, score },
         }),
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d && d.pikachuBestScore !== undefined) {
-            refreshUser({
-              pikachuBestScore: d.pikachuBestScore,
-              pikachuHighestLevel: d.pikachuHighestLevel,
-            });
-          }
+      }).catch((e) => console.error('Failed to post match:', e));
+
+      // Save user record ONLY if the score is greater than current user's best score
+      if (user && user.id && score > (user.pikachuBestScore || 0)) {
+        fetch(`/api/users/${user.id}/score`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game: 'pikachu',
+            score,
+            level: levelIdx + 1,
+            sessionToken,
+            duration: elapsed,
+          }),
         })
-        .catch((e) => console.error('Failed to save pikachu score:', e));
-    }
-  }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser]);
+          .then((r) => r.json())
+          .then((d) => {
+            if (d && d.pikachuBestScore !== undefined) {
+              refreshUser({
+                pikachuBestScore: d.pikachuBestScore,
+                pikachuHighestLevel: d.pikachuHighestLevel,
+              });
+            }
+          })
+          .catch((e) => console.error('Failed to save pikachu score:', e));
+      }
+    })();
+  }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser, ensureSessionToken, getElapsedDuration]);
 
   const bestScore = Math.max(user?.pikachuBestScore || 0, localBestScore, score);
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));

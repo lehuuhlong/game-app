@@ -1,48 +1,149 @@
 /**
  * PATCH /api/users/[id]/score
  *
- * 2048:        only updates bestScore2048 if new score is higher.
- * Caro:        increments caroTotal, and caroWins if won=true.
- * Minesweeper: saves best time (lower is better) per difficulty level.
- * Wordle:      increments wordleWins on a win.
- *
- * Body (2048):        { game: "2048", score: number, highestTile?: number }
- * Body (caro):        { game: "caro", won: boolean }
- * Body (minesweeper): { game: "minesweeper", difficulty: "beginner"|"intermediate"|"expert", time: number }
- * Body (wordle):      { game: "wordle", won: boolean }
- * Body (sudoku):      { game: "sudoku", difficulty: "easy"|"medium"|"hard", time: number }
+ * Updates user high scores and stats for all portal games.
+ * Protected with Rate Limiting, Cryptographic Game Session Verification,
+ * and Proportional Anti-Cheat Sanity Checks.
  */
 
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { verifyAndConsumeGameSession } from '@/lib/gameSession';
+import { validateGameScore, validateActionLog } from '@/lib/gameSecurity';
 
-const VALID_GAMES = ['2048', 'caro', 'minesweeper', 'wordle', 'trex', 'flappybird', 'wordchain', 'sudoku', 'chess', 'aimtrainer', 'battleship', 'monopoly', 'pikachu', 'line98'];
+const VALID_GAMES = [
+  '2048',
+  'caro',
+  'minesweeper',
+  'wordle',
+  'trex',
+  'flappybird',
+  'wordchain',
+  'sudoku',
+  'chess',
+  'aimtrainer',
+  'battleship',
+  'monopoly',
+  'pikachu',
+  'line98',
+];
+
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
   beginner: 'msBestBeginner',
   intermediate: 'msBestIntermediate',
   expert: 'msBestExpert',
 };
+
 const SUDOKU_FIELD_MAP: Record<string, 'sudokuBestEasy' | 'sudokuBestMedium' | 'sudokuBestHard'> = {
   easy: 'sudokuBestEasy',
   medium: 'sudokuBestMedium',
   hard: 'sudokuBestHard',
 };
 
-import mongoose from 'mongoose';
-
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { game } = body;
+    // 1. Rate limiting check
+    const clientIp = getClientIp(request);
+    const rateCheck = checkRateLimit(`score_update:${id}:${clientIp}`, 15, 60_000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: 'Too many score update requests. Please slow down.' },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfter) } }
+      );
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { game, sessionToken } = body;
 
     if (!game || !VALID_GAMES.includes(game)) {
       return NextResponse.json({ error: 'Invalid game type' }, { status: 400 });
+    }
+
+    // 2. Cryptographic Game Session Verification
+    if (!sessionToken || typeof sessionToken !== 'string') {
+      return NextResponse.json(
+        { error: 'Game session token is required to submit score' },
+        { status: 403 }
+      );
+    }
+
+    const sessionVerification = await verifyAndConsumeGameSession(
+      sessionToken,
+      game,
+      { userId: id, action: 'score' }
+    );
+
+    if (!sessionVerification.valid) {
+      return NextResponse.json(
+        { error: sessionVerification.error || 'Invalid game session' },
+        { status: sessionVerification.status || 400 }
+      );
+    }
+
+    const elapsedSeconds = sessionVerification.elapsedSeconds || 0;
+
+    // 3. Proportional Rate of Score & Sanity Checks
+    const reportedScore =
+      typeof body.score === 'number'
+        ? body.score
+        : typeof body.time === 'number'
+        ? body.time
+        : 0;
+
+    const validation = validateGameScore(game, reportedScore, elapsedSeconds, {
+      ...body,
+      elapsedSeconds,
+    });
+
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.reason || 'Game score validation failed' },
+        { status: 400 }
+      );
+    }
+
+    // 3.1 Proof-of-Play Action Log & Human Timing Verification
+    const actionLog = body.actionLog || body.moves;
+    if (game === 'line98' && reportedScore > 200) {
+      const sessionStartTime =
+        sessionVerification.sessionStartTime ||
+        Date.now() - elapsedSeconds * 1000;
+      const sessionEndTime = Date.now();
+      const actionLogCheck = validateActionLog(
+        game,
+        reportedScore,
+        actionLog,
+        sessionStartTime,
+        sessionEndTime
+      );
+
+      if (!actionLogCheck.valid) {
+        return NextResponse.json(
+          { error: actionLogCheck.reason || 'Action log verification failed' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Extra check for time-based puzzles: elapsed server time cannot be significantly smaller than reported puzzle time
+    if ((game === 'minesweeper' || game === 'sudoku') && typeof body.time === 'number') {
+      if (elapsedSeconds < body.time * 0.7) {
+        return NextResponse.json(
+          { error: 'Reported puzzle time is inconsistent with session duration' },
+          { status: 400 }
+        );
+      }
     }
 
     await dbConnect();
@@ -51,11 +152,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // 4. Update Game Records
     if (game === '2048') {
       const { score, highestTile } = body;
-      if (typeof score !== 'number' || score < 0) {
-        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
-      }
       if (score > user.bestScore2048) {
         user.bestScore2048 = score;
       }
@@ -72,10 +171,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (!field) {
         return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 });
       }
-      if (typeof time !== 'number' || time <= 0) {
-        return NextResponse.json({ error: 'Invalid time' }, { status: 400 });
-      }
-      // Only keep best (fastest) time — lower is better; 0 means no record yet
       const current = user[field] as number;
       if (current === 0 || time < current) {
         user[field] = time;
@@ -98,17 +193,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     } else if (game === 'trex') {
       const { score } = body;
-      if (typeof score !== 'number' || score < 0) {
-        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
-      }
       if (score > (user.bestScoreTrex || 0)) {
         user.bestScoreTrex = score;
       }
     } else if (game === 'flappybird') {
       const { score } = body;
-      if (typeof score !== 'number' || score < 0 || !Number.isFinite(score)) {
-        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
-      }
       const currentBest = typeof user.bestScoreFlappy === 'number' ? user.bestScoreFlappy : 0;
       if (score > currentBest) {
         user.bestScoreFlappy = score;
@@ -123,9 +212,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (!field) {
         return NextResponse.json({ error: 'Invalid difficulty' }, { status: 400 });
       }
-      if (typeof time !== 'number' || time <= 0) {
-        return NextResponse.json({ error: 'Invalid time' }, { status: 400 });
-      }
       const current = user[field] as number;
       if (current === 0 || time < current) {
         user[field] = time;
@@ -138,9 +224,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     } else if (game === 'aimtrainer') {
       const { score, accuracy } = body;
-      if (typeof score !== 'number' || score < 0) {
-        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
-      }
       if (score > (user.aimTrainerBestScore || 0)) {
         user.aimTrainerBestScore = score;
         if (typeof accuracy === 'number') {
@@ -165,9 +248,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     } else if (game === 'pikachu') {
       const { score, level } = body;
-      if (typeof score !== 'number' || score < 0) {
-        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
-      }
       if (score > (user.pikachuBestScore || 0)) {
         user.pikachuBestScore = score;
       }
@@ -176,9 +256,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     } else if (game === 'line98') {
       const { score } = body;
-      if (typeof score !== 'number' || score < 0) {
-        return NextResponse.json({ error: 'Invalid score' }, { status: 400 });
-      }
       if (score > (user.bestScoreLine98 || 0)) {
         user.bestScoreLine98 = score;
       }

@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useFlappyBird } from "./useFlappyBird";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { useAuth } from "@/components/auth";
+import { useGameSession } from "@/hooks/useGameSession";
 
 export function GameFlappyBird() {
   const { user, refreshUser } = useAuth();
+  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession("flappybird");
   const {
     canvasRef,
     gameState,
@@ -20,6 +22,19 @@ export function GameFlappyBird() {
   const lastScoreRef = useRef(0);
   const [showLogin, setShowLogin] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wasPlayingRef = useRef(false);
+
+  useEffect(() => {
+    startSession(user?.id, user?.username);
+  }, [startSession, user?.id, user?.username]);
+
+  // ── Auto-renew session on game start/restart (Space, W, ↑, tap canvas, or restart button) ──
+  useEffect(() => {
+    if (gameState.isPlaying && !wasPlayingRef.current) {
+      startSession(user?.id, user?.username, true);
+    }
+    wasPlayingRef.current = gameState.isPlaying;
+  }, [gameState.isPlaying, startSession, user?.id, user?.username]);
 
   // ── Responsive canvas sizing ────────────────────────────────────
   const [canvasScale, setCanvasScale] = useState(1);
@@ -44,10 +59,17 @@ export function GameFlappyBird() {
     if (finalScore <= currentDbBest) return;
 
     try {
+      const sessionToken = await ensureSessionToken(targetUser.id, targetUser.username);
+      const elapsed = getElapsedDuration();
       const res = await fetch(`/api/users/${targetUser.id}/score`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game: "flappybird", score: finalScore }),
+        body: JSON.stringify({
+          game: "flappybird",
+          score: finalScore,
+          sessionToken,
+          duration: elapsed,
+        }),
       });
       const d = await res.json();
       if (d.bestScoreFlappy !== undefined) {
@@ -88,23 +110,28 @@ export function GameFlappyBird() {
     // Record match history once per game over
     if (!matchSavedRef.current && currentScore > 0) {
       matchSavedRef.current = true;
-      fetch("/api/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameType: "flappybird",
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : "Guest",
-              score: currentScore,
-              result: currentScore >= 10 ? "win" : "loss",
-            },
-          ],
-          duration: 0,
-          gameData: { score: currentScore },
-        }),
-      }).catch((err) => console.error("Failed to save Flappy Bird match:", err));
+      (async () => {
+        const sessionToken = await ensureSessionToken(user?.id, user?.username);
+        const elapsed = getElapsedDuration();
+        fetch("/api/matches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameType: "flappybird",
+            sessionToken,
+            players: [
+              {
+                userId: user?.id,
+                username: user ? user.username : "Guest",
+                score: currentScore,
+                result: currentScore >= 10 ? "win" : "loss",
+              },
+            ],
+            duration: elapsed,
+            gameData: { score: currentScore },
+          }),
+        }).catch((err) => console.error("Failed to save Flappy Bird match:", err));
+      })();
     }
 
     // Save to user account only if user is logged in AND score exceeds their DB high score
@@ -170,7 +197,7 @@ export function GameFlappyBird() {
               <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
                 Best
               </span>
-              <span className="text-lg font-bold text-accent tabular-nums">
+              <span className="text-lg font-bold text-accent tabular-nums" suppressHydrationWarning>
                 {displayHighScore}
               </span>
             </div>
