@@ -41,18 +41,18 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             </g>
             {/* Pipes */}
             <g stroke="#14532d" strokeWidth="2.2" fill="url(#flappy-pipe)">
-              <animateTransform attributeName="transform" type="translate" values="8 0;-8 0;8 0" dur="2.4s" repeatCount="indefinite" />
-              <rect x="145" y="-4" width="35" height="40" />
-              <rect x="140" y="32" width="45" height="12" rx="2" />
-              <rect x="145" y="79" width="35" height="35" />
-              <rect x="140" y="75" width="45" height="12" rx="2" />
+              <animateTransform attributeName="transform" type="translate" values="5 0;-5 0;5 0" dur="2.4s" repeatCount="indefinite" />
+              <rect x="126" y="-4" width="30" height="40" />
+              <rect x="122" y="32" width="38" height="12" rx="2" />
+              <rect x="126" y="79" width="30" height="35" />
+              <rect x="122" y="75" width="38" height="12" rx="2" />
             </g>
             {/* Bird */}
             <g>
               <animateTransform
                 attributeName="transform"
                 type="translate"
-                values="58 58;58 52;58 58;58 62;58 58"
+                values="50 58;50 52;50 58;50 62;50 58"
                 dur="1.35s"
                 repeatCount="indefinite"
               />
@@ -851,9 +851,9 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
 
             {/* Background Grid Accent */}
             <rect
-              x="24"
+              x="36"
               y="16"
-              width="144"
+              width="120"
               height="80"
               rx="12"
               fill="none"
@@ -865,7 +865,7 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
 
             {/* Inactive Tiles */}
             <rect
-              x="36"
+              x="46"
               y="28"
               width="24"
               height="24"
@@ -873,12 +873,12 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800"
               strokeWidth="1"
             />
-            <text x="48" y="44" fontSize="12" textAnchor="middle">
+            <text x="58" y="44" fontSize="12" textAnchor="middle">
               🔥
             </text>
 
             <rect
-              x="132"
+              x="122"
               y="60"
               width="24"
               height="24"
@@ -886,13 +886,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800"
               strokeWidth="1"
             />
-            <text x="144" y="76" fontSize="12" textAnchor="middle">
+            <text x="134" y="76" fontSize="12" textAnchor="middle">
               💧
             </text>
 
             {/* Connecting Neon Electric Lightning Beam (L-shape/Z-shape path) */}
             <path
-              d="M 58 72 L 96 72 L 96 40 L 124 40"
+              d="M 70 72 L 96 72 L 96 40 L 122 40"
               stroke="#38bdf8"
               strokeWidth="5"
               strokeLinecap="round"
@@ -902,21 +902,21 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               filter="url(#pika-glow)"
             />
             <path
-              d="M 58 72 L 96 72 L 96 40 L 124 40"
+              d="M 70 72 L 96 72 L 96 40 L 122 40"
               stroke="url(#pika-lightning)"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
             />
-            <path d="M 58 72 L 96 72 L 96 40 L 124 40" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <path d="M 70 72 L 96 72 L 96 40 L 122 40" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
             {/* Sparks */}
             <circle cx="96" cy="72" r="3" fill="#fef08a" filter="url(#pika-glow)" />
             <circle cx="96" cy="40" r="3" fill="#38bdf8" filter="url(#pika-glow)" />
 
             {/* Matched Pikachu Tile 1 */}
-            <g transform="translate(36, 60)">
+            <g transform="translate(46, 60)">
               <rect
                 x="0"
                 y="0"
@@ -933,7 +933,7 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             </g>
 
             {/* Matched Pikachu Tile 2 */}
-            <g transform="translate(124, 28)">
+            <g transform="translate(122, 28)">
               <rect
                 x="0"
                 y="0"

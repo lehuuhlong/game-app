@@ -116,9 +116,9 @@ export function GameCard3D({
 
         {featured ? (
           /* ════ FEATURED 2-COLUMN HORIZONTAL BENTO CARD ═══════════════ */
-          <div className="relative z-10 flex h-full flex-col sm:flex-row items-stretch justify-between gap-6">
+          <div className="relative z-10 flex h-full flex-col sm:flex-row items-center justify-between gap-6">
             {/* Left Column: Info & Details */}
-            <div className="flex flex-1 flex-col justify-between space-y-4">
+            <div className="flex flex-1 flex-col justify-between space-y-4 w-full">
               <div>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export function GameCard3D({
             </div>
 
             {/* Right Column: Dynamic Visual Art */}
-            <div className="relative w-full sm:w-56 h-48 sm:h-auto min-h-[160px] flex-shrink-0 overflow-hidden rounded-xl border border-border/70 bg-surface-secondary/30 transition-colors duration-300 group-hover:border-sky-500/40">
+            <div className="relative w-full sm:w-60 md:w-64 lg:w-72 aspect-[16/10] sm:self-center flex-shrink-0 overflow-hidden rounded-xl border border-border/70 bg-surface-secondary/30 transition-colors duration-300 group-hover:border-sky-500/40 shadow-xs">
               <GameVisualGraphic id={game.id} />
             </div>
           </div>
