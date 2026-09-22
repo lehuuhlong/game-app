@@ -208,6 +208,24 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "neonsnake") {
+      const leaderboard = await User.find({ bestScoreNeonSnake: { $gt: 0 } })
+        .select("username avatarUrl bestScoreNeonSnake")
+        .sort({ bestScoreNeonSnake: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "neonsnake",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.bestScoreNeonSnake,
+        })),
+      });
+    }
+
     if (game === "wordchain") {
       const leaderboard = await User.find({ wordchainTotal: { $gt: 0 } })
         .select("username avatarUrl wordchainWins wordchainTotal")

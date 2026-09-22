@@ -146,7 +146,10 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const { gameType, players, duration, gameData, sessionToken } = body;
 
-    const isFastArcade = gameType === "flappybird" || gameType === "trex";
+    const isFastArcade =
+      gameType === "flappybird" ||
+      gameType === "trex" ||
+      gameType === "neonsnake";
     const limit = isFastArcade ? 60 : 25;
     const rateCheck = checkRateLimit(`match_post:${clientIp}`, limit, 60_000);
     if (!rateCheck.success) {

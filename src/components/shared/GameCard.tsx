@@ -9,7 +9,7 @@ export interface GameMeta {
   duration: string;
   difficulty: 'Beginner' | 'Medium' | 'Expert' | 'Master';
   difficultyColor: string;
-  badge?: '🔥 Hot' | '⚡ 1v1 Duel' | '🏆 Classic' | '🎯 Daily';
+  badge?: '🔥 Hot' | '⚡ 1v1 Duel' | '🏆 Classic' | '🎯 Daily' | '⚡ Turbo';
 }
 
 export const GAME_METAS: Record<string, GameMeta> = {
@@ -82,6 +82,12 @@ export const GAME_METAS: Record<string, GameMeta> = {
     duration: '3-8m',
     difficulty: 'Medium',
     difficultyColor: 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/30',
+  },
+  neonsnake: {
+    duration: '1-5m',
+    difficulty: 'Medium',
+    difficultyColor: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+    badge: '⚡ Turbo',
   },
 };
 
@@ -197,6 +203,14 @@ const gameIcons: Record<string, React.ReactNode> = {
       <line x1="21" y1="8" x2="27" y2="8" stroke="white" strokeWidth="2" strokeLinecap="round" />
       <path d="M16 18 C16 14 32 14 32 18 C30 24 28 28 30 34 L18 34 C20 28 18 24 16 18 Z" fill="rgba(255,255,255,0.6)" stroke="white" strokeWidth="1.5" />
       <path d="M12 36 L36 36 L38 42 L10 42 Z" fill="rgba(255,255,255,0.8)" stroke="white" strokeWidth="1.5" />
+    </svg>
+  ),
+  neonsnake: (
+    <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+      <rect x="8" y="8" width="32" height="32" rx="4" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" />
+      <path d="M34 14 H18 C15 14 14 16 14 19 C14 22 16 24 19 24 H29 C32 24 34 26 34 29 C34 32 32 34 29 34 H14" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="34" cy="14" r="3" fill="#22d3ee" />
+      <circle cx="14" cy="34" r="3" fill="#f43f5e" />
     </svg>
   ),
 };

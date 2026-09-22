@@ -103,11 +103,11 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     const handleProfileUpdated = () => {
       fetchUserData();
     };
-    window.addEventListener("userProfileUpdated", handleProfileUpdated);
+    window.addEventListener('userProfileUpdated', handleProfileUpdated);
 
     return () => {
       active = false;
-      window.removeEventListener("userProfileUpdated", handleProfileUpdated);
+      window.removeEventListener('userProfileUpdated', handleProfileUpdated);
     };
   }, [username]);
 
@@ -365,11 +365,11 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                   </div>
                 </div>
 
-                {/* Pikachu Connect */}
+                {/* Pikachu */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
                   <div className="flex items-center gap-2">
                     <span>⚡</span>
-                    <span className="font-semibold text-foreground">Pikachu Connect</span>
+                    <span className="font-semibold text-foreground">Pikachu</span>
                   </div>
                   <div className="text-right font-mono text-[11px]">
                     Best: <strong className="text-foreground">{profile.pikachuBestScore?.toLocaleString() || 0} pts</strong> • Max:{' '}
@@ -400,11 +400,11 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                       (p: any) =>
                         (profile?._id && p.userId && p.userId.toString() === profile._id.toString()) ||
                         (profile?.id && p.userId && p.userId.toString() === profile.id.toString()) ||
-                        p.username.toLowerCase() === username.toLowerCase()
+                        p.username.toLowerCase() === username.toLowerCase(),
                     );
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
-                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer', 'line98'].includes(m.gameType);
+                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer', 'line98', 'neonsnake'].includes(m.gameType);
 
                     return (
                       <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs">
@@ -427,7 +427,13 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             </span>
                           )}
                           <span className="font-semibold text-foreground capitalize">
-                            {m.gameType === 'pikachu' ? 'Pikachu Connect' : m.gameType === 'line98' ? 'Line 98' : m.gameType}
+                            {m.gameType === 'pikachu'
+                              ? 'Pikachu'
+                              : m.gameType === 'line98'
+                                ? 'Line 98'
+                                : m.gameType === 'neonsnake'
+                                  ? 'Neon Snake'
+                                  : m.gameType}
                           </span>
                           {/* Game Specific Details */}
                           {m.gameType === 'wordle' && m.gameData?.solution ? (
@@ -451,7 +457,13 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 <span>{capitalize(m.gameData?.difficulty || 'Normal')}</span>
                               )}
                             </span>
-                          ) : m.gameType === '2048' || m.gameType === 'pikachu' || m.gameType === 'trex' || m.gameType === 'flappybird' || m.gameType === 'aimtrainer' || m.gameType === 'line98' ? (
+                          ) : m.gameType === '2048' ||
+                            m.gameType === 'pikachu' ||
+                            m.gameType === 'trex' ||
+                            m.gameType === 'flappybird' ||
+                            m.gameType === 'aimtrainer' ||
+                            m.gameType === 'line98' ||
+                            m.gameType === 'neonsnake' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
                               {m.gameType === 'pikachu' && m.gameData?.level ? ` • Lvl ${m.gameData.level}` : ''}

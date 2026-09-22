@@ -29,6 +29,7 @@ const VALID_GAMES = [
   'monopoly',
   'pikachu',
   'line98',
+  'neonsnake',
 ];
 
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
@@ -259,6 +260,11 @@ export async function PATCH(
       if (score > (user.bestScoreLine98 || 0)) {
         user.bestScoreLine98 = score;
       }
+    } else if (game === 'neonsnake') {
+      const { score } = body;
+      if (score > (user.bestScoreNeonSnake || 0)) {
+        user.bestScoreNeonSnake = score;
+      }
     }
 
     await user.save();
@@ -297,6 +303,7 @@ export async function PATCH(
       pikachuBestScore: user.pikachuBestScore,
       pikachuHighestLevel: user.pikachuHighestLevel,
       bestScoreLine98: user.bestScoreLine98,
+      bestScoreNeonSnake: user.bestScoreNeonSnake,
     });
   } catch (error) {
     console.error('PATCH /api/users/[id]/score error:', error);

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
 interface LiveMatchFeedProps {
   onInspectH2H?: (p1: string, p2: string) => void;
@@ -54,7 +54,7 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
     </svg>
   ),
-  "2048": (
+  '2048': (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
       <rect x="3" y="3" width="8" height="8" rx="1.5" />
       <rect x="13" y="3" width="8" height="8" rx="1.5" />
@@ -121,14 +121,14 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
 };
 
 function formatTime(seconds: number): string {
-  if (!seconds || seconds <= 0) return "--:--";
+  if (!seconds || seconds <= 0) return '--:--';
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 function capitalize(str: string): string {
-  if (!str) return "";
+  if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
@@ -137,7 +137,7 @@ const PAGE_SIZE = 10;
 export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps) {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterGame, setFilterGame] = useState<string>("all");
+  const [filterGame, setFilterGame] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -147,16 +147,16 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     async function fetchMatches() {
       try {
         let url = `/api/matches?limit=50`;
-        if (filterGame !== "all") url += `&gameType=${filterGame}`;
+        if (filterGame !== 'all') url += `&gameType=${filterGame}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch matches");
+        if (!res.ok) throw new Error('Failed to fetch matches');
         const json = await res.json();
         if (active) {
           setMatches(json.matches || []);
           setCurrentPage(1);
         }
       } catch (err) {
-        console.error("Error fetching match feed:", err);
+        console.error('Error fetching match feed:', err);
       } finally {
         if (active) setLoading(false);
       }
@@ -167,11 +167,11 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     const handleProfileUpdated = () => {
       fetchMatches();
     };
-    window.addEventListener("userProfileUpdated", handleProfileUpdated);
+    window.addEventListener('userProfileUpdated', handleProfileUpdated);
 
     return () => {
       active = false;
-      window.removeEventListener("userProfileUpdated", handleProfileUpdated);
+      window.removeEventListener('userProfileUpdated', handleProfileUpdated);
     };
   }, [filterGame]);
 
@@ -181,14 +181,14 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
 
   /** Helper to render clean, consistent outcome details for each game */
   const renderSinglePlayerOutcome = (m: any, p: any) => {
-    const isWin = p.result === "win";
-    const isLoss = p.result === "loss";
+    const isWin = p.result === 'win';
+    const isLoss = p.result === 'loss';
     const gameType = m.gameType;
     const gameData = m.gameData || {};
 
     // 1. Minesweeper & Sudoku
-    if (gameType === "minesweeper" || gameType === "sudoku") {
-      const difficulty = capitalize(gameData.difficulty || "Normal");
+    if (gameType === 'minesweeper' || gameType === 'sudoku') {
+      const difficulty = capitalize(gameData.difficulty || 'Normal');
       if (isWin) {
         const timeVal = gameData.time || m.duration || p.score || 0;
         return (
@@ -205,13 +205,14 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     }
 
     // 2. Wordle
-    if (gameType === "wordle") {
-      const solution = gameData.solution ? `"${gameData.solution.toUpperCase()}"` : "";
+    if (gameType === 'wordle') {
+      const solution = gameData.solution ? `"${gameData.solution.toUpperCase()}"` : '';
       if (isWin) {
-        const tries = gameData.guessesCount ? ` (${gameData.guessesCount}/6)` : "";
+        const tries = gameData.guessesCount ? ` (${gameData.guessesCount}/6)` : '';
         return (
           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Won • {solution}{tries}
+            Won • {solution}
+            {tries}
           </span>
         );
       }
@@ -223,9 +224,9 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     }
 
     // 3. Score-based games: 2048, Pikachu, Trex, Aim Trainer
-    if (gameType === "2048") {
+    if (gameType === '2048') {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
-      const tile = gameData.highestTile ? ` • Tile ${gameData.highestTile}` : "";
+      const tile = gameData.highestTile ? ` • Tile ${gameData.highestTile}` : '';
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
           {score} pts{tile}
@@ -233,9 +234,9 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
-    if (gameType === "pikachu") {
+    if (gameType === 'pikachu') {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
-      const lvl = gameData.level ? ` • Lvl ${gameData.level}` : "";
+      const lvl = gameData.level ? ` • Lvl ${gameData.level}` : '';
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
           {score} pts{lvl}
@@ -243,7 +244,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
-    if (gameType === "trex" || gameType === "flappybird") {
+    if (gameType === 'trex' || gameType === 'flappybird') {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
@@ -252,9 +253,18 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
-    if (gameType === "aimtrainer") {
+    if (gameType === 'neonsnake') {
+      const score = (p.score ?? gameData.score ?? 0).toLocaleString();
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">
+          {score} pts
+        </span>
+      );
+    }
+
+    if (gameType === 'aimtrainer') {
       const score = (p.score ?? 0).toLocaleString();
-      const acc = gameData.accuracy !== undefined ? ` • ${gameData.accuracy}% acc` : "";
+      const acc = gameData.accuracy !== undefined ? ` • ${gameData.accuracy}% acc` : '';
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border">
           {score} pts{acc}
@@ -262,9 +272,9 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
-    if (gameType === "line98") {
+    if (gameType === 'line98') {
       const score = (p.score ?? gameData.score ?? 0).toLocaleString();
-      const moves = gameData.moveCount ? ` • ${gameData.moveCount} moves` : "";
+      const moves = gameData.moveCount ? ` • ${gameData.moveCount} moves` : '';
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-500/10 text-violet-400 border border-violet-500/20 font-mono">
           {score} pts{moves}
@@ -273,7 +283,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     }
 
     // Default fallback
-    const scoreText = (p.score !== undefined && p.score > 0) ? ` • ${p.score.toLocaleString()} pts` : "";
+    const scoreText = p.score !== undefined && p.score > 0 ? ` • ${p.score.toLocaleString()} pts` : '';
     if (isWin) {
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
@@ -284,13 +294,13 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
     if (isLoss) {
       return (
         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono">
-          {p.score > 0 ? `${p.score.toLocaleString()} pts` : "LOSS"}
+          {p.score > 0 ? `${p.score.toLocaleString()} pts` : 'LOSS'}
         </span>
       );
     }
     return (
       <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-surface-hover text-foreground-secondary border border-border font-mono">
-        {p.score !== undefined ? `${p.score.toLocaleString()} pts` : "Played"}
+        {p.score !== undefined ? `${p.score.toLocaleString()} pts` : 'Played'}
       </span>
     );
   };
@@ -300,9 +310,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       {/* Top Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-border">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
-            Filter Activity:
-          </span>
+          <span className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Filter Activity:</span>
           <select
             value={filterGame}
             onChange={(e) => setFilterGame(e.target.value)}
@@ -316,7 +324,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="monopoly">Monopoly (2-4p)</option>
             <option value="billiards">8 Ball Pool (1v1)</option>
             <option value="2048">2048</option>
-            <option value="pikachu">Pikachu Connect</option>
+            <option value="pikachu">Pikachu</option>
             <option value="aimtrainer">Aim Trainer</option>
             <option value="minesweeper">Minesweeper</option>
             <option value="sudoku">Sudoku</option>
@@ -324,6 +332,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="flappybird">Flappy Bird</option>
             <option value="wordle">Wordle</option>
             <option value="line98">Line 98</option>
+            <option value="neonsnake">Neon Snake</option>
           </select>
         </div>
 
@@ -360,14 +369,13 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                 {/* Game & Timestamp */}
                 <div className="flex items-center gap-3 min-w-[140px]">
                   <div className="h-10 w-10 rounded-xl bg-background border border-border flex items-center justify-center text-foreground-secondary shrink-0 shadow-inner">
-                    {GAME_ICONS[m.gameType] || "🎮"}
+                    {GAME_ICONS[m.gameType] || '🎮'}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-foreground capitalize tracking-tight">
-                      {m.gameType}
-                    </h4>
+                    <h4 className="text-sm font-bold text-foreground capitalize tracking-tight">{m.gameType}</h4>
                     <p className="text-[11px] text-foreground-muted">
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(m.createdAt).toLocaleDateString()}
+                      {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •{' '}
+                      {new Date(m.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -385,17 +393,15 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                         <Avatar avatarUrl={p1.avatarUrl} username={p1.username} />
                         <span>{p1.username}</span>
                         {p1.score !== undefined && p1.score > 0 && (
-                          <span className="font-mono text-[11px] text-amber-400 font-bold">
-                            ({p1.score.toLocaleString()} pts)
-                          </span>
+                          <span className="font-mono text-[11px] text-amber-400 font-bold">({p1.score.toLocaleString()} pts)</span>
                         )}
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
-                            p1.result === "win"
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : p1.result === "draw"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                            p1.result === 'win'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : p1.result === 'draw'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                           }`}
                         >
                           {p1.result}
@@ -413,17 +419,15 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                         <Avatar avatarUrl={p2.avatarUrl} username={p2.username} />
                         <span>{p2.username}</span>
                         {p2.score !== undefined && p2.score > 0 && (
-                          <span className="font-mono text-[11px] text-amber-400 font-bold">
-                            ({p2.score.toLocaleString()} pts)
-                          </span>
+                          <span className="font-mono text-[11px] text-amber-400 font-bold">({p2.score.toLocaleString()} pts)</span>
                         )}
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] uppercase font-bold ${
-                            p2.result === "win"
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : p2.result === "draw"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                            p2.result === 'win'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : p2.result === 'draw'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                           }`}
                         >
                           {p2.result}
@@ -487,8 +491,8 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
                 onClick={() => setCurrentPage(pageNum)}
                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
                   currentPage === pageNum
-                    ? "bg-accent text-white shadow-xs"
-                    : "border border-border bg-surface text-foreground-secondary hover:text-foreground hover:bg-surface-hover"
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'border border-border bg-surface text-foreground-secondary hover:text-foreground hover:bg-surface-hover'
                 }`}
               >
                 {pageNum}
@@ -511,13 +515,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
 
 function Avatar({ avatarUrl, username }: { avatarUrl?: string | null; username: string }) {
   if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={username}
-        className="h-5 w-5 rounded-full object-cover ring-1 ring-accent/20"
-      />
-    );
+    return <img src={avatarUrl} alt={username} className="h-5 w-5 rounded-full object-cover ring-1 ring-accent/20" />;
   }
   return (
     <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">

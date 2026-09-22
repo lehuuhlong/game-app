@@ -17,7 +17,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 1. FLAPPY BIRD ───────────────────────────────────────── */}
       {id === 'flappybird' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200 dark:from-sky-500 dark:via-sky-600 dark:to-emerald-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Flappy Bird">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Flappy Bird"
+          >
             <defs>
               <linearGradient id="flappy-pipe" x1="0" x2="1">
                 <stop offset="0" stopColor="#15803d" />
@@ -43,7 +49,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             </g>
             {/* Bird */}
             <g>
-              <animateTransform attributeName="transform" type="translate" values="58 58;58 52;58 58;58 62;58 58" dur="1.35s" repeatCount="indefinite" />
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="58 58;58 52;58 58;58 62;58 58"
+                dur="1.35s"
+                repeatCount="indefinite"
+              />
               <g transform="rotate(-8) scale(.5)">
                 <ellipse cx="0" cy="0" rx="23" ry="18" fill="#f59e0b" stroke="#92400e" strokeWidth="2.5" />
                 <g>
@@ -66,7 +78,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 2. T-REX RUNNER ──────────────────────────────────────── */}
       {id === 'trex' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-emerald-100/80 via-teal-50 to-emerald-200/80 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="T-Rex Runner">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="T-Rex Runner"
+          >
             {/* Sky Clouds & Moon */}
             <g className="fill-emerald-800/20 dark:fill-white/60">
               <circle cx="25" cy="18" r="1.5" />
@@ -108,8 +126,12 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             <rect y="92" width="192" height="2" className="fill-emerald-600 dark:fill-emerald-500" />
             <path d="M0 98h192" className="stroke-emerald-700/40 dark:stroke-slate-600" strokeWidth="1.5" strokeDasharray="8 6" />
             {/* Score HUD */}
-            <text x="140" y="14" className="fill-slate-600 dark:fill-slate-400" fontFamily="monospace" fontSize="7" fontWeight="bold">HI 09999</text>
-            <text x="175" y="14" className="fill-emerald-700 dark:fill-emerald-400" fontFamily="monospace" fontSize="7" fontWeight="bold">0248</text>
+            <text x="140" y="14" className="fill-slate-600 dark:fill-slate-400" fontFamily="monospace" fontSize="7" fontWeight="bold">
+              HI 09999
+            </text>
+            <text x="175" y="14" className="fill-emerald-700 dark:fill-emerald-400" fontFamily="monospace" fontSize="7" fontWeight="bold">
+              0248
+            </text>
           </svg>
         </div>
       )}
@@ -118,42 +140,90 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {id === '2048' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-amber-100/90 via-orange-50 to-amber-200/80 dark:from-slate-950 dark:via-amber-950/40 dark:to-slate-950">
           <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="2048">
-            <rect x="24" y="12" width="144" height="88" rx="8" className="fill-amber-200/60 dark:fill-slate-800/80 stroke-amber-300 dark:stroke-slate-700" strokeWidth="1.5" />
+            <rect
+              x="24"
+              y="12"
+              width="144"
+              height="88"
+              rx="8"
+              className="fill-amber-200/60 dark:fill-slate-800/80 stroke-amber-300 dark:stroke-slate-700"
+              strokeWidth="1.5"
+            />
             {/* Tile 128 */}
             <rect x="32" y="20" width="30" height="24" rx="4" fill="#64748b" />
-            <text x="47" y="34" fill="#f1f5f9" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">128</text>
+            <text x="47" y="34" fill="#f1f5f9" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">
+              128
+            </text>
             {/* Tile 512 */}
             <rect x="66" y="20" width="30" height="24" rx="4" fill="#ec4899" />
-            <text x="81" y="34" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">512</text>
+            <text x="81" y="34" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">
+              512
+            </text>
             {/* Tile 1024 */}
             <rect x="100" y="20" width="30" height="24" rx="4" fill="#ea580c" />
-            <text x="115" y="34" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">1024</text>
+            <text x="115" y="34" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">
+              1024
+            </text>
             {/* Tile 64 */}
             <rect x="134" y="20" width="26" height="24" rx="4" fill="#f43f5e" />
-            <text x="147" y="34" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">64</text>
+            <text x="147" y="34" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">
+              64
+            </text>
             {/* Tile 2048 (Golden Star) */}
             <g transform="translate(32, 48)">
               <rect x="0" y="0" width="64" height="24" rx="5" fill="#f59e0b" stroke="#fde047" strokeWidth="1.5">
                 <animate attributeName="opacity" values="0.9;1;0.9" dur="1.8s" repeatCount="indefinite" />
               </rect>
-              <text x="32" y="14" fill="#451a03" fontFamily="sans-serif" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">2048</text>
+              <text x="32" y="14" fill="#451a03" fontFamily="sans-serif" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                2048
+              </text>
               <polygon points="5,4 6,7 9,8 6,9 5,12 4,9 1,8 4,7" fill="#ffffff" />
             </g>
             {/* Tile 256 */}
             <rect x="100" y="48" width="30" height="24" rx="4" fill="#8b5cf6" />
-            <text x="115" y="62" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">256</text>
+            <text x="115" y="62" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">
+              256
+            </text>
             {/* Tile 32 */}
             <rect x="134" y="48" width="26" height="24" rx="4" fill="#f97316" />
-            <text x="147" y="62" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">32</text>
+            <text x="147" y="62" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle" dominantBaseline="middle">
+              32
+            </text>
             {/* Bottom Row */}
             <rect x="32" y="76" width="30" height="18" rx="3" className="fill-amber-300/80 dark:fill-slate-900" />
-            <text x="47" y="86" className="fill-amber-950 dark:fill-slate-400" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">2</text>
+            <text
+              x="47"
+              y="86"
+              className="fill-amber-950 dark:fill-slate-400"
+              fontFamily="sans-serif"
+              fontWeight="900"
+              fontSize="8"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              2
+            </text>
             <rect x="66" y="76" width="30" height="18" rx="3" className="fill-amber-300/80 dark:fill-slate-900" />
-            <text x="81" y="86" className="fill-amber-950 dark:fill-slate-400" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">4</text>
+            <text
+              x="81"
+              y="86"
+              className="fill-amber-950 dark:fill-slate-400"
+              fontFamily="sans-serif"
+              fontWeight="900"
+              fontSize="8"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              4
+            </text>
             <rect x="100" y="76" width="30" height="18" rx="3" fill="#38bdf8" />
-            <text x="115" y="86" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">8</text>
+            <text x="115" y="86" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">
+              8
+            </text>
             <rect x="134" y="76" width="26" height="18" rx="3" fill="#10b981" />
-            <text x="147" y="86" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">16</text>
+            <text x="147" y="86" fill="#ffffff" fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">
+              16
+            </text>
           </svg>
         </div>
       )}
@@ -163,7 +233,15 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-amber-100/90 via-stone-50 to-amber-200/70 dark:from-slate-950 dark:via-slate-900 dark:to-amber-950/50">
           <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Chess">
             <g transform="translate(96, 68) scale(1, 0.52) rotate(45)">
-              <rect x="-55" y="-55" width="110" height="110" rx="5" className="fill-amber-900/20 dark:fill-slate-800 stroke-amber-800/40 dark:stroke-slate-600" strokeWidth="3" />
+              <rect
+                x="-55"
+                y="-55"
+                width="110"
+                height="110"
+                rx="5"
+                className="fill-amber-900/20 dark:fill-slate-800 stroke-amber-800/40 dark:stroke-slate-600"
+                strokeWidth="3"
+              />
               {/* Checkers */}
               <rect x="-45" y="-45" width="22" height="22" fill="#fffbeb" />
               <rect x="-23" y="-45" width="22" height="22" fill="#78350f" />
@@ -182,13 +260,23 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             <g transform="translate(96, 46)">
               <animateTransform attributeName="transform" type="translate" values="96 46;96 42;96 46" dur="2s" repeatCount="indefinite" />
               <path d="M-2 -24 H2 V-21 H-2 Z M-5 -23 H5 V-21 H-5 Z" fill="#fde047" />
-              <path d="M-9 -19 C-9 -22 9 -22 9 -19 C8 -16 7 -13 8 -10 C5 -11 -5 -11 -8 -10 C-7 -13 -8 -16 -9 -19 Z" fill="#f59e0b" stroke="#78350f" strokeWidth="1.2" />
+              <path
+                d="M-9 -19 C-9 -22 9 -22 9 -19 C8 -16 7 -13 8 -10 C5 -11 -5 -11 -8 -10 C-7 -13 -8 -16 -9 -19 Z"
+                fill="#f59e0b"
+                stroke="#78350f"
+                strokeWidth="1.2"
+              />
               <path d="M-8 -10 C-8 -5 -5 9 -10 18 H10 C5 9 8 -5 8 -10 Z" fill="#f59e0b" stroke="#78350f" strokeWidth="1.2" />
               <rect x="-12" y="18" width="24" height="5" rx="1.5" fill="#f59e0b" stroke="#78350f" strokeWidth="1.2" />
             </g>
             {/* Silver Knight (Left) */}
             <g transform="translate(54, 56) scale(0.65)">
-              <path d="M-8 -18 C-4 -22 8 -20 10 -14 C12 -10 6 -6 8 -2 C6 6 8 14 10 18 H-10 C-8 12 -10 4 -8 -6 Z" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
+              <path
+                d="M-8 -18 C-4 -22 8 -20 10 -14 C12 -10 6 -6 8 -2 C6 6 8 14 10 18 H-10 C-8 12 -10 4 -8 -6 Z"
+                fill="#64748b"
+                stroke="#334155"
+                strokeWidth="1.5"
+              />
               <rect x="-12" y="18" width="24" height="5" rx="1.5" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
             </g>
             {/* Silver Queen (Right) */}
@@ -196,7 +284,12 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="-8" cy="-20" r="1.5" fill="#f8fafc" />
               <circle cx="0" cy="-22" r="2" fill="#f8fafc" />
               <circle cx="8" cy="-20" r="1.5" fill="#f8fafc" />
-              <path d="M-8 -19 L-5 -12 L0 -20 L5 -12 L8 -19 C7 -10 6 8 10 18 H-10 C-6 8 -7 -10 -8 -19 Z" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
+              <path
+                d="M-8 -19 L-5 -12 L0 -20 L5 -12 L8 -19 C7 -10 6 8 10 18 H-10 C-6 8 -7 -10 -8 -19 Z"
+                fill="#64748b"
+                stroke="#334155"
+                strokeWidth="1.5"
+              />
               <rect x="-12" y="18" width="24" height="5" rx="1.5" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
             </g>
           </svg>
@@ -228,7 +321,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="6" cy="6" r="2.5" fill="#0f172a" />
             </g>
             <g transform="translate(116, 56) rotate(14)">
-              <animateTransform attributeName="transform" type="rotate" values="14 116 56; 20 116 56; 14 116 56" dur="1.5s" repeatCount="indefinite" />
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                values="14 116 56; 20 116 56; 14 116 56"
+                dur="1.5s"
+                repeatCount="indefinite"
+              />
               <rect x="-12" y="-12" width="24" height="24" rx="5" fill="#f59e0b" stroke="#fde047" strokeWidth="1.8" />
               <circle cx="-5" cy="-5" r="2" fill="#451a03" />
               <circle cx="5" cy="-5" r="2" fill="#451a03" />
@@ -239,7 +338,9 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             {/* Cash Dollar Note */}
             <g transform="translate(42, 74) rotate(-20)">
               <rect x="-14" y="-8" width="28" height="16" rx="2" fill="#10b981" stroke="#059669" strokeWidth="1.2" />
-              <text x="0" y="2.5" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle">$</text>
+              <text x="0" y="2.5" fill="white" fontFamily="sans-serif" fontWeight="900" fontSize="9" textAnchor="middle">
+                $
+              </text>
             </g>
           </svg>
         </div>
@@ -249,7 +350,15 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {id === 'caro' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-violet-100/90 via-indigo-50 to-purple-200/80 dark:from-slate-950 dark:via-violet-950/40 dark:to-slate-950">
           <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Caro">
-            <rect x="24" y="12" width="144" height="88" rx="8" className="fill-white/80 dark:fill-slate-900/90 stroke-violet-300 dark:stroke-slate-700" strokeWidth="1.5" />
+            <rect
+              x="24"
+              y="12"
+              width="144"
+              height="88"
+              rx="8"
+              className="fill-white/80 dark:fill-slate-900/90 stroke-violet-300 dark:stroke-slate-700"
+              strokeWidth="1.5"
+            />
             {/* Grid Lines */}
             <g className="stroke-violet-400/40 dark:stroke-slate-600/50" strokeWidth="1" strokeDasharray="2 3">
               <line x1="32" y1="34" x2="160" y2="34" />
@@ -281,7 +390,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 7. BATTLESHIP ────────────────────────────────────────── */}
       {id === 'battleship' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-sky-100/90 via-blue-50 to-cyan-200/80 dark:from-slate-950 dark:via-sky-950/60 dark:to-slate-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Battleship">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Battleship"
+          >
             {/* Grid */}
             <g className="stroke-sky-600/25 dark:stroke-sky-400/25" strokeWidth="0.8">
               <line x1="30" y1="0" x2="30" y2="112" />
@@ -331,27 +446,47 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             <g transform="translate(32, 16)">
               {/* Row 1 */}
               <rect x="0" y="0" width="22" height="22" rx="4" fill="#eab308" />
-              <text x="11" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">G</text>
+              <text x="11" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                G
+              </text>
               <rect x="26" y="0" width="22" height="22" rx="4" fill="#22c55e" />
-              <text x="37" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">A</text>
+              <text x="37" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                A
+              </text>
               <rect x="52" y="0" width="22" height="22" rx="4" className="fill-slate-400 dark:fill-slate-700" />
-              <text x="63" y="13" fill="#f8fafc" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">M</text>
+              <text x="63" y="13" fill="#f8fafc" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                M
+              </text>
               <rect x="78" y="0" width="22" height="22" rx="4" fill="#eab308" />
-              <text x="89" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">E</text>
+              <text x="89" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                E
+              </text>
               <rect x="104" y="0" width="22" height="22" rx="4" fill="#22c55e" />
-              <text x="115" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">S</text>
+              <text x="115" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                S
+              </text>
 
               {/* Row 2 */}
               <rect x="0" y="28" width="22" height="22" rx="4" fill="#eab308" />
-              <text x="11" y="41" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">P</text>
+              <text x="11" y="41" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                P
+              </text>
               <rect x="26" y="28" width="22" height="22" rx="4" fill="#22c55e" />
-              <text x="37" y="41" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">L</text>
+              <text x="37" y="41" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                L
+              </text>
               <rect x="52" y="28" width="22" height="22" rx="4" fill="#22c55e" />
-              <text x="63" y="41" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">A</text>
+              <text x="63" y="41" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                A
+              </text>
               <rect x="78" y="28" width="22" height="22" rx="4" className="fill-slate-400 dark:fill-slate-700" />
-              <text x="89" y="41" fill="#f8fafc" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">N</text>
+              <text x="89" y="41" fill="#f8fafc" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                N
+              </text>
               <rect x="104" y="28" width="22" height="22" rx="4" className="fill-slate-400 dark:fill-slate-700" />
-              <text x="115" y="41" fill="#f8fafc" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">E</text>
+              <text x="115" y="41" fill="#f8fafc" fontFamily="monospace" fontWeight="900" fontSize="11" textAnchor="middle" dominantBaseline="middle">
+                E
+              </text>
 
               {/* Row 3: VICTORY PLAYS */}
               {['P', 'L', 'A', 'Y', 'S'].map((char, i) => (
@@ -359,7 +494,18 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
                   <rect x="0" y="0" width="22" height="22" rx="4" fill="#22c55e" stroke="#86efac" strokeWidth="1">
                     <animate attributeName="opacity" values="0.85;1;0.85" dur="1.5s" repeatCount="indefinite" />
                   </rect>
-                  <text x="11" y="13" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">{char}</text>
+                  <text
+                    x="11"
+                    y="13"
+                    fill="#ffffff"
+                    fontFamily="monospace"
+                    fontWeight="900"
+                    fontSize="12"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {char}
+                  </text>
                 </g>
               ))}
             </g>
@@ -370,28 +516,110 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 9. MINESWEEPER ──────────────────────────────────────── */}
       {id === 'minesweeper' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-slate-100 via-teal-50 to-emerald-100/70 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/40">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Minesweeper">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Minesweeper"
+          >
             <g transform="translate(24, 16)">
-              <rect x="0" y="0" width="24" height="24" rx="4" className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-              <text x="12" y="14" fill="#0284c7" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">1</text>
-              <rect x="28" y="0" width="24" height="24" rx="4" className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-              <text x="40" y="14" fill="#16a34a" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">2</text>
-              <rect x="56" y="0" width="24" height="24" rx="4" className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-              <text x="68" y="14" fill="#dc2626" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">3</text>
+              <rect
+                x="0"
+                y="0"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700"
+                strokeWidth="1"
+              />
+              <text x="12" y="14" fill="#0284c7" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                1
+              </text>
+              <rect
+                x="28"
+                y="0"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700"
+                strokeWidth="1"
+              />
+              <text x="40" y="14" fill="#16a34a" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                2
+              </text>
+              <rect
+                x="56"
+                y="0"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700"
+                strokeWidth="1"
+              />
+              <text x="68" y="14" fill="#dc2626" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                3
+              </text>
 
-              <rect x="0" y="28" width="24" height="24" rx="4" className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-              <text x="12" y="42" fill="#0284c7" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">1</text>
+              <rect
+                x="0"
+                y="28"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700"
+                strokeWidth="1"
+              />
+              <text x="12" y="42" fill="#0284c7" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                1
+              </text>
               {/* Flagged Mine */}
               <rect x="28" y="28" width="24" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1.2" />
               <line x1="36" y1="34" x2="36" y2="48" stroke="#475569" strokeWidth="1.5" />
               <polygon points="36,34 46,38 36,42" fill="#ef4444" />
-              <rect x="56" y="28" width="24" height="24" rx="4" className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-              <text x="68" y="42" fill="#16a34a" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">2</text>
+              <rect
+                x="56"
+                y="28"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700"
+                strokeWidth="1"
+              />
+              <text x="68" y="42" fill="#16a34a" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                2
+              </text>
 
-              <rect x="0" y="56" width="24" height="24" rx="4" className="fill-slate-200 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-800" strokeWidth="1" />
-              <rect x="28" y="56" width="24" height="24" rx="4" className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-              <text x="40" y="70" fill="#0284c7" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">1</text>
-              <rect x="56" y="56" width="24" height="24" rx="4" className="fill-slate-200 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-800" strokeWidth="1" />
+              <rect
+                x="0"
+                y="56"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-slate-200 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-800"
+                strokeWidth="1"
+              />
+              <rect
+                x="28"
+                y="56"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-700"
+                strokeWidth="1"
+              />
+              <text x="40" y="70" fill="#0284c7" fontFamily="monospace" fontWeight="900" fontSize="12" textAnchor="middle" dominantBaseline="middle">
+                1
+              </text>
+              <rect
+                x="56"
+                y="56"
+                width="24"
+                height="24"
+                rx="4"
+                className="fill-slate-200 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-800"
+                strokeWidth="1"
+              />
             </g>
             {/* 3D Naval Mine */}
             <g transform="translate(142, 56)">
@@ -415,7 +643,15 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-sky-100/90 via-blue-50 to-indigo-100/80 dark:from-slate-950 dark:via-sky-950/40 dark:to-slate-950">
           <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Sudoku">
             <g transform="translate(50, 10)">
-              <rect x="0" y="0" width="92" height="92" rx="6" className="fill-white/85 dark:fill-slate-900/90 stroke-sky-400 dark:stroke-sky-500" strokeWidth="2" />
+              <rect
+                x="0"
+                y="0"
+                width="92"
+                height="92"
+                rx="6"
+                className="fill-white/85 dark:fill-slate-900/90 stroke-sky-400 dark:stroke-sky-500"
+                strokeWidth="2"
+              />
               {/* Intersection Cross */}
               <rect x="0" y="31" width="92" height="15" fill="#38bdf8" fillOpacity="0.2" />
               <rect x="31" y="0" width="15" height="92" fill="#38bdf8" fillOpacity="0.2" />
@@ -427,15 +663,33 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <line x1="0" y1="62" x2="92" y2="62" stroke="#0284c7" strokeWidth="1.5" />
               {/* Numbers */}
               <g fontFamily="sans-serif" fontWeight="900" fontSize="8" textAnchor="middle" dominantBaseline="middle">
-                <text x="15" y="16" className="fill-slate-800 dark:fill-slate-100">5</text>
-                <text x="46" y="16" className="fill-slate-500 dark:fill-slate-400">3</text>
-                <text x="77" y="16" className="fill-slate-800 dark:fill-slate-100">7</text>
-                <text x="15" y="47" className="fill-slate-500 dark:fill-slate-400">6</text>
-                <text x="39" y="39" className="fill-sky-950 dark:fill-white font-extrabold" fontSize="9">8</text>
-                <text x="77" y="47" fill="#0284c7">1</text>
-                <text x="15" y="77" className="fill-slate-800 dark:fill-slate-100">4</text>
-                <text x="46" y="77" fill="#0284c7">9</text>
-                <text x="77" y="77" className="fill-slate-500 dark:fill-slate-400">2</text>
+                <text x="15" y="16" className="fill-slate-800 dark:fill-slate-100">
+                  5
+                </text>
+                <text x="46" y="16" className="fill-slate-500 dark:fill-slate-400">
+                  3
+                </text>
+                <text x="77" y="16" className="fill-slate-800 dark:fill-slate-100">
+                  7
+                </text>
+                <text x="15" y="47" className="fill-slate-500 dark:fill-slate-400">
+                  6
+                </text>
+                <text x="39" y="39" className="fill-sky-950 dark:fill-white font-extrabold" fontSize="9">
+                  8
+                </text>
+                <text x="77" y="47" fill="#0284c7">
+                  1
+                </text>
+                <text x="15" y="77" className="fill-slate-800 dark:fill-slate-100">
+                  4
+                </text>
+                <text x="46" y="77" fill="#0284c7">
+                  9
+                </text>
+                <text x="77" y="77" className="fill-slate-500 dark:fill-slate-400">
+                  2
+                </text>
               </g>
             </g>
           </svg>
@@ -445,7 +699,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 11. AIM TRAINER ─────────────────────────────────────── */}
       {id === 'aimtrainer' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-rose-100/90 via-red-50 to-orange-100/80 dark:from-slate-950 dark:via-rose-950/40 dark:to-slate-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Aim Trainer">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Aim Trainer"
+          >
             <g transform="translate(96, 56)">
               <circle cx="0" cy="0" r="42" stroke="#f43f5e" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.6">
                 <animateTransform attributeName="transform" type="rotate" values="0;360" dur="8s" repeatCount="indefinite" />
@@ -462,11 +722,31 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <line x1="0" y1="14" x2="0" y2="50" stroke="#f43f5e" strokeWidth="1.5" />
             </g>
             {/* Accuracy Badge */}
-            <rect x="18" y="82" width="54" height="16" rx="4" className="fill-white dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" />
-            <text x="45" y="93" className="fill-emerald-700 dark:fill-emerald-400" fontFamily="monospace" fontWeight="900" fontSize="8" textAnchor="middle">99.8% ACC</text>
+            <rect
+              x="18"
+              y="82"
+              width="54"
+              height="16"
+              rx="4"
+              className="fill-white dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-700"
+              strokeWidth="1"
+            />
+            <text
+              x="45"
+              y="93"
+              className="fill-emerald-700 dark:fill-emerald-400"
+              fontFamily="monospace"
+              fontWeight="900"
+              fontSize="8"
+              textAnchor="middle"
+            >
+              99.8% ACC
+            </text>
             {/* +100 CRIT */}
             <rect x="120" y="16" width="54" height="16" rx="4" fill="#e11d48" stroke="#fecdd3" strokeWidth="1" />
-            <text x="147" y="27" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="8" textAnchor="middle">+100 CRIT</text>
+            <text x="147" y="27" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="8" textAnchor="middle">
+              +100 CRIT
+            </text>
           </svg>
         </div>
       )}
@@ -474,49 +754,86 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 12. WORD CHAIN ──────────────────────────────────────── */}
       {id === 'wordchain' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-teal-100/90 via-emerald-50 to-cyan-100/80 dark:from-slate-950 dark:via-teal-950/40 dark:to-slate-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Word Chain">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Word Chain"
+          >
             {/* Connecting Laser Arc */}
-            <path d="M40 56 C70 56 80 34 100 34 C120 34 130 78 160 78" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.65" />
+            <path
+              d="M40 56 C70 56 80 34 100 34 C120 34 130 78 160 78"
+              stroke="#0d9488"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              fill="none"
+              opacity="0.65"
+            />
             <path d="M40 56 C70 56 80 34 100 34 C120 34 130 78 160 78" stroke="#ffffff" strokeWidth="1" strokeDasharray="4 4" fill="none" />
 
             {/* Word 1: W - O - R - D */}
             <g transform="translate(16, 42)">
               <rect x="0" y="0" width="58" height="26" rx="6" className="fill-white dark:fill-slate-900 stroke-teal-500" strokeWidth="1.5" />
-              <text x="12" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">W</text>
-              <text x="24" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">O</text>
-              <text x="36" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">R</text>
+              <text x="12" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                W
+              </text>
+              <text x="24" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                O
+              </text>
+              <text x="36" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                R
+              </text>
               <circle cx="50" cy="13" r="6" fill="#f59e0b" />
-              <text x="50" y="16.5" fill="#451a03" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">D</text>
+              <text x="50" y="16.5" fill="#451a03" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">
+                D
+              </text>
             </g>
 
             {/* Word 2: D - U - E - L */}
             <g transform="translate(86, 20)">
               <rect x="0" y="0" width="58" height="26" rx="6" className="fill-white dark:fill-slate-900 stroke-amber-500" strokeWidth="1.5" />
               <circle cx="10" cy="13" r="6" fill="#f59e0b" />
-              <text x="10" y="16.5" fill="#451a03" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">D</text>
-              <text x="24" y="16" className="fill-slate-800 dark:fill-amber-100" fontFamily="monospace" fontWeight="900" fontSize="10">U</text>
-              <text x="36" y="16" className="fill-slate-800 dark:fill-amber-100" fontFamily="monospace" fontWeight="900" fontSize="10">E</text>
+              <text x="10" y="16.5" fill="#451a03" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">
+                D
+              </text>
+              <text x="24" y="16" className="fill-slate-800 dark:fill-amber-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                U
+              </text>
+              <text x="36" y="16" className="fill-slate-800 dark:fill-amber-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                E
+              </text>
               <circle cx="50" cy="13" r="6" fill="#0d9488" />
-              <text x="50" y="16.5" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">L</text>
+              <text x="50" y="16.5" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">
+                L
+              </text>
             </g>
 
             {/* Word 3: L - I - N - K */}
             <g transform="translate(118, 64)">
               <rect x="0" y="0" width="58" height="26" rx="6" className="fill-white dark:fill-slate-900 stroke-teal-500" strokeWidth="1.5" />
               <circle cx="10" cy="13" r="6" fill="#0d9488" />
-              <text x="10" y="16.5" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">L</text>
-              <text x="24" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">I</text>
-              <text x="36" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">N</text>
-              <text x="48" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">K</text>
+              <text x="10" y="16.5" fill="#ffffff" fontFamily="monospace" fontWeight="900" fontSize="10" textAnchor="middle">
+                L
+              </text>
+              <text x="24" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                I
+              </text>
+              <text x="36" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                N
+              </text>
+              <text x="48" y="16" className="fill-slate-800 dark:fill-teal-100" fontFamily="monospace" fontWeight="900" fontSize="10">
+                K
+              </text>
             </g>
           </svg>
         </div>
       )}
 
-      {/* ── 13. PIKACHU CONNECT ───────────────────────────────────── */}
+      {/* ── 13. Pikachu ───────────────────────────────────── */}
       {id === 'pikachu' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-amber-100/90 via-yellow-50 to-orange-100/80 dark:from-slate-950 dark:via-amber-950/30 dark:to-slate-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Pikachu Connect">
+          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Pikachu">
             <defs>
               <linearGradient id="pika-lightning" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#fef08a" />
@@ -533,14 +850,45 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
             </defs>
 
             {/* Background Grid Accent */}
-            <rect x="24" y="16" width="144" height="80" rx="12" fill="none" stroke="#e2e8f0" className="dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3 3" />
+            <rect
+              x="24"
+              y="16"
+              width="144"
+              height="80"
+              rx="12"
+              fill="none"
+              stroke="#e2e8f0"
+              className="dark:stroke-slate-800"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+            />
 
             {/* Inactive Tiles */}
-            <rect x="36" y="28" width="24" height="24" rx="6" className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800" strokeWidth="1" />
-            <text x="48" y="44" fontSize="12" textAnchor="middle">🔥</text>
+            <rect
+              x="36"
+              y="28"
+              width="24"
+              height="24"
+              rx="6"
+              className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800"
+              strokeWidth="1"
+            />
+            <text x="48" y="44" fontSize="12" textAnchor="middle">
+              🔥
+            </text>
 
-            <rect x="132" y="60" width="24" height="24" rx="6" className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800" strokeWidth="1" />
-            <text x="144" y="76" fontSize="12" textAnchor="middle">💧</text>
+            <rect
+              x="132"
+              y="60"
+              width="24"
+              height="24"
+              rx="6"
+              className="fill-white dark:fill-slate-900 stroke-slate-200 dark:stroke-slate-800"
+              strokeWidth="1"
+            />
+            <text x="144" y="76" fontSize="12" textAnchor="middle">
+              💧
+            </text>
 
             {/* Connecting Neon Electric Lightning Beam (L-shape/Z-shape path) */}
             <path
@@ -561,14 +909,7 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               strokeLinejoin="round"
               fill="none"
             />
-            <path
-              d="M 58 72 L 96 72 L 96 40 L 124 40"
-              stroke="#ffffff"
-              strokeWidth="1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
+            <path d="M 58 72 L 96 72 L 96 40 L 124 40" stroke="#ffffff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
             {/* Sparks */}
             <circle cx="96" cy="72" r="3" fill="#fef08a" filter="url(#pika-glow)" />
@@ -576,14 +917,36 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
 
             {/* Matched Pikachu Tile 1 */}
             <g transform="translate(36, 60)">
-              <rect x="0" y="0" width="24" height="24" rx="6" className="fill-amber-50 dark:fill-slate-900 stroke-amber-400" strokeWidth="2" filter="url(#pika-glow)" />
-              <text x="12" y="16.5" fontSize="13" textAnchor="middle">⚡</text>
+              <rect
+                x="0"
+                y="0"
+                width="24"
+                height="24"
+                rx="6"
+                className="fill-amber-50 dark:fill-slate-900 stroke-amber-400"
+                strokeWidth="2"
+                filter="url(#pika-glow)"
+              />
+              <text x="12" y="16.5" fontSize="13" textAnchor="middle">
+                ⚡
+              </text>
             </g>
 
             {/* Matched Pikachu Tile 2 */}
             <g transform="translate(124, 28)">
-              <rect x="0" y="0" width="24" height="24" rx="6" className="fill-amber-50 dark:fill-slate-900 stroke-amber-400" strokeWidth="2" filter="url(#pika-glow)" />
-              <text x="12" y="16.5" fontSize="13" textAnchor="middle">⚡</text>
+              <rect
+                x="0"
+                y="0"
+                width="24"
+                height="24"
+                rx="6"
+                className="fill-amber-50 dark:fill-slate-900 stroke-amber-400"
+                strokeWidth="2"
+                filter="url(#pika-glow)"
+              />
+              <text x="12" y="16.5" fontSize="13" textAnchor="middle">
+                ⚡
+              </text>
             </g>
           </svg>
         </div>
@@ -592,7 +955,13 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
       {/* ── 14. 8 BALL POOL (BILLIARDS) ─────────────────────────── */}
       {id === 'billiards' && (
         <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-emerald-900 via-teal-950 to-slate-950">
-          <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="8 Ball Pool">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="8 Ball Pool"
+          >
             <defs>
               <radialGradient id="felt-glow" cx="50%" cy="50%" r="60%">
                 <stop offset="0%" stopColor="#059669" stopOpacity="0.85" />
@@ -632,7 +1001,9 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="0" cy="0" r="7" fill="#eab308" />
               <circle cx="0" cy="0" r="7" fill="url(#ball-gloss)" />
               <circle cx="0" cy="0" r="2.8" fill="#ffffff" />
-              <text x="0" y="2" fontSize="5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#000000">1</text>
+              <text x="0" y="2" fontSize="5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#000000">
+                1
+              </text>
             </g>
 
             {/* Stripe Ball (Red 11) */}
@@ -642,7 +1013,9 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <rect x="-7" y="-3.2" width="14" height="6.4" fill="#ef4444" />
               <circle cx="0" cy="0" r="7" fill="url(#ball-gloss)" />
               <circle cx="0" cy="0" r="2.8" fill="#ffffff" />
-              <text x="0" y="2" fontSize="4.5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#000000">11</text>
+              <text x="0" y="2" fontSize="4.5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#000000">
+                11
+              </text>
             </g>
 
             {/* Solid Ball (Blue 2) */}
@@ -651,7 +1024,9 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="0" cy="0" r="7" fill="#2563eb" />
               <circle cx="0" cy="0" r="7" fill="url(#ball-gloss)" />
               <circle cx="0" cy="0" r="2.8" fill="#ffffff" />
-              <text x="0" y="2" fontSize="5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#ffffff">2</text>
+              <text x="0" y="2" fontSize="5" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle" fill="#ffffff">
+                2
+              </text>
             </g>
 
             {/* 8-Ball Center Target with subtle pulse */}
@@ -660,7 +1035,9 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="0" cy="0" r="8" fill="#111827" />
               <circle cx="0" cy="0" r="8" fill="url(#ball-gloss)" />
               <circle cx="0" cy="0" r="3.2" fill="#ffffff" />
-              <text x="0" y="2.2" fontSize="6" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" fill="#000000">8</text>
+              <text x="0" y="2.2" fontSize="6" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" fill="#000000">
+                8
+              </text>
             </g>
 
             {/* Cue Ball */}
@@ -673,13 +1050,7 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
 
             {/* Cue Stick with Pullback Animation */}
             <g>
-              <animateTransform
-                attributeName="transform"
-                type="translate"
-                values="-8 1; 2 -0.2; -8 1"
-                dur="2.2s"
-                repeatCount="indefinite"
-              />
+              <animateTransform attributeName="transform" type="translate" values="-8 1; 2 -0.2; -8 1" dur="2.2s" repeatCount="indefinite" />
               <g transform="translate(46, 57) rotate(5)">
                 {/* Chalk tip */}
                 <rect x="-2" y="-1.5" width="2" height="3" fill="#38bdf8" />
@@ -695,28 +1066,36 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
 
       {/* ── 15. LINE 98 (COLOR LINES) ─────────────────────────────── */}
       {id === 'line98' && (
-        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-indigo-950 via-slate-950 to-violet-950">
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-indigo-100/90 via-purple-50 to-violet-200/80 dark:from-slate-950 dark:via-indigo-950/60 dark:to-slate-950">
           <svg viewBox="0 0 192 112" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Line 98">
             <defs>
               <radialGradient id="l98-ball-gloss" cx="35%" cy="28%" r="65%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-                <stop offset="35%" stopColor="#ffffff" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
+                <stop offset="35%" stopColor="#ffffff" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0.4" />
               </radialGradient>
             </defs>
 
+            {/* Board border & inner plate */}
+            <rect
+              x="28"
+              y="12"
+              width="136"
+              height="90"
+              rx="6"
+              className="fill-white/80 dark:fill-slate-900/80 stroke-indigo-200 dark:stroke-indigo-800/50"
+              strokeWidth="1.2"
+            />
+
             {/* Subtle grid lines */}
-            <g stroke="#ffffff" strokeWidth="0.3" opacity="0.06">
-              {[0,1,2,3,4,5,6,7,8,9].map(i => (
+            <g className="stroke-indigo-300/40 dark:stroke-slate-700/40" strokeWidth="0.6">
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
                 <line key={`h${i}`} x1="28" y1={12 + i * 10} x2="164" y2={12 + i * 10} />
               ))}
-              {[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(i => (
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((i) => (
                 <line key={`v${i}`} x1={28 + i * 9.7} y1="12" x2={28 + i * 9.7} y2="102" />
               ))}
             </g>
-
-            {/* Board border */}
-            <rect x="28" y="12" width="136" height="90" rx="5" fill="none" stroke="#6366f1" strokeWidth="1" opacity="0.3" />
 
             {/* Static balls on grid */}
             {/* Red ball */}
@@ -745,8 +1124,7 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
             </g>
 
-            {/* Animated row of 5 purple balls forming a line — the core mechanic */}
-            {/* Existing 4 purple balls */}
+            {/* Animated row of 5 purple balls forming a line */}
             <g transform="translate(52, 82)">
               <circle cx="0" cy="0" r="5.5" fill="#a855f7" />
               <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
@@ -778,19 +1156,19 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="0" cy="0" r="5.5" fill="url(#l98-ball-gloss)" />
             </g>
 
-            {/* Match flash line — appears when 5th ball arrives */}
-            <line x1="46" y1="82" x2="138" y2="82" stroke="#c084fc" strokeWidth="2" opacity="0">
-              <animate attributeName="opacity" values="0;0;0.8;0" keyTimes="0;0.5;0.6;1" dur="3s" repeatCount="indefinite" />
+            {/* Match flash line */}
+            <line x1="46" y1="82" x2="138" y2="82" className="stroke-violet-500 dark:stroke-violet-300" strokeWidth="2" opacity="0">
+              <animate attributeName="opacity" values="0;0;0.85;0" keyTimes="0;0.5;0.6;1" dur="3s" repeatCount="indefinite" />
             </line>
 
             {/* Sparkle effects on match */}
             <g opacity="0">
               <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.55;0.65;0.85" dur="3s" repeatCount="indefinite" />
-              <circle cx="62" cy="78" r="1.5" fill="#e9d5ff" />
-              <circle cx="82" cy="86" r="1" fill="#e9d5ff" />
-              <circle cx="102" cy="77" r="1.5" fill="#e9d5ff" />
-              <circle cx="122" cy="87" r="1" fill="#e9d5ff" />
-              <circle cx="132" cy="77" r="1.5" fill="#e9d5ff" />
+              <circle cx="62" cy="78" r="1.5" className="fill-violet-400 dark:fill-purple-200" />
+              <circle cx="82" cy="86" r="1" className="fill-violet-400 dark:fill-purple-200" />
+              <circle cx="102" cy="77" r="1.5" className="fill-violet-400 dark:fill-purple-200" />
+              <circle cx="122" cy="87" r="1" className="fill-violet-400 dark:fill-purple-200" />
+              <circle cx="132" cy="77" r="1.5" className="fill-violet-400 dark:fill-purple-200" />
             </g>
 
             {/* Cyan ball top-left */}
@@ -799,11 +1177,99 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
               <circle cx="0" cy="0" r="6" fill="url(#l98-ball-gloss)" />
             </g>
 
-            {/* Selection ring on the moving ball — visible before move */}
-            <circle cx="132" cy="52" r="8" fill="none" stroke="#c084fc" strokeWidth="1.2" opacity="0">
+            {/* Selection ring on moving ball */}
+            <circle cx="132" cy="52" r="8" fill="none" className="stroke-violet-500 dark:stroke-violet-300" strokeWidth="1.2" opacity="0">
               <animate attributeName="opacity" values="0.7;0.7;0;0" keyTimes="0;0.25;0.35;1" dur="3s" repeatCount="indefinite" />
               <animate attributeName="r" values="8;9;9;9" keyTimes="0;0.15;0.35;1" dur="3s" repeatCount="indefinite" />
             </circle>
+          </svg>
+        </div>
+      )}
+
+      {/* ── 16. NEON SNAKE ────────────────────────────────────────── */}
+      {id === 'neonsnake' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-cyan-100/90 via-sky-50 to-blue-200/80 dark:from-slate-950 dark:via-slate-900 dark:to-cyan-950/50">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Neon Snake"
+          >
+            {/* Cyber Grid Pattern */}
+            <defs>
+              <pattern id="ns-grid" width="16" height="16" patternUnits="userSpaceOnUse">
+                <path d="M 16 0 L 0 0 0 16" fill="none" className="stroke-sky-300/60 dark:stroke-slate-800/80" strokeWidth="0.8" />
+              </pattern>
+            </defs>
+
+            {/* Inner Plate Board */}
+            <rect
+              x="20"
+              y="10"
+              width="152"
+              height="92"
+              rx="6"
+              className="fill-white/75 dark:fill-slate-950/60 stroke-cyan-200/60 dark:stroke-cyan-900/40"
+              strokeWidth="1"
+            />
+            <rect x="20" y="10" width="152" height="92" rx="6" fill="url(#ns-grid)" />
+
+            {/* Glowing Food (Magenta) */}
+            <g transform="translate(144, 48)">
+              <rect x="-8" y="-8" width="16" height="16" rx="4" className="fill-rose-400/25 dark:fill-pink-500/35">
+                <animate attributeName="opacity" values="0.25;0.5;0.25" dur="1.4s" repeatCount="indefinite" />
+              </rect>
+              <rect x="-5" y="-5" width="10" height="10" rx="2.5" className="fill-rose-600 dark:fill-rose-500" />
+              <rect x="-2" y="-2" width="4" height="4" rx="1" fill="#ffffff" />
+            </g>
+
+            {/* Snake Path with animation */}
+            {/* Tail Segments (Purple / Blue) */}
+            <g transform="translate(48, 72)">
+              <rect x="-7" y="-7" width="14" height="14" rx="3" className="fill-purple-400/25 dark:fill-purple-500/25" />
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-purple-600 dark:fill-purple-500" />
+              <rect x="-2" y="-2" width="4" height="4" rx="1" className="fill-purple-200 dark:fill-purple-300" />
+            </g>
+
+            <g transform="translate(64, 72)">
+              <rect x="-7" y="-7" width="14" height="14" rx="3" className="fill-indigo-400/25 dark:fill-indigo-500/25" />
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-indigo-600 dark:fill-indigo-500" />
+              <rect x="-2" y="-2" width="4" height="4" rx="1" className="fill-indigo-200 dark:fill-indigo-300" />
+            </g>
+
+            <g transform="translate(80, 72)">
+              <rect x="-7" y="-7" width="14" height="14" rx="3" className="fill-blue-400/25 dark:fill-blue-500/25" />
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-blue-600 dark:fill-indigo-500" />
+            </g>
+
+            {/* Corner Turn Up */}
+            <g transform="translate(80, 56)">
+              <rect x="-7" y="-7" width="14" height="14" rx="3" className="fill-sky-400/25 dark:fill-sky-500/25" />
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-sky-600 dark:fill-cyan-600" />
+            </g>
+
+            {/* Corner Turn Right */}
+            <g transform="translate(96, 56)">
+              <rect x="-7" y="-7" width="14" height="14" rx="3" className="fill-cyan-400/30 dark:fill-cyan-500/30" />
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-cyan-600 dark:fill-cyan-500" />
+            </g>
+
+            <g transform="translate(112, 56)">
+              <rect x="-7" y="-7" width="14" height="14" rx="3" className="fill-cyan-400/30 dark:fill-cyan-500/30" />
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-cyan-600 dark:fill-cyan-500" />
+            </g>
+
+            {/* Snake Head (Cyan Glow & Core) */}
+            <g transform="translate(128, 56)">
+              <rect x="-8" y="-8" width="16" height="16" rx="4" className="fill-cyan-400/35 dark:fill-cyan-500/40">
+                <animate attributeName="opacity" values="0.35;0.6;0.35" dur="1s" repeatCount="indefinite" />
+              </rect>
+              <rect x="-5" y="-5" width="10" height="10" rx="2" className="fill-cyan-600 dark:fill-cyan-400" />
+              <rect x="-2" y="-2" width="4" height="4" rx="1" fill="#ffffff" />
+              <circle cx="2" cy="-2" r="1" className="fill-cyan-950 dark:fill-cyan-900" />
+              <circle cx="2" cy="2" r="1" className="fill-cyan-950 dark:fill-cyan-900" />
+            </g>
           </svg>
         </div>
       )}

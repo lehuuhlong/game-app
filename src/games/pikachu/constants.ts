@@ -35,7 +35,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 12,
-    timeLimit: 150, // fixed 150s
+    timeLimit: 200, // fixed 200s
     gravity: 'none',
   },
   {
@@ -45,7 +45,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 14,
-    timeLimit: 150,
+    timeLimit: 200,
     gravity: 'down',
   },
   {
@@ -55,7 +55,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 16,
-    timeLimit: 150,
+    timeLimit: 200,
     gravity: 'left',
   },
   {
@@ -65,7 +65,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 18,
-    timeLimit: 150,
+    timeLimit: 200,
     gravity: 'right',
   },
   {
@@ -75,7 +75,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 20,
-    timeLimit: 150,
+    timeLimit: 200,
     gravity: 'center-vertical',
   },
   {
@@ -85,7 +85,7 @@ export const LEVELS: LevelConfig[] = [
     rows: 8,
     cols: 12,
     uniqueTilesCount: 22,
-    timeLimit: 150,
+    timeLimit: 200,
     gravity: 'up',
   },
 ];
@@ -157,7 +157,7 @@ export function getLevelConfig(levelIdx: number): LevelConfig {
     rows: 8,
     cols: 12,
     uniqueTilesCount,
-    timeLimit: 150, // Fixed 150 seconds per level
+    timeLimit: 200, // Fixed 200 seconds per level
     gravity: g.gravity,
   };
 }

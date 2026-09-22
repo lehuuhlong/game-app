@@ -27,7 +27,8 @@ type GameTab =
   | "flappybird"
   | "wordle"
   | "pikachu"
-  | "line98";
+  | "line98"
+  | "neonsnake";
 
 interface EntryLine98 {
   rank: number;
@@ -141,6 +142,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "wordle", label: "Wordle", category: "singleplayer" },
   { id: "pikachu", label: "Pikachu", category: "singleplayer" },
   { id: "line98", label: "Line 98", category: "singleplayer" },
+  { id: "neonsnake", label: "Neon Snake", category: "singleplayer" },
 ];
 
 const GAME_ICONS: Record<GameTab, React.ReactNode> = {
@@ -253,6 +255,12 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <circle cx="6" cy="18" r="3" />
     </svg>
   ),
+  neonsnake: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 7a3 3 0 0 0-3-3H8a4 4 0 0 0-4 4v1a4 4 0 0 0 4 4h8a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4H7" />
+      <circle cx="19" cy="7" r="1.5" fill="currentColor" />
+    </svg>
+  ),
 };
 
 const TAB_INDEX: Record<string, number> = {
@@ -271,6 +279,7 @@ const TAB_INDEX: Record<string, number> = {
   pikachu: 12,
   billiards: 13,
   line98: 14,
+  neonsnake: 15,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -380,6 +389,7 @@ export default function LeaderboardPage() {
   const [dataSudoku, setDataSudoku] = useState<EntrySudoku[]>([]);
   const [dataPikachu, setDataPikachu] = useState<EntryPikachu[]>([]);
   const [dataLine98, setDataLine98] = useState<EntryLine98[]>([]);
+  const [dataNeonSnake, setDataNeonSnake] = useState<EntryLine98[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected player profile modal
@@ -477,6 +487,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "sudoku") setDataSudoku(json.leaderboard || []);
           else if (activeGame === "pikachu") setDataPikachu(json.leaderboard || []);
           else if (activeGame === "line98") setDataLine98(json.leaderboard || []);
+          else if (activeGame === "neonsnake") setDataNeonSnake(json.leaderboard || []);
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -639,6 +650,15 @@ export default function LeaderboardPage() {
         first: dataLine98[0] ? { rank: 1 as const, username: dataLine98[0].username, avatarUrl: dataLine98[0].avatarUrl, primaryStat: `${dataLine98[0].score.toLocaleString()} pts`, secondaryStat: "Color Lines Grandmaster" } : null,
         second: dataLine98[1] ? { rank: 2 as const, username: dataLine98[1].username, avatarUrl: dataLine98[1].avatarUrl, primaryStat: `${dataLine98[1].score.toLocaleString()} pts`, secondaryStat: "Color Lines Master" } : null,
         third: dataLine98[2] ? { rank: 3 as const, username: dataLine98[2].username, avatarUrl: dataLine98[2].avatarUrl, primaryStat: `${dataLine98[2].score.toLocaleString()} pts`, secondaryStat: "Color Lines Expert" } : null,
+        metricLabel: "Score",
+      };
+    }
+    if (activeGame === "neonsnake") {
+      if (dataNeonSnake.length === 0) return null;
+      return {
+        first: dataNeonSnake[0] ? { rank: 1 as const, username: dataNeonSnake[0].username, avatarUrl: dataNeonSnake[0].avatarUrl, primaryStat: `${dataNeonSnake[0].score.toLocaleString()} pts`, secondaryStat: "Cyber Runner" } : null,
+        second: dataNeonSnake[1] ? { rank: 2 as const, username: dataNeonSnake[1].username, avatarUrl: dataNeonSnake[1].avatarUrl, primaryStat: `${dataNeonSnake[1].score.toLocaleString()} pts`, secondaryStat: "Neon Glider" } : null,
+        third: dataNeonSnake[2] ? { rank: 3 as const, username: dataNeonSnake[2].username, avatarUrl: dataNeonSnake[2].avatarUrl, primaryStat: `${dataNeonSnake[2].score.toLocaleString()} pts`, secondaryStat: "Grid Navigator" } : null,
         metricLabel: "Score",
       };
     }
@@ -1538,7 +1558,7 @@ export default function LeaderboardPage() {
                         </>
                       )}
 
-                      {/* ── Pikachu Connect ── */}
+                      {/* ── Pikachu ── */}
                       {activeGame === "pikachu" && (
                         <>
                           <TableHeader cols="grid-cols-[56px_1fr_110px_120px]">
@@ -1548,7 +1568,7 @@ export default function LeaderboardPage() {
                             <span className="text-right">High Score</span>
                           </TableHeader>
                           {dataPikachu.filter((e) => matchesSearch(e.username)).length === 0 ? (
-                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Pikachu Connect scores recorded yet. Connect tiles and beat the clock!"} />
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Pikachu scores recorded yet. Connect tiles and beat the clock!"} />
                           ) : (
                             dataPikachu
                               .filter((e) => matchesSearch(e.username))
@@ -1600,6 +1620,39 @@ export default function LeaderboardPage() {
                                   <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
                                   <span className="text-sm font-bold text-violet-400 text-right font-mono flex items-center justify-end gap-1.5">
                                     <span>🔮</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Neon Snake ── */}
+                      {activeGame === "neonsnake" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Score</span>
+                          </TableHeader>
+                          {dataNeonSnake.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Neon Snake scores recorded yet. Glide through the cyber grid and claim #1!"} />
+                          ) : (
+                            dataNeonSnake
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataNeonSnake.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-cyan-400 text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span>⚡</span>
                                     {e.score.toLocaleString()}
                                   </span>
                                 </TableRow>

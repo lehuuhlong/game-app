@@ -7,7 +7,7 @@ export interface CreatureIconProps {
 }
 
 /**
- * High-performance, cross-platform vector SVG icons for all 24 Pikachu Connect creatures.
+ * High-performance, cross-platform vector SVG icons for all 24 Pikachu creatures.
  * Renders identically across Windows 10, Windows 11, iOS, macOS, and Android.
  * Vector paths with clean geometric and organic curves, optimized for 32x32 to 48x48 tile grids.
  */
@@ -448,7 +448,13 @@ const PoliwagSvg: React.FC<{ className?: string }> = ({ className }) => (
     {/* Big White Spiral Belly Disc */}
     <circle cx="18" cy="19" r="8" fill="#ffffff" stroke="#1d4ed8" strokeWidth="0.8" />
     {/* Crisp Whirlpool Spiral */}
-    <path d="M18 19C18 17.5 16.5 16.5 15 17C13 18 14 21 16 22C19 23 22 21 21 18C20 14 15 13 13 16" stroke="#0f172a" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    <path
+      d="M18 19C18 17.5 16.5 16.5 15 17C13 18 14 21 16 22C19 23 22 21 21 18C20 14 15 13 13 16"
+      stroke="#0f172a"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      fill="none"
+    />
     {/* Big Anime Eyes on Top */}
     <circle cx="13" cy="11" r="2.2" fill="#ffffff" stroke="#1d4ed8" strokeWidth="0.6" />
     <circle cx="13" cy="11" r="1.2" fill="#0f172a" />
@@ -518,41 +524,39 @@ const RayquazaSvg: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const CREATURE_COMPONENTS: Array<React.FC<{ className?: string }>> = [
-  PikachuSvg,     // 0
-  CharmanderSvg,  // 1
-  SquirtleSvg,    // 2
-  BulbasaurSvg,   // 3
-  GengarSvg,      // 4
-  JigglypuffSvg,  // 5
-  SnorlaxSvg,     // 6
-  MewtwoSvg,      // 7
-  DragoniteSvg,   // 8
-  EeveeSvg,       // 9
-  PsyduckSvg,     // 10
-  MagikarpSvg,    // 11
-  LaprasSvg,      // 12
-  VulpixSvg,      // 13
-  MeowthSvg,      // 14
-  MachopSvg,      // 15
-  GeodudeSvg,     // 16
-  AbraSvg,        // 17
-  ZubatSvg,       // 18
-  ButterfreeSvg,  // 19
-  PoliwagSvg,     // 20
-  DiglettSvg,     // 21
-  TogepiSvg,      // 22
-  RayquazaSvg,    // 23
+  PikachuSvg, // 0
+  CharmanderSvg, // 1
+  SquirtleSvg, // 2
+  BulbasaurSvg, // 3
+  GengarSvg, // 4
+  JigglypuffSvg, // 5
+  SnorlaxSvg, // 6
+  MewtwoSvg, // 7
+  DragoniteSvg, // 8
+  EeveeSvg, // 9
+  PsyduckSvg, // 10
+  MagikarpSvg, // 11
+  LaprasSvg, // 12
+  VulpixSvg, // 13
+  MeowthSvg, // 14
+  MachopSvg, // 15
+  GeodudeSvg, // 16
+  AbraSvg, // 17
+  ZubatSvg, // 18
+  ButterfreeSvg, // 19
+  PoliwagSvg, // 20
+  DiglettSvg, // 21
+  TogepiSvg, // 22
+  RayquazaSvg, // 23
 ];
 
 /**
  * Pure, memoized CreatureIcon component.
  * Instant zero-overhead rendering without network delays or OS-specific font variance.
  */
-export const CreatureIcon: React.FC<CreatureIconProps> = React.memo(
-  ({ type, className = 'w-full h-full' }) => {
-    const Component = CREATURE_COMPONENTS[type] || PikachuSvg;
-    return <Component className={className} />;
-  }
-);
+export const CreatureIcon: React.FC<CreatureIconProps> = React.memo(({ type, className = 'w-full h-full' }) => {
+  const Component = CREATURE_COMPONENTS[type] || PikachuSvg;
+  return <Component className={className} />;
+});
 
 CreatureIcon.displayName = 'CreatureIcon';

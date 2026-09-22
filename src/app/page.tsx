@@ -52,6 +52,8 @@ const COMPLETED_GAME_IDS = [
   'flappybird',
   'wordchain',
   'billiards',
+  'line98',
+  'neonsnake',
 ];
 
 // Upcoming teaser game profiles

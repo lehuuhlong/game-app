@@ -134,6 +134,20 @@ export function validateGameScore(
       return { valid: true };
     }
 
+    case 'neonsnake': {
+      // Each food in Neon Snake gives 10 points. 20x20 grid has 400 tiles max.
+      if (score > 4000) {
+        return { valid: false, reason: 'Neon Snake score exceeds grid maximum threshold' };
+      }
+      if (score > 100) {
+        const minDuration = (score / 10) * 0.15;
+        if (durationSeconds < minDuration) {
+          return { valid: false, reason: 'Neon Snake score rate physically impossible' };
+        }
+      }
+      return { valid: true };
+    }
+
     case 'aimtrainer': {
       // Aim Trainer is a fixed 60-second challenge
       if (durationSeconds < 15) {

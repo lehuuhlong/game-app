@@ -136,146 +136,106 @@ export function GamePikachu() {
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground flex flex-col items-center justify-start px-2 sm:px-4 py-4 sm:py-8 select-none">
-      {/* ── 1. Sticky / Floating Header HUD ───────────────────────────── */}
-      <div className="w-full max-w-5xl mb-4 sm:mb-6">
-        <div className="flex items-center justify-between gap-2 p-3 sm:p-4 rounded-2xl bg-surface/70 border border-border/80 backdrop-blur-xl shadow-lg">
-          {/* Back link & Title */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/games"
-              className="p-2 rounded-xl bg-surface-hover/80 text-foreground-secondary hover:text-foreground border border-border/60 transition-colors"
-              title="Back to games catalog"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-amber-400 via-sky-400 to-primary bg-clip-text text-transparent">
-                  Pikachu Connect
-                </h1>
-                <span className="hidden xs:inline-block text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  Level {levelConfig.level}
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs text-foreground-secondary hidden sm:block truncate max-w-xs">
-                {levelConfig.name} • {levelConfig.description}
-              </p>
-            </div>
+    <div className="flex flex-col items-center gap-5 sm:gap-6 w-full select-none">
+      {/* ── 1. Header Matching Portal Style ───────────────────────────── */}
+      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+              Pikachu
+            </h1>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              Level {levelConfig.level}
+            </span>
           </div>
-
-          {/* Stats Badges */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Score */}
-            <div className="text-right">
-              <span className="text-[10px] sm:text-xs text-foreground-muted font-medium block leading-none mb-1">
-                SCORE
-              </span>
-              <span className="text-base sm:text-xl font-bold font-mono text-amber-400 leading-none">
-                {score.toLocaleString()}
-              </span>
-            </div>
-
-            {/* Best Score */}
-            <div className="text-right hidden sm:block">
-              <span className="text-[10px] sm:text-xs text-foreground-muted font-medium block leading-none mb-1">
-                BEST
-              </span>
-              <span className="text-base sm:text-xl font-bold font-mono text-sky-400 leading-none">
-                {bestScore.toLocaleString()}
-              </span>
-            </div>
-
-            {/* Audio Toggle */}
-            <button
-              type="button"
-              onClick={toggleMute}
-              className={`p-2 rounded-xl border transition-colors ${
-                isMuted
-                  ? 'bg-red-500/10 text-red-400 border-red-500/30'
-                  : 'bg-surface-hover/80 text-foreground-secondary border-border/60 hover:text-foreground'
-              }`}
-              title={isMuted ? 'Unmute sound' : 'Mute sound'}
-            >
-              {isMuted ? (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
-              )}
-            </button>
-
-            {/* Pause Button 
-            <button
-              type="button"
-              onClick={togglePause}
-              className="p-2 rounded-xl bg-surface-hover/80 text-foreground-secondary border border-border/60 hover:text-foreground transition-colors"
-              title={status === 'paused' ? 'Resume game' : 'Pause game'}
-            >
-              {status === 'paused' ? (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
-            </button>
-            */}
-          </div>
+          <p className="text-sm text-foreground-secondary mt-0.5">
+            {levelConfig.name} • {levelConfig.description}
+          </p>
         </div>
 
-        {/* ── 2. Timer Bar & Combo Streak ──────────────────────────────── */}
-        <div className="mt-2 sm:mt-3 flex items-center gap-3">
-          {/* Time bar */}
-          <div className="relative flex-1 h-3 sm:h-3.5 bg-surface rounded-full overflow-hidden border border-border/80 shadow-inner">
-            <motion.div
-              className={`h-full rounded-full transition-all duration-300 ${
-                timePercent > 40
-                  ? 'bg-gradient-to-r from-emerald-500 to-sky-400'
-                  : timePercent > 15
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
-                  : 'bg-gradient-to-r from-red-600 to-rose-500 animate-pulse'
-              }`}
-              style={{ width: `${timePercent}%` }}
-            />
-          </div>
-
-          <div className="flex items-center gap-2 min-w-[75px] justify-end">
-            <span className="text-xs sm:text-sm font-mono font-bold text-foreground-secondary">
-              ⏱️ {timeLeft}s
+        {/* Scoreboard & Audio */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Score */}
+          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[75px] shadow-xs">
+            <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
+              Score
+            </span>
+            <span className="text-base sm:text-lg font-bold text-foreground tabular-nums">
+              {score.toLocaleString()}
             </span>
           </div>
 
-          {/* Combo Multiplier indicator */}
-          <AnimatePresence>
-            {combo > 1 && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold font-mono shadow-[0_0_12px_rgba(251,191,36,0.3)] animate-bounce"
-              >
-                🔥 x{combo}
-              </motion.div>
+          {/* Best Score */}
+          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[75px] shadow-xs">
+            <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
+              Best
+            </span>
+            <span className="text-base sm:text-lg font-bold text-accent tabular-nums" suppressHydrationWarning>
+              {bestScore.toLocaleString()}
+            </span>
+          </div>
+
+          {/* Audio Toggle */}
+          <button
+            type="button"
+            onClick={toggleMute}
+            className={`p-2.5 rounded-xl border transition-colors shadow-xs ${
+              isMuted
+                ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                : 'bg-surface text-foreground-secondary border-border hover:text-foreground hover:bg-surface-hover'
+            }`}
+            title={isMuted ? 'Unmute sound' : 'Mute sound'}
+          >
+            {isMuted ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
             )}
-          </AnimatePresence>
+          </button>
+        </div>
+      </div>
+
+      {/* ── 2. Timer Bar & Combo Streak ──────────────────────────────── */}
+      <div className="w-full flex items-center gap-3 h-8">
+        {/* Time bar */}
+        <div className="relative flex-1 h-2.5 sm:h-3 bg-surface-hover/80 rounded-full overflow-hidden border border-border shadow-xs">
+          <motion.div
+            className={`h-full rounded-full transition-all duration-300 ${
+              timePercent > 40
+                ? 'bg-emerald-500'
+                : timePercent > 15
+                  ? 'bg-amber-500'
+                  : 'bg-rose-500 animate-pulse'
+            }`}
+            style={{ width: `${timePercent}%` }}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs sm:text-sm font-mono font-bold text-foreground-secondary tabular-nums min-w-[55px] text-right">
+            ⏱️ {timeLeft}s
+          </span>
+
+          {/* Reserved slot for Combo Multiplier - zero layout shift */}
+          <div className="w-[62px] h-6 flex items-center justify-center shrink-0">
+            <span
+              className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-bold font-mono transition-all duration-150 ${
+                combo > 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+              }`}
+            >
+              🔥 x{combo > 1 ? combo : 2}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* ── 3. Main Playing Board ────────────────────────────────────── */}
-      <div className="relative w-full max-w-5xl flex items-center justify-center p-2 sm:p-4 rounded-3xl bg-surface/50 border border-border/80 backdrop-blur-xl shadow-2xl overflow-hidden">
-        {/* Subtle Ambient Grid Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />
-
+      <div className="relative w-full flex items-center justify-center p-2.5 sm:p-4 rounded-2xl bg-surface border border-border shadow-sm overflow-hidden">
         {/* Board container */}
         <div
           ref={boardRef}
@@ -290,35 +250,22 @@ export function GamePikachu() {
             row.map((cell) => (
               <div
                 key={`slot_${cell.r}_${cell.c}`}
-                className="aspect-square w-full rounded-xl bg-surface/30 border border-border/40 pointer-events-none"
+                className="aspect-square w-full rounded-xl bg-surface-hover/50 border border-border/40 pointer-events-none"
                 style={{
                   gridRowStart: cell.r + 1,
                   gridColumnStart: cell.c + 1,
                 }}
               />
-            ))
+            )),
           )}
 
           {/* Active tiles with smooth layout sliding */}
           {board.flatMap((row) =>
-            row
-              .filter((cell) => cell.tile !== null)
-              .map((cell) => (
-                <PikachuTile
-                  key={cell.tile!.id}
-                  cell={cell}
-                  onSelect={selectCell}
-                />
-              ))
+            row.filter((cell) => cell.tile !== null).map((cell) => <PikachuTile key={cell.tile!.id} cell={cell} onSelect={selectCell} />),
           )}
 
-          {/* Electric Neon SVG Path Overlay */}
-          <ElectricPathOverlay
-            path={activePath}
-            rows={levelConfig.rows}
-            cols={levelConfig.cols}
-            boardRef={boardRef}
-          />
+          {/* Electric Path Overlay */}
+          <ElectricPathOverlay path={activePath} rows={levelConfig.rows} cols={levelConfig.cols} boardRef={boardRef} />
         </div>
 
         {/* Pause Overlay */}
@@ -328,15 +275,13 @@ export function GamePikachu() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-40 bg-black/75 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center"
+              className="absolute inset-0 z-40 bg-background/80 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center"
             >
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-4">
-                GAME PAUSED
-              </h2>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-4">GAME PAUSED</h2>
               <button
                 type="button"
                 onClick={togglePause}
-                className="px-6 py-2.5 rounded-xl font-bold bg-gradient-to-r from-sky-400 to-primary text-white shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
+                className="px-6 py-2.5 rounded-xl font-bold bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
               >
                 Resume Game
               </button>
@@ -346,26 +291,43 @@ export function GamePikachu() {
       </div>
 
       {/* ── 4. Control Action Bar ────────────────────────────────────── */}
-      <div className="w-full max-w-5xl mt-4 sm:mt-6 flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-surface/70 border border-border/80 backdrop-blur-xl shadow-lg">
+      <div className="w-full flex items-center justify-between gap-3 flex-wrap">
         {/* Status: Pairs left */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-foreground-secondary">
           <span>Pairs Left:</span>
           <span className="font-mono font-bold text-foreground">{pairsLeft} pairs</span>
+          <span className="mx-1 text-border hidden sm:inline">|</span>
+          <span className="hidden sm:inline text-xs text-foreground-muted">
+            Connect 2 identical tiles with at most 2 turns
+          </span>
         </div>
 
-        {/* Hint Button (Max 3 for entire session, no reset on level up) */}
-        <div>
+        <div className="flex items-center gap-2">
+          {/* Hint Button */}
           <button
             type="button"
             onClick={useHint}
             disabled={hintsLeft <= 0 || status !== 'playing'}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border hover:border-sky-400/60 hover:bg-surface-hover text-xs sm:text-sm font-semibold transition-all disabled:opacity-40 disabled:pointer-events-none"
-            title="Hint (Max 3 for the entire run)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface text-xs sm:text-sm font-medium text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-xs"
+            title="Hint (Max 3 for the run)"
           >
             <span>💡 Hint</span>
-            <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 font-mono text-[11px] font-bold">
+            <span className="px-1.5 py-0.2 rounded-full bg-accent/10 text-accent font-mono text-[11px] font-bold">
               {hintsLeft} / 3
             </span>
+          </button>
+
+          {/* Restart Button */}
+          <button
+            type="button"
+            onClick={restartGame}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface text-xs sm:text-sm font-medium text-foreground-secondary hover:bg-surface-hover hover:text-foreground transition-colors shadow-xs"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+            <span>Restart</span>
           </button>
         </div>
       </div>
@@ -377,7 +339,7 @@ export function GamePikachu() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed bottom-6 z-50 px-5 py-2.5 rounded-full bg-surface border border-accent text-accent font-semibold text-sm shadow-2xl backdrop-blur-xl"
+            className="fixed bottom-6 z-50 px-5 py-2.5 rounded-full bg-surface border border-accent text-accent font-semibold text-sm shadow-xl backdrop-blur-sm"
           >
             {message}
           </motion.div>
@@ -391,50 +353,42 @@ export function GamePikachu() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-surface border border-emerald-500/40 shadow-[0_0_50px_rgba(16,185,129,0.3)] text-center"
+              className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-surface border border-border shadow-xl text-center text-foreground"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl">
                 {levelConfig.level >= 6 ? '👑' : '✨'}
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mb-2">
-                LEVEL {levelConfig.level} CLEARED!
-              </h2>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-2">LEVEL {levelConfig.level} CLEARED!</h2>
               <p className="text-sm text-foreground-secondary mb-6">
                 {levelConfig.level === 6
                   ? 'Congratulations! You conquered the main campaign! Ready for Endless Mode?'
                   : levelConfig.level > 6
-                  ? `Endless Loop Master! You completed ${levelConfig.name}.`
-                  : `You have successfully conquered ${levelConfig.name}.`}
+                    ? `Endless Loop Master! You completed ${levelConfig.name}.`
+                    : `You have successfully conquered ${levelConfig.name}.`}
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="p-3 rounded-2xl bg-surface-hover/60 border border-border">
-                  <span className="text-xs text-foreground-muted block mb-1">Time Bonus</span>
-                  <span className="text-lg font-mono font-bold text-sky-400">+{timeLeft * 10} pts</span>
+                <div className="p-3.5 rounded-xl bg-surface-hover/60 border border-border">
+                  <span className="text-xs text-foreground-muted block mb-1 font-medium">Time Bonus</span>
+                  <span className="text-lg font-mono font-bold text-accent">+{timeLeft * 10} pts</span>
                 </div>
-                <div className="p-3 rounded-2xl bg-surface-hover/60 border border-border">
-                  <span className="text-xs text-foreground-muted block mb-1">Total Score</span>
-                  <span className="text-lg font-mono font-bold text-amber-400">{score.toLocaleString()}</span>
+                <div className="p-3.5 rounded-xl bg-surface-hover/60 border border-border">
+                  <span className="text-xs text-foreground-muted block mb-1 font-medium">Total Score</span>
+                  <span className="text-lg font-mono font-bold text-foreground">{score.toLocaleString()}</span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={nextLevel}
-                className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all text-sm sm:text-base ${
-                  levelConfig.level === 6
-                    ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:shadow-amber-500/40 hover:-translate-y-0.5'
-                    : 'bg-gradient-to-r from-emerald-500 to-sky-500 hover:shadow-emerald-500/30 hover:-translate-y-0.5'
-                }`}
+                className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
               >
-                {levelConfig.level === 6
-                  ? 'Enter Endless Mode (Level 7) ➔'
-                  : `Next Level (Level ${levelConfig.level + 1}) ➔`}
+                {levelConfig.level === 6 ? 'Enter Endless Mode (Level 7) ➔' : `Next Level (Level ${levelConfig.level + 1}) ➔`}
               </button>
             </motion.div>
           </motion.div>
@@ -448,39 +402,37 @@ export function GamePikachu() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-surface border border-red-500/40 shadow-[0_0_50px_rgba(239,68,68,0.3)] text-center"
+              className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-surface border border-border shadow-xl text-center text-foreground"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-3xl">
                 ⌛
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-red-400 mb-2">
-                TIME&apos;S UP!
-              </h2>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-2">TIME&apos;S UP!</h2>
               <p className="text-sm text-foreground-secondary mb-6">
                 You reached Level {levelConfig.level} ({levelConfig.name}).
               </p>
 
-              <div className="p-4 rounded-2xl bg-surface-hover/60 border border-border mb-6">
-                <span className="text-xs text-foreground-muted block mb-1">Final Score</span>
-                <span className="text-2xl font-mono font-bold text-amber-400">{score.toLocaleString()}</span>
+              <div className="p-4 rounded-xl bg-surface-hover/60 border border-border mb-6">
+                <span className="text-xs text-foreground-muted block mb-1 font-medium">Final Score</span>
+                <span className="text-2xl font-mono font-bold text-foreground">{score.toLocaleString()}</span>
               </div>
 
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
                   onClick={restartGame}
-                  className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg hover:shadow-amber-500/30 hover:-translate-y-0.5 transition-all text-sm sm:text-base"
+                  className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
                   🔄 Play Again
                 </button>
                 <Link
                   href="/leaderboard?game=pikachu"
-                  className="w-full py-3 rounded-xl font-semibold bg-surface border border-border hover:bg-surface-hover text-foreground-secondary hover:text-foreground text-sm transition-colors text-center"
+                  className="w-full py-2.5 rounded-xl font-semibold bg-surface border border-border hover:bg-surface-hover text-foreground-secondary hover:text-foreground text-sm transition-colors text-center shadow-xs"
                 >
                   🏆 View Leaderboard
                 </Link>
@@ -497,39 +449,37 @@ export function GamePikachu() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
-              className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-surface border border-amber-400/60 shadow-[0_0_60px_rgba(251,191,36,0.4)] text-center"
+              className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-surface border border-border shadow-xl text-center text-foreground"
             >
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-4xl animate-bounce">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-3xl">
                 👑
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent mb-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-2">
                 ONET MASTER!
               </h2>
-              <p className="text-sm text-foreground-secondary mb-6">
-                Incredible! You have conquered all 6 stages of Pikachu Connect!
-              </p>
+              <p className="text-sm text-foreground-secondary mb-6">Incredible! You have conquered all 6 stages of Pikachu!</p>
 
-              <div className="p-4 rounded-2xl bg-surface-hover/60 border border-border mb-6">
-                <span className="text-xs text-foreground-muted block mb-1">Final High Score</span>
-                <span className="text-3xl font-mono font-black text-amber-400">{score.toLocaleString()}</span>
+              <div className="p-4 rounded-xl bg-surface-hover/60 border border-border mb-6">
+                <span className="text-xs text-foreground-muted block mb-1 font-medium">Final High Score</span>
+                <span className="text-3xl font-mono font-black text-foreground">{score.toLocaleString()}</span>
               </div>
 
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
                   onClick={restartGame}
-                  className="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-white shadow-lg hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all text-sm sm:text-base"
+                  className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
                   Play Again to Break Record
                 </button>
                 <Link
                   href="/leaderboard?game=pikachu"
-                  className="w-full py-3 rounded-xl font-semibold bg-surface border border-border hover:bg-surface-hover text-foreground-secondary hover:text-foreground text-sm transition-colors text-center"
+                  className="w-full py-2.5 rounded-xl font-semibold bg-surface border border-border hover:bg-surface-hover text-foreground-secondary hover:text-foreground text-sm transition-colors text-center shadow-xs"
                 >
                   🏆 View Leaderboard
                 </Link>

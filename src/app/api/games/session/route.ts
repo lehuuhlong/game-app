@@ -25,6 +25,7 @@ const VALID_GAMES = [
   "pikachu",
   "line98",
   "billiards",
+  "neonsnake",
 ];
 
 export async function POST(request: Request) {
@@ -40,7 +41,10 @@ export async function POST(request: Request) {
     }
 
     const clientIp = getClientIp(request);
-    const isFastArcade = gameType === "flappybird" || gameType === "trex";
+    const isFastArcade =
+      gameType === "flappybird" ||
+      gameType === "trex" ||
+      gameType === "neonsnake";
     const limit = isFastArcade ? 120 : 60;
     const rateCheck = checkRateLimit(`session_start:${clientIp}`, limit, 60_000);
     if (!rateCheck.success) {
