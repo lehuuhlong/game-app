@@ -9,17 +9,22 @@ import { getGameSvgIcon } from './GameIcons';
 
 // Daily custom challenge goals mapped per game
 const DAILY_CHALLENGES: Record<string, { goal: string; reward: string; difficulty: string }> = {
+  'billiards': { goal: 'Clear all object balls and sink the 8-ball to win', reward: '+250 Arcade XP', difficulty: 'Precision' },
+  'flappybird': { goal: 'Navigate through 25 pipes in a single flight run', reward: '+150 Arcade XP', difficulty: 'Reflex' },
   '2048': { goal: 'Merge to 2048 tile in under 350 total moves', reward: '+150 Arcade XP', difficulty: 'Medium' },
+  'caro': { goal: 'Claim a 5-in-a-row victory against an online rival', reward: '+200 Arcade XP', difficulty: 'Tactical' },
+  'minesweeper': { goal: 'Clear Expert minefield without detonating a bomb', reward: '+250 Arcade XP', difficulty: 'Hard' },
   'wordle': { goal: 'Solve today’s 5-letter mystery in 4 tries or fewer', reward: '+120 Arcade XP', difficulty: 'Daily' },
   'sudoku': { goal: 'Complete the daily grid with zero error flags', reward: '+200 Arcade XP', difficulty: 'Hard' },
-  'minesweeper': { goal: 'Clear Expert minefield without detonating a bomb', reward: '+250 Arcade XP', difficulty: 'Hard' },
-  'aimtrainer': { goal: 'Score 45+ target hits in 60-second reflex trial', reward: '+100 Arcade XP', difficulty: 'Reflex' },
   'trex': { goal: 'Survive past 1,500 distance meters without collision', reward: '+100 Arcade XP', difficulty: 'Classic' },
-  'chess': { goal: 'Win a 1v1 ranked multiplayer duel or play AI', reward: '+300 Arcade XP', difficulty: 'Master' },
-  'caro': { goal: 'Claim a 5-in-a-row victory against an online rival', reward: '+200 Arcade XP', difficulty: 'Tactical' },
+  'wordchain': { goal: 'Keep a 15-word combo chain running without stalling', reward: '+180 Arcade XP', difficulty: 'Speed' },
+  'aimtrainer': { goal: 'Score 45+ target hits in 60-second reflex trial', reward: '+100 Arcade XP', difficulty: 'Reflex' },
   'battleship': { goal: 'Sink the enemy carrier within first 12 rounds', reward: '+220 Arcade XP', difficulty: 'Strategy' },
   'monopoly': { goal: 'Acquire 3 complete property sets in multiplayer', reward: '+350 Arcade XP', difficulty: 'Empire' },
-  'wordchain': { goal: 'Keep a 15-word combo chain running without stalling', reward: '+180 Arcade XP', difficulty: 'Speed' },
+  'chess': { goal: 'Win a 1v1 ranked multiplayer duel or play AI', reward: '+300 Arcade XP', difficulty: 'Master' },
+  'pikachu': { goal: 'Conquer Stage 1 and trigger a 3x combo chain', reward: '+200 Arcade XP', difficulty: 'Classic' },
+  'line98': { goal: 'Form 5+ ball alignments to score 250+ points', reward: '+180 Arcade XP', difficulty: 'Logic' },
+  'neonsnake': { goal: 'Grow snake to 35 length and score 150+ points', reward: '+220 Arcade XP', difficulty: 'Speed' },
 };
 
 export function DailySpotlight() {

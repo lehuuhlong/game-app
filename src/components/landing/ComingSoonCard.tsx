@@ -11,7 +11,7 @@ interface ComingSoonGame {
   features: string[];
   accentColor: string;
   glowColor: string;
-  icon: 'crosshair' | 'radar' | 'lightning' | 'breakout';
+  icon: 'crosshair' | 'radar' | 'lightning' | 'breakout' | 'tetris';
   status: string;
 }
 
@@ -22,7 +22,7 @@ interface ComingSoonCardProps {
 
 /**
  * Futuristic HUD-styled teaser card for upcoming games.
- * Features rich dynamic graphic previews for Pikachu Onet Link and Neon Brick Breaker.
+ * Features rich dynamic graphic previews for Neon Tetris and Neon Brick Breaker.
  */
 export function ComingSoonCard({ game, index }: ComingSoonCardProps) {
   return (
@@ -69,32 +69,59 @@ export function ComingSoonCard({ game, index }: ComingSoonCardProps) {
           {/* Subtle animated scanline / grid background */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:20px_20px] opacity-30" />
 
-          {game.icon === 'lightning' ? (
-            /* ── Pikachu Onet Classic Match Matrix ── */
-            <div className="relative flex items-center justify-center gap-4 sm:gap-6 z-10">
-              {/* Tile 1: Pikachu Electric */}
-              <div className="flex flex-col items-center justify-center h-16 w-16 rounded-xl border border-amber-500/60 bg-amber-500/10 shadow-lg shadow-amber-500/20 backdrop-blur-md">
-                <span className="text-2xl animate-pulse">⚡</span>
-                <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 mt-0.5">PIKA</span>
-              </div>
+          {game.icon === 'tetris' || game.icon === 'lightning' ? (
+            /* ── Neon Tetris Cyber Matrix Graphic ── */
+            <div className="relative flex items-center justify-center h-32 w-56 z-10">
+              <div className="relative w-44 h-28 border border-border/80 bg-surface/60 rounded-xl p-2 flex flex-col justify-end overflow-hidden shadow-inner">
+                {/* Background Grid Lines */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#38bdf812_1px,transparent_1px),linear-gradient(to_bottom,#38bdf812_1px,transparent_1px)] bg-[size:14px_14px]" />
 
-              {/* Connecting Laser Energy Pathway */}
-              <div className="relative flex items-center justify-center w-20 sm:w-28 h-8">
-                {/* 3-segment pathline visualization */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-sm shadow-amber-400" />
-                <div className="absolute top-0 left-0 w-0.5 h-4 bg-amber-400 shadow-sm shadow-amber-400" />
-                <div className="absolute top-0 right-0 w-0.5 h-4 bg-amber-400 shadow-sm shadow-amber-400" />
-                {/* Pulsing energy link spark */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-yellow-300 animate-ping" />
-                <span className="font-mono text-xs font-bold text-amber-600 dark:text-amber-300 bg-surface/90 px-2 py-0.5 rounded border border-amber-500/40">
-                  LINK MATCH
-                </span>
-              </div>
+                {/* Ghost Piece Indicator */}
+                <div className="absolute bottom-5 left-15 flex flex-col items-center opacity-40">
+                  <div className="flex gap-0.5">
+                    <div className="w-3.5 h-3.5 rounded-xs border border-purple-400 border-dashed" />
+                  </div>
+                  <div className="flex gap-0.5">
+                    <div className="w-3.5 h-3.5 rounded-xs border border-purple-400 border-dashed" />
+                    <div className="w-3.5 h-3.5 rounded-xs border border-purple-400 border-dashed" />
+                    <div className="w-3.5 h-3.5 rounded-xs border border-purple-400 border-dashed" />
+                  </div>
+                </div>
 
-              {/* Tile 2: Target Matching Pikachu */}
-              <div className="flex flex-col items-center justify-center h-16 w-16 rounded-xl border border-amber-500/60 bg-amber-500/10 shadow-lg shadow-amber-500/20 backdrop-blur-md">
-                <span className="text-2xl animate-pulse">⚡</span>
-                <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 mt-0.5">PIKA</span>
+                {/* Falling Glowing Purple T-Piece */}
+                <div className="absolute top-2 left-15 flex flex-col items-center animate-bounce-gentle">
+                  <div className="flex gap-0.5">
+                    <div className="w-3.5 h-3.5 rounded-xs bg-purple-500 shadow-sm shadow-purple-400/80 border border-purple-300" />
+                  </div>
+                  <div className="flex gap-0.5">
+                    <div className="w-3.5 h-3.5 rounded-xs bg-purple-500 shadow-sm shadow-purple-400/80 border border-purple-300" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-purple-500 shadow-sm shadow-purple-400/80 border border-purple-300" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-purple-500 shadow-sm shadow-purple-400/80 border border-purple-300" />
+                  </div>
+                </div>
+
+                {/* Stacked bottom blocks */}
+                <div className="relative z-10 flex flex-col gap-0.5">
+                  {/* Row 2: Cyan & Amber Blocks */}
+                  <div className="flex gap-0.5 ml-3.5">
+                    <div className="w-3.5 h-3.5 rounded-xs bg-cyan-400 shadow-xs shadow-cyan-300/60 border border-cyan-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-cyan-400 shadow-xs shadow-cyan-300/60 border border-cyan-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-amber-400 shadow-xs shadow-amber-300/60 border border-amber-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-amber-400 shadow-xs shadow-amber-300/60 border border-amber-200/50" />
+                  </div>
+                  {/* Row 1: Full bottom line */}
+                  <div className="flex gap-0.5">
+                    <div className="w-3.5 h-3.5 rounded-xs bg-emerald-400 border border-emerald-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-emerald-400 border border-emerald-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-rose-500 border border-rose-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-rose-500 border border-rose-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-blue-500 border border-blue-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-blue-500 border border-blue-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-cyan-400 border border-cyan-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-cyan-400 border border-cyan-200/50" />
+                    <div className="w-3.5 h-3.5 rounded-xs bg-purple-500 border border-purple-200/50" />
+                  </div>
+                </div>
               </div>
             </div>
           ) : game.icon === 'breakout' ? (
