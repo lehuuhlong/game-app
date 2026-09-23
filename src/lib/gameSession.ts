@@ -164,14 +164,14 @@ export async function verifyAndConsumeGameSession(
   }
 
   const action = options?.action || "score";
-  const isPikachu = gameType === "pikachu";
-  const isFinal = options?.isFinal ?? (!isPikachu);
+  const isProgressiveGame = gameType === "pikachu" || gameType === "2048";
+  const isFinal = options?.isFinal ?? (!isProgressiveGame);
 
   // 3. Prevent Replay Attack via MongoDB consumed session registry
   await dbConnect();
 
   const claimExistingSession = async (existing: any): Promise<VerifySessionResult> => {
-    if (action === "score" && existing.scoreSubmitted && (!isPikachu || existing.completed)) {
+    if (action === "score" && existing.scoreSubmitted && (!isProgressiveGame || existing.completed)) {
       return {
         valid: false,
         error: "Score has already been recorded for this game session",
@@ -189,7 +189,7 @@ export async function verifyAndConsumeGameSession(
     // Atomically set the flag using findOneAndUpdate to prevent race condition
     const updateCond =
       action === "score"
-        ? isPikachu && !existing.completed
+        ? isProgressiveGame && !existing.completed
           ? { sessionId, completed: { $ne: true } }
           : { sessionId, scoreSubmitted: { $ne: true } }
         : { sessionId, matchSubmitted: { $ne: true } };

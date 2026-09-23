@@ -116,11 +116,13 @@ export function validateGameScore(
     case 'trex': {
       // T-Rex: points increase by distance/time, roughly 10-15 pts per second.
       // Maximum 25 pts/sec under highest speeds.
-      if (score > 100) {
-        const minDuration = score / 25 - 2;
+      if (score > 15) {
+        const minDuration = Math.max(0.5, score / 25 - 1.5);
         if (durationSeconds < minDuration) {
           return { valid: false, reason: 'T-Rex score rate physically impossible' };
         }
+      }
+      if (score > 40) {
         // At slowest initial speed, T-Rex earns at least 5-8 pts/sec.
         // If a player claims 150 points after 600s, an idle session cheat is detected.
         const maxDuration = (score / 4) + 60;
@@ -139,10 +141,16 @@ export function validateGameScore(
       if (score > 4000) {
         return { valid: false, reason: 'Neon Snake score exceeds grid maximum threshold' };
       }
-      if (score > 100) {
-        const minDuration = (score / 10) * 0.15;
+      if (score > 20) {
+        // Snake moves at ~100-150ms per step, takes at least ~0.5s per food on 20x20 grid
+        const minDuration = (score / 10) * 0.5 - 1;
         if (durationSeconds < minDuration) {
           return { valid: false, reason: 'Neon Snake score rate physically impossible' };
+        }
+        // Idle session check: snake moves continuously without stopping.
+        const maxDuration = (score / 10) * 15 + 60;
+        if (durationSeconds > maxDuration) {
+          return { valid: false, reason: 'Game duration exceeds realistic time for Neon Snake score (idle session detected)' };
         }
       }
       return { valid: true };

@@ -332,6 +332,7 @@ export interface ClientToServerEvents {
     roomId: string;
     gameType: GameType;
     username: string;
+    userId?: string;
     action?: "create" | "join";
     language?: WordChainLanguage;
   }) => void;

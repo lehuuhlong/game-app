@@ -29,7 +29,7 @@ const TURN_DURATION = 20; // seconds — matches server
 
 // ── Hook ──────────────────────────────────────────────────────────
 
-export function useWordChain() {
+export function useWordChain(userId?: string) {
   // ── Screen state ────────────────────────────────────────────────
   const [screen, _setScreen] = useState<WordChainScreen>("lobby");
   const screenRef = useRef<WordChainScreen>("lobby");
@@ -70,6 +70,12 @@ export function useWordChain() {
   const roomIdRef = useRef("");
   const myPlayerIdRef = useRef("");
   const matchSavedRef = useRef(false);
+  const matchSubmittedToApiRef = useRef(false);
+  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const playersRef = useRef<WordChainPlayer[]>([]);
+  const usernameRef = useRef("");
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   // ── Timer helpers ───────────────────────────────────────────────
 
@@ -125,17 +131,19 @@ export function useWordChain() {
         .off("wc_word_rejected")
         .off("wc_turn_changed")
         .off("wc_game_over")
+        .off("match_saved" as any)
         .off("error");
 
       // ── Room joined ──────────────────────────────────────────
       socket.on("room_joined", ({ room, playerId }: any) => {
         myPlayerIdRef.current = playerId;
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
+        const mappedPlayers = room.players.map((p: any) => ({
+          id: p.id,
+          username: p.username,
+          userId: p.userId,
+        }));
+        setPlayers(mappedPlayers);
+        playersRef.current = mappedPlayers;
         setStatusMsg(
           room.players.length < 2
             ? "Waiting for opponent..."
@@ -146,23 +154,25 @@ export function useWordChain() {
 
       // ── Another player joined ─────────────────────────────────
       socket.on("player_joined", ({ room }: any) => {
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
+        const mappedPlayers = room.players.map((p: any) => ({
+          id: p.id,
+          username: p.username,
+          userId: p.userId,
+        }));
+        setPlayers(mappedPlayers);
+        playersRef.current = mappedPlayers;
         setStatusMsg("2/2 players connected — starting soon!");
       });
 
       // ── Player left ───────────────────────────────────────────
       socket.on("player_left", ({ room }: any) => {
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
+        const mappedPlayers = room.players.map((p: any) => ({
+          id: p.id,
+          username: p.username,
+          userId: p.userId,
+        }));
+        setPlayers(mappedPlayers);
+        playersRef.current = mappedPlayers;
         if (screenRef.current === "playing") {
           // Game ends — handled by wc_game_over from server
         } else {
@@ -172,12 +182,13 @@ export function useWordChain() {
 
       // ── Game started ──────────────────────────────────────────
       socket.on("wc_game_started", ({ room, gameState }: any) => {
-        setPlayers(
-          room.players.map((p: any) => ({
-            id: p.id,
-            username: p.username,
-          }))
-        );
+        const mappedPlayers = room.players.map((p: any) => ({
+          id: p.id,
+          username: p.username,
+          userId: p.userId,
+        }));
+        setPlayers(mappedPlayers);
+        playersRef.current = mappedPlayers;
         setChain([]);
         setCurrentTurnPlayerId(gameState.currentTurnPlayerId);
         setGameLanguage(gameState.language);
@@ -186,6 +197,11 @@ export function useWordChain() {
         setWinnerMsg("");
         setIsSubmitting(false);
         matchSavedRef.current = false;
+        matchSubmittedToApiRef.current = false;
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
         setScreen("playing");
         // Timer starts visually when the first word is submitted
         setTimeLeft(20);
@@ -231,60 +247,125 @@ export function useWordChain() {
         setChain(data.gameState.chain);
         setScreen("finished");
 
-        // Record 1v1 match (only winner submits to prevent duplicate entries)
+        // Record 1v1 match
         try {
-          if (!matchSavedRef.current && win && data.winnerName && data.loserName) {
-            matchSavedRef.current = true;
-            fetch("/api/matches", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                gameType: "wordchain",
-                players: [
-                  { username: data.winnerName, result: "win", score: 1 },
-                  { username: data.loserName, result: "loss", score: 0 },
-                ],
-                duration: 0,
-                gameData: {
-                  wordsCount: data.gameState?.chain?.length || 0,
-                  reason: data.reason,
-                  language: data.gameState?.language || "en",
-                },
-              }),
-            })
-              .then((r) => r.json())
-              .then((resData) => {
-                try {
-                  const stored = localStorage.getItem("game-portal-user");
-                  if (stored && resData.users) {
-                    const u = JSON.parse(stored);
-                    const updated = resData.users.find((x: any) => x.username === u.username);
-                    if (updated) {
-                      Object.assign(u, updated);
-                      localStorage.setItem("game-portal-user", JSON.stringify(u));
-                      if (typeof window !== "undefined") {
-                        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
-                      }
-                    }
-                  }
-                } catch {}
+          if (!matchSavedRef.current && data.winnerName && data.loserName) {
+            const submitMatch = () => {
+              if (matchSubmittedToApiRef.current) return;
+              matchSubmittedToApiRef.current = true;
+              matchSavedRef.current = true;
+
+              const winPlayer = playersRef.current.find((p) => p.username === data.winnerName);
+              const losePlayer = playersRef.current.find((p) => p.username === data.loserName);
+              const winUserId = (winPlayer as any)?.userId || (data.winnerName === usernameRef.current ? userIdRef.current : undefined);
+              const loseUserId = (losePlayer as any)?.userId || (data.loserName === usernameRef.current ? userIdRef.current : undefined);
+
+              fetch("/api/matches", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  gameType: "wordchain",
+                  players: [
+                    { username: data.winnerName, result: "win", score: 1, userId: winUserId },
+                    { username: data.loserName, result: "loss", score: 0, userId: loseUserId },
+                  ],
+                  duration: 0,
+                  gameData: {
+                    wordsCount: data.gameState?.chain?.length || 0,
+                    reason: data.reason,
+                    language: data.gameState?.language || "en",
+                  },
+                }),
               })
-              .catch(() => {});
+                .then((r) => r.json())
+                .then((resData) => {
+                  if (resData && resData.users && Array.isArray(resData.users)) {
+                    socketRef.current?.emit("match_saved" as any, {
+                      roomId: roomIdRef.current,
+                      users: resData.users,
+                    });
+                    try {
+                      const stored = localStorage.getItem("game-portal-user");
+                      if (stored) {
+                        const u = JSON.parse(stored);
+                        const updated = resData.users.find(
+                          (x: any) =>
+                            (u.id && x.id === u.id) ||
+                            (u._id && x._id === u._id) ||
+                            (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+                        );
+                        if (updated) {
+                          Object.assign(u, updated);
+                          localStorage.setItem("game-portal-user", JSON.stringify(u));
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                          }
+                        }
+                      }
+                    } catch {}
+                  }
+                })
+                .catch(() => {});
+            };
+
+            if (win) {
+              submitMatch();
+            } else {
+              if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+              fallbackTimerRef.current = setTimeout(() => {
+                submitMatch();
+              }, 1800);
+            }
           }
         } catch {
           // ignore
         }
       });
 
+      // ── Match Saved via Socket ────────────────────────────────
+      socket.on("match_saved" as any, ({ users }: { users: any[] }) => {
+        matchSavedRef.current = true;
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
+        try {
+          const stored = localStorage.getItem("game-portal-user");
+          if (stored && users && Array.isArray(users)) {
+            const u = JSON.parse(stored);
+            const updated = users.find(
+              (x: any) =>
+                (u.id && x.id === u.id) ||
+                (u._id && x._id === u._id) ||
+                (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+            );
+            if (updated) {
+              Object.assign(u, updated);
+              localStorage.setItem("game-portal-user", JSON.stringify(u));
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+              }
+            }
+          }
+        } catch {}
+      });
+
       // ── Room Expired ─────────────────────────────────────────
       socket.on("room_expired", ({ message }: any) => {
         stopTimer();
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
+        matchSavedRef.current = false;
+        matchSubmittedToApiRef.current = false;
         setJoinError(message || "Room expired: Game was not started within 3 minutes.");
         setScreen("lobby");
         roomIdRef.current = "";
         myPlayerIdRef.current = "";
         setRoomId("");
         setPlayers([]);
+        playersRef.current = [];
       });
 
       // ── Error ─────────────────────────────────────────────────
@@ -302,6 +383,7 @@ export function useWordChain() {
       const socket = getSocket();
       const id = Math.random().toString(36).slice(2, 8).toUpperCase();
       roomIdRef.current = id;
+      usernameRef.current = username;
       setRoomId(id);
       setJoinError("");
       setupSocket(socket);
@@ -309,6 +391,7 @@ export function useWordChain() {
         roomId: id,
         gameType: "wordchain",
         username,
+        userId: userIdRef.current,
         action: "create",
         language,
       });
@@ -325,6 +408,7 @@ export function useWordChain() {
       }
       const socket = getSocket();
       roomIdRef.current = id;
+      usernameRef.current = username;
       setRoomId(id);
       setJoinError("");
       setupSocket(socket);
@@ -332,6 +416,7 @@ export function useWordChain() {
         roomId: id,
         gameType: "wordchain",
         username,
+        userId: userIdRef.current,
         action: "join",
         language,
       });
@@ -341,6 +426,12 @@ export function useWordChain() {
 
   const leaveRoom = useCallback(() => {
     stopTimer();
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    matchSavedRef.current = false;
+    matchSubmittedToApiRef.current = false;
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();
     socketRef.current = null;
@@ -352,6 +443,7 @@ export function useWordChain() {
     setChain([]);
     setCurrentTurnPlayerId("");
     setPlayers([]);
+    playersRef.current = [];
     setRoomId("");
     setWordInput("");
     setRejectMsg("");
@@ -365,6 +457,12 @@ export function useWordChain() {
 
   const requestRematch = useCallback(() => {
     stopTimer();
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    matchSavedRef.current = false;
+    matchSubmittedToApiRef.current = false;
     socketRef.current?.emit("restart_game", { roomId: roomIdRef.current });
     setChain([]);
     setWordInput("");
@@ -418,6 +516,9 @@ export function useWordChain() {
       // Note: We don't save loss on unmount here because if they just navigate away or close tab,
       // the server will emit game over to the OTHER player. The other player will get the win.
       // Explicitly leaving via button saves the loss right away.
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+      }
       stopTimer();
       socketRef.current?.disconnect();
       socketRef.current = null;

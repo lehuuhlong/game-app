@@ -453,6 +453,17 @@ export function GameLine98() {
             .then((d) => {
               if (d.bestScoreLine98 !== undefined) {
                 refreshUser({ bestScoreLine98: d.bestScoreLine98 });
+                try {
+                  const stored = localStorage.getItem("game-portal-user");
+                  if (stored) {
+                    const u = JSON.parse(stored);
+                    u.bestScoreLine98 = d.bestScoreLine98;
+                    localStorage.setItem("game-portal-user", JSON.stringify(u));
+                  }
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                  }
+                } catch {}
               }
             })
             .catch((err) => console.error("Failed to save score:", err));

@@ -15,13 +15,16 @@ export { SHIPS_CONFIG };
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
 
-export function useBattleship(username: string) {
+export function useBattleship(username: string, userId?: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const roomIdRef = useRef<string>('');
   const playerIdRef = useRef<string | null>(null);
   const phaseRef = useRef<BattleshipPhase>('placement');
   const firedCoordsRef = useRef<Set<string>>(new Set());
   const roomRef = useRef<Room | null>(null);
+  const matchSavedRef = useRef(false);
+  const matchSubmittedToApiRef = useRef(false);
+  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Core state
   const [phase, setPhase] = useState<BattleshipPhase>('placement');
@@ -49,7 +52,6 @@ export function useBattleship(username: string) {
    */
   const [localShots, setLocalShots] = useState<Shot[]>([]);
   const localShotsRef = useRef<Shot[]>([]);
-  const matchSavedRef = useRef(false);
 
   // Placement local state
   const [placedShips, setPlacedShips] = useState<ShipPlacement[]>([]);
@@ -69,7 +71,8 @@ export function useBattleship(username: string) {
   const setupSocket = useCallback((socket: Socket<ServerToClientEvents, ClientToServerEvents>) => {
     // Clear old listeners
     socket.off('room_joined').off('player_joined').off('player_left')
-      .off('bs_game_state').off('bs_fire_result').off('bs_game_over').off('error');
+      .off('bs_game_state').off('bs_fire_result').off('bs_game_over').off('error')
+      .off('match_saved' as any);
 
     socket.on('room_joined', ({ room, playerId }) => {
       setRoom(room);
@@ -129,6 +132,12 @@ export function useBattleship(username: string) {
       // If server says it's placement phase AND we were previously in 'finished' phase, it means a rematch started.
       // Ensure all previous game state is cleared for BOTH players (especially the one who didn't click rematch).
       if (data.phase === 'placement' && phaseRef.current === 'finished') {
+        matchSavedRef.current = false;
+        matchSubmittedToApiRef.current = false;
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
         setRevealedEnemyShips([]);
         setEnemySunkTypes([]);
         setPlacedShips([]);
@@ -198,46 +207,74 @@ export function useBattleship(username: string) {
         setRevealedEnemyShips(data.enemyShips);
       }
 
-      // Record score and match (only the winner submits to avoid duplicate records)
+      // Record score and match
       try {
         const isMeWinner = data.winnerId === playerIdRef.current;
         const currentRoom = roomRef.current;
-        if (!matchSavedRef.current && isMeWinner && currentRoom && currentRoom.players) {
-          matchSavedRef.current = true;
+        if (!matchSavedRef.current && currentRoom && currentRoom.players) {
           const opp = currentRoom.players.find((p: any) => p.id !== data.winnerId);
           const winPlayer = currentRoom.players.find((p: any) => p.id === data.winnerId);
           if (winPlayer && opp) {
-            fetch("/api/matches", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                gameType: "battleship",
-                players: [
-                  { username: winPlayer.username, result: "win", score: 1 },
-                  { username: opp.username, result: "loss", score: 0 },
-                ],
-                duration: 0,
-                gameData: { winnerName: data.winnerName },
-              }),
-            })
-              .then((r) => r.json())
-              .then((resData) => {
-                try {
-                  const stored = localStorage.getItem("game-portal-user");
-                  if (stored && resData.users) {
-                    const u = JSON.parse(stored);
-                    const updated = resData.users.find((x: any) => x.username === u.username);
-                    if (updated) {
-                      Object.assign(u, updated);
-                      localStorage.setItem("game-portal-user", JSON.stringify(u));
-                      if (typeof window !== "undefined") {
-                        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
-                      }
-                    }
-                  }
-                } catch {}
+            const submitMatch = () => {
+              if (matchSubmittedToApiRef.current) return;
+              matchSubmittedToApiRef.current = true;
+              matchSavedRef.current = true;
+
+              const winUserId = winPlayer.userId || (winPlayer.username === username ? userId : undefined);
+              const oppUserId = opp.userId || (opp.username === username ? userId : undefined);
+
+              fetch("/api/matches", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  gameType: "battleship",
+                  players: [
+                    { username: winPlayer.username, result: "win", score: 1, userId: winUserId },
+                    { username: opp.username, result: "loss", score: 0, userId: oppUserId },
+                  ],
+                  duration: 0,
+                  gameData: { winnerName: data.winnerName },
+                }),
               })
-              .catch(() => {});
+                .then((r) => r.json())
+                .then((resData) => {
+                  if (resData && resData.users && Array.isArray(resData.users)) {
+                    socketRef.current?.emit("match_saved" as any, {
+                      roomId: roomIdRef.current,
+                      users: resData.users,
+                    });
+                    try {
+                      const stored = localStorage.getItem("game-portal-user");
+                      if (stored) {
+                        const u = JSON.parse(stored);
+                        const updated = resData.users.find(
+                          (x: any) =>
+                            (u.id && x.id === u.id) ||
+                            (u._id && x._id === u._id) ||
+                            (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+                        );
+                        if (updated) {
+                          Object.assign(u, updated);
+                          localStorage.setItem("game-portal-user", JSON.stringify(u));
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                          }
+                        }
+                      }
+                    } catch {}
+                  }
+                })
+                .catch(() => {});
+            };
+
+            if (isMeWinner) {
+              submitMatch();
+            } else {
+              if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+              fallbackTimerRef.current = setTimeout(() => {
+                submitMatch();
+              }, 1800);
+            }
           }
         }
       } catch {
@@ -245,7 +282,40 @@ export function useBattleship(username: string) {
       }
     });
 
+    socket.on('match_saved' as any, ({ users }: { users: any[] }) => {
+      matchSavedRef.current = true;
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      try {
+        const stored = localStorage.getItem("game-portal-user");
+        if (stored && users && Array.isArray(users)) {
+          const u = JSON.parse(stored);
+          const updated = users.find(
+            (x: any) =>
+              (u.id && x.id === u.id) ||
+              (u._id && x._id === u._id) ||
+              (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+          );
+          if (updated) {
+            Object.assign(u, updated);
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+            }
+          }
+        }
+      } catch {}
+    });
+
     socket.on('room_expired', (data) => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
       setRoom(null);
       roomRef.current = null;
       setPlayerId(null);
@@ -283,6 +353,9 @@ export function useBattleship(username: string) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+      }
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
@@ -295,10 +368,16 @@ export function useBattleship(username: string) {
     if (onSuccess) {
       onJoinSuccessRef.current = onSuccess;
     }
-    socket.emit('join_room', { roomId, gameType: 'battleship', username, action });
-  }, [username, getSocket, setupSocket]);
+    socket.emit('join_room', { roomId, gameType: 'battleship', username, userId, action } as any);
+  }, [username, userId, getSocket, setupSocket]);
 
   const resetAllState = useCallback(() => {
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    matchSavedRef.current = false;
+    matchSubmittedToApiRef.current = false;
     setRoom(null);
     roomRef.current = null;
     setPlayerId(null);
@@ -462,6 +541,12 @@ export function useBattleship(username: string) {
 
   const restart = useCallback(() => {
     if (socketRef.current) {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
       socketRef.current.emit('restart_game', { roomId: roomIdRef.current });
       setWinner(null);
       setEndReason(null);

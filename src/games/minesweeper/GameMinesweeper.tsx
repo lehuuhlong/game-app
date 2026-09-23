@@ -141,13 +141,21 @@ export function GameMinesweeper() {
             if (d.msBestExpert !== undefined) u.msBestExpert = d.msBestExpert;
             localStorage.setItem('game-portal-user', JSON.stringify(u));
           }
+          refreshUser({
+            msBestBeginner: d.msBestBeginner,
+            msBestIntermediate: d.msBestIntermediate,
+            msBestExpert: d.msBestExpert,
+          });
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+          }
         } catch {
           /* ignore */
         }
       })
       .catch((err) => console.error('Failed to save minesweeper score:', err));
     })();
-  }, [gameOver, gameStatus, user, difficulty, elapsedTime, ensureSessionToken]);
+  }, [gameOver, gameStatus, user, difficulty, elapsedTime, ensureSessionToken, refreshUser]);
 
   // ── Confirmation dialog state ───────────────────────────────────
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);

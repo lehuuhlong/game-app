@@ -113,6 +113,16 @@ export function GameWordle() {
                 wordleGuesses6: d.wordleGuesses6,
               });
             }
+            const stored = localStorage.getItem("game-portal-user");
+            if (stored) {
+              const u = JSON.parse(stored);
+              if (d.wordleWins !== undefined) u.wordleWins = d.wordleWins;
+              if (d.wordleTotal !== undefined) u.wordleTotal = d.wordleTotal;
+              localStorage.setItem("game-portal-user", JSON.stringify(u));
+            }
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+            }
           } catch { /* ignore */ }
         })
         .catch((err) => console.error("Failed to save wordle score:", err));

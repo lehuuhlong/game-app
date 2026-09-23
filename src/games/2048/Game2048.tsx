@@ -56,6 +56,7 @@ export function Game2048() {
   useEffect(() => {
     if (gameStatus === "playing") {
       scoreSavedRef.current = false;
+      return;
     }
 
     if (gameStatus !== "lost" && gameStatus !== "won") return;
@@ -66,29 +67,33 @@ export function Game2048() {
       const highestTile = Math.max(...tiles.map((t) => t.value), 0);
       const sessionToken = await ensureSessionToken(user?.id, user?.username);
       const elapsed = getElapsedDuration();
+      const isGameOver = gameStatus === "lost";
 
-      // Save to global matches history
-      fetch("/api/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameType: "2048",
-          sessionToken,
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : "Guest",
-              score,
-              result: gameStatus === "won" ? "win" : "loss",
-            },
-          ],
-          duration: elapsed,
-          gameData: { score, highestTile, moveCount },
-        }),
-      }).catch((err) => console.error("Failed to save 2048 match:", err));
+      // Save to global matches history on final game over (lost)
+      if (isGameOver) {
+        fetch("/api/matches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameType: "2048",
+            sessionToken,
+            players: [
+              {
+                userId: user?.id,
+                username: user ? user.username : "Guest",
+                score,
+                result: highestTile >= 2048 ? "win" : "loss",
+              },
+            ],
+            duration: elapsed,
+            gameData: { score, highestTile, moveCount },
+          }),
+        }).catch((err) => console.error("Failed to save 2048 match:", err));
+      }
 
       if (!user) return;
 
+      // Update user score in MongoDB (isFinal: false on won milestone, true on lost)
       fetch(`/api/users/${user.id}/score`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -98,6 +103,7 @@ export function Game2048() {
           highestTile,
           sessionToken,
           duration: elapsed,
+          isFinal: isGameOver,
         }),
       })
         .then((r) => r.json())

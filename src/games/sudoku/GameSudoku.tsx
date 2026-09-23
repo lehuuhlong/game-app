@@ -184,7 +184,7 @@ export function GameSudoku() {
   } = useSudoku();
 
   const [savedTime, setSavedTime] = useState<number | null>(null);
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { startSession, getSessionToken, ensureSessionToken } = useGameSession('sudoku');
   const [showLogin, setShowLogin] = useState(false);
   const scoreSavedRef = useRef(false);
@@ -262,6 +262,14 @@ export function GameSudoku() {
                 if (d.sudokuBestHard !== undefined) u.sudokuBestHard = d.sudokuBestHard;
                 localStorage.setItem('game-portal-user', JSON.stringify(u));
               }
+              refreshUser({
+                sudokuBestEasy: d.sudokuBestEasy,
+                sudokuBestMedium: d.sudokuBestMedium,
+                sudokuBestHard: d.sudokuBestHard,
+              });
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+              }
             } catch {
               /* ignore */
             }
@@ -295,7 +303,7 @@ export function GameSudoku() {
         }).catch((err) => console.error('Failed to save sudoku match:', err));
       })();
     }
-  }, [gameState, user, difficulty, elapsedSeconds, ensureSessionToken]);
+  }, [gameState, user, difficulty, elapsedSeconds, ensureSessionToken, refreshUser]);
 
   // Compute remaining counts for each digit
   const remainingCounts = useCallback(() => {
