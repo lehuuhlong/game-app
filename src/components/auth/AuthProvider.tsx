@@ -72,6 +72,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (stored) setUser(JSON.parse(stored));
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        if (e.newValue) {
+          try {
+            setUser(JSON.parse(e.newValue));
+          } catch {}
+        } else {
+          setUser(null);
+        }
+      }
+    };
+
+    const handleProfileUpdated = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) setUser(JSON.parse(stored));
+      } catch {}
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("userProfileUpdated", handleProfileUpdated);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("userProfileUpdated", handleProfileUpdated);
+    };
   }, []);
 
   const persistUser = useCallback((u: AuthUser) => {
@@ -138,6 +164,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback((updates: Partial<AuthUser>) => {
     if (!user) return;
     persistUser({ ...user, ...updates });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+    }
   }, [user, persistUser]);
 
   const logout = useCallback(() => {

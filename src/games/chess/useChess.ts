@@ -336,6 +336,9 @@ export function useChess(username: string) {
                     if (updated) {
                       Object.assign(u, updated);
                       localStorage.setItem("game-portal-user", JSON.stringify(u));
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                      }
                     }
                   }
                 } catch {}

@@ -57,8 +57,8 @@ export function validateGameScore(
       if (score > 2000 && durationSeconds < 10) {
         return { valid: false, reason: 'Duration too short for Pikachu score' };
       }
-      // Rate of score maximum ~150 pts/sec (even with high combo chains)
-      if (durationSeconds > 0 && score / durationSeconds > 150) {
+      // Rate of score maximum ~600 pts/sec (accommodates fast pair clearing + remaining time bonus)
+      if (durationSeconds > 0 && score / durationSeconds > 600) {
         return { valid: false, reason: 'Rate of score exceeds maximum realistic threshold for Pikachu' };
       }
       // Single board (Level 1) cannot yield more than ~25,000 points

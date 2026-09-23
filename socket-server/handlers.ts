@@ -1371,8 +1371,9 @@ export function registerSocketHandlers(io: GameIO): void {
     });
 
     // ── Join Room ────────────────────────────────────────────────
-    socket.on("join_room", ({ roomId, gameType, username, action, language }) => {
+    socket.on("join_room", ({ roomId, gameType, username, action, language, userId }: any) => {
       socket.data.username = username;
+      socket.data.userId = userId;
       socket.data.currentRoom = roomId;
 
       let room = rooms.get(roomId);
@@ -1412,6 +1413,7 @@ export function registerSocketHandlers(io: GameIO): void {
 
       if (existingPlayer) {
         existingPlayer.socketId = socket.id;
+        if (userId) existingPlayer.userId = userId;
         socket.join(roomId);
         socket.emit("room_joined", { room, playerId: existingPlayer.id });
 
@@ -1478,6 +1480,7 @@ export function registerSocketHandlers(io: GameIO): void {
       const player = {
         id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         username,
+        userId: userId || undefined,
         socketId: socket.id,
       };
 
@@ -2998,6 +3001,12 @@ export function registerSocketHandlers(io: GameIO): void {
       }
 
       console.log(`🔄 Game restarted in room ${roomId}`);
+    });
+
+    socket.on("match_saved", ({ roomId, users }: any) => {
+      if (!roomId) return;
+      socket.to(roomId).emit("match_saved", { users });
+      console.log(`📊 Match stats synced for room ${roomId}`);
     });
 
     socket.on("leave_room", ({ roomId }) => {

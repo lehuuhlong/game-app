@@ -188,22 +188,18 @@ export function GameSudoku() {
   const { startSession, getSessionToken, ensureSessionToken } = useGameSession('sudoku');
   const [showLogin, setShowLogin] = useState(false);
   const scoreSavedRef = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const wasGameOverRef = useRef(false);
 
-  useEffect(() => {
-    startSession(user?.id, user?.username);
-  }, [startSession, user?.id, user?.username, difficulty]);
-
-  // Reset flags and auto-renew session when game starts/restarts
+  // Reset flags and auto-renew session when game starts/restarts after game over
   useEffect(() => {
     if (gameState === 'playing') {
       scoreSavedRef.current = false;
       setShowLogin(false);
-      if (!wasPlayingRef.current) {
+      if (wasGameOverRef.current) {
         startSession(user?.id, user?.username, true);
       }
     }
-    wasPlayingRef.current = gameState === 'playing';
+    wasGameOverRef.current = gameState === 'won' || gameState === 'gameover';
   }, [gameState, startSession, user?.id, user?.username]);
 
   // Show login if won and not logged in

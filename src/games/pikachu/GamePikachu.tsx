@@ -38,18 +38,21 @@ export function GamePikachu() {
   const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
   const [localBestScore, setLocalBestScore] = useState(0);
   const scoreSavedRef = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const wasGameOverRef = useRef(false);
 
   useEffect(() => {
     startSession(user?.id, user?.username);
   }, [startSession, user?.id, user?.username]);
 
-  // ── Auto-renew session on game start/restart ───────────────────────
+  // ── Auto-renew session ONLY when game restarts after game over ─────
   useEffect(() => {
-    if (status === 'playing' && !wasPlayingRef.current) {
+    const isGameOver = status === 'game_over' || status === 'victory';
+    if (!isGameOver && wasGameOverRef.current) {
+      // Starting a fresh run after previous game over: force new session token & reset start time
       startSession(user?.id, user?.username, true);
+      scoreSavedRef.current = false;
     }
-    wasPlayingRef.current = status === 'playing';
+    wasGameOverRef.current = isGameOver;
   }, [status, startSession, user?.id, user?.username]);
 
   // Load local best score on mount
@@ -125,12 +128,21 @@ export function GamePikachu() {
                 pikachuBestScore: d.pikachuBestScore,
                 pikachuHighestLevel: d.pikachuHighestLevel,
               });
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+              }
             }
           })
           .catch((e) => console.error('Failed to save pikachu score:', e));
       }
     })();
   }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser, ensureSessionToken, getElapsedDuration]);
+
+  const handleRestart = () => {
+    scoreSavedRef.current = false;
+    startSession(user?.id, user?.username, true);
+    restartGame();
+  };
 
   const bestScore = Math.max(user?.pikachuBestScore || 0, localBestScore, score);
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));
@@ -425,7 +437,7 @@ export function GamePikachu() {
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={restartGame}
+                  onClick={handleRestart}
                   className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
                   🔄 Play Again
@@ -472,7 +484,7 @@ export function GamePikachu() {
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={restartGame}
+                  onClick={handleRestart}
                   className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
                   Play Again to Break Record

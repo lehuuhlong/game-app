@@ -19,7 +19,12 @@ function makeEmptyBoard(): CellValue[][] {
 }
 
 export function GameCaro() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const userRef = useRef(user);
+  userRef.current = user;
+  const refreshUserRef = useRef(refreshUser);
+  refreshUserRef.current = refreshUser;
+
   const [showLogin, setShowLogin] = useState(false);
   const [screenState, setScreenState] = useState<Screen>("lobby");
   const screenRef = useRef<Screen>("lobby");
@@ -38,7 +43,8 @@ export function GameCaro() {
   const myPlayerIdRef = useRef("");
   const mySymbolRef = useRef<Player | null>(null);
   const socketRef = useRef<Socket | null>(null);
-  const playersRef = useRef<{ id: string; username: string }[]>([]);
+  const playersRef = useRef<{ id: string; username: string; userId?: string }[]>([]);
+  const allPlayersRef = useRef<{ id: string; username: string; userId?: string }[]>([]);
   const moveCountRef = useRef(0);
 
   // Game state (kept in refs to avoid stale closure issues + also in state for rendering)
@@ -133,7 +139,8 @@ export function GameCaro() {
     matchSavedRef.current = true;
 
     // Record match to MongoDB for Match History, Head-to-Head stats & User totals
-    const currentPlayers = playersRef.current;
+    const currentPlayers =
+      allPlayersRef.current.length >= 2 ? allPlayersRef.current : playersRef.current;
     if (currentPlayers.length >= 2) {
       const p1 = currentPlayers[0];
       const p2 = currentPlayers[1];
@@ -141,14 +148,25 @@ export function GameCaro() {
       const p2Won = !isDraw && winnerSymbol === "O";
       const shouldSubmit = isMe || (isDraw && mySymbolRef.current === "X");
       if (shouldSubmit) {
+        const currentUser = userRef.current;
         fetch("/api/matches", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             gameType: "caro",
             players: [
-              { username: p1.username, result: isDraw ? "draw" : p1Won ? "win" : "loss", score: p1Won ? 1 : 0 },
-              { username: p2.username, result: isDraw ? "draw" : p2Won ? "win" : "loss", score: p2Won ? 1 : 0 },
+              {
+                userId: p1.userId || (p1.username.toLowerCase() === currentUser?.username?.toLowerCase() ? currentUser?.id : undefined),
+                username: p1.username,
+                result: isDraw ? "draw" : p1Won ? "win" : "loss",
+                score: p1Won ? 1 : 0,
+              },
+              {
+                userId: p2.userId || (p2.username.toLowerCase() === currentUser?.username?.toLowerCase() ? currentUser?.id : undefined),
+                username: p2.username,
+                result: isDraw ? "draw" : p2Won ? "win" : "loss",
+                score: p2Won ? 1 : 0,
+              },
             ],
             duration: 0,
             gameData: { moves: moveCountRef.current, winner: isDraw ? "draw" : winnerSymbol, reason },
@@ -156,26 +174,47 @@ export function GameCaro() {
         })
           .then((r) => r.json())
           .then((data) => {
-            try {
-              const stored = localStorage.getItem("game-portal-user");
-              if (stored && data.users) {
-                const u = JSON.parse(stored);
-                const updated = data.users.find((x: any) => x.username === u.username);
-                if (updated) {
-                  Object.assign(u, updated);
-                  localStorage.setItem("game-portal-user", JSON.stringify(u));
-                }
+            if (data && data.users && Array.isArray(data.users)) {
+              // 1. Notify other players in the room via socket
+              socketRef.current?.emit("match_saved", {
+                roomId: roomIdRef.current,
+                users: data.users,
+              });
+
+              // 2. Update current player's state
+              const updatedMe = data.users.find(
+                (x: any) =>
+                  (currentUser?.id && x.id === currentUser.id) ||
+                  (currentUser?.username && x.username.toLowerCase() === currentUser.username.toLowerCase())
+              );
+              if (updatedMe) {
+                refreshUserRef.current(updatedMe);
               }
-            } catch {}
+            }
           })
-          .catch(() => {});
+          .catch((err) => console.error("Failed to post caro match:", err));
       }
     }
   }, [stopTimer, setScreen]);
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")
-      .off("game_started").off("move_made").off("game_over").off("error").off("room_expired");
+      .off("game_started").off("move_made").off("game_over").off("error").off("room_expired")
+      .off("match_saved");
+
+    socket.on("match_saved", ({ users }: any) => {
+      if (users && Array.isArray(users)) {
+        const currentUser = userRef.current;
+        const updatedMe = users.find(
+          (x: any) =>
+            (currentUser?.id && x.id === currentUser.id) ||
+            (currentUser?.username && x.username.toLowerCase() === currentUser.username.toLowerCase())
+        );
+        if (updatedMe) {
+          refreshUserRef.current(updatedMe);
+        }
+      }
+    });
 
     socket.on("room_expired", ({ message }: any) => {
       stopTimer();
@@ -186,12 +225,16 @@ export function GameCaro() {
       mySymbolRef.current = null;
       setRoomId("");
       setPlayers([]);
+      allPlayersRef.current = [];
     });
 
     socket.on("room_joined", ({ room, playerId }: any) => {
       myPlayerIdRef.current = playerId;
       setPlayers(room.players);
       playersRef.current = room.players;
+      if (room.players.length >= 2) {
+        allPlayersRef.current = room.players;
+      }
       setStatusMsg(room.players.length < 2 ? "Waiting for opponent..." : "2/2 players connected");
       setScreen("waiting");
     });
@@ -199,6 +242,9 @@ export function GameCaro() {
     socket.on("player_joined", ({ room }: any) => {
       setPlayers(room.players);
       playersRef.current = room.players;
+      if (room.players.length >= 2) {
+        allPlayersRef.current = room.players;
+      }
       setStatusMsg("2/2 players connected");
     });
 
@@ -236,6 +282,7 @@ export function GameCaro() {
       mySymbolRef.current = idx === 0 ? "X" : "O";
       setPlayers(room.players);
       playersRef.current = room.players;
+      allPlayersRef.current = room.players;
 
       // Reset board
       matchSavedRef.current = false;
@@ -308,7 +355,13 @@ export function GameCaro() {
     roomIdRef.current = id;
     setRoomId(id);
     setupSocket(socket);
-    socket.emit("join_room", { roomId: id, gameType: "caro", username: user.username, action });
+    socket.emit("join_room", {
+      roomId: id,
+      gameType: "caro",
+      username: user.username,
+      userId: user.id,
+      action,
+    });
   }, [user, getSocket, setupSocket]);
 
   const handleCreateRoom = () => {

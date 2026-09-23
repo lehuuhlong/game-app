@@ -178,7 +178,8 @@ export async function POST(request: Request) {
       }
       const p1Name = (players[0].username || "").trim().toLowerCase();
       const p2Name = (players[1].username || "").trim().toLowerCase();
-      if (p1Name && p2Name && p1Name === p2Name) {
+      // In production, block players from playing against themselves to farm stats
+      if (process.env.NODE_ENV === "production" && p1Name && p2Name && p1Name === p2Name) {
         return NextResponse.json(
           { error: "Match cannot be recorded with identical players" },
           { status: 400 }
@@ -247,6 +248,24 @@ export async function POST(request: Request) {
       };
     });
 
+    const sanitizeUser = (u: any) => ({
+      id: u._id.toString(),
+      username: u.username,
+      avatarUrl: u.avatarUrl || null,
+      caroWins: u.caroWins ?? 0,
+      caroTotal: u.caroTotal ?? 0,
+      chessWins: u.chessWins ?? 0,
+      chessTotal: u.chessTotal ?? 0,
+      battleshipWins: u.battleshipWins ?? 0,
+      battleshipTotal: u.battleshipTotal ?? 0,
+      wordchainWins: u.wordchainWins ?? 0,
+      wordchainTotal: u.wordchainTotal ?? 0,
+      monopolyWins: u.monopolyWins ?? 0,
+      monopolyTotal: u.monopolyTotal ?? 0,
+      billiardsWins: u.billiardsWins ?? 0,
+      billiardsTotal: u.billiardsTotal ?? 0,
+    });
+
     // Server-side duplicate match guard: Prevent saving identical match if posted within 3 seconds
     const threeSecondsAgo = new Date(Date.now() - 3000);
     const duplicateMatch = await Match.findOne({
@@ -255,7 +274,10 @@ export async function POST(request: Request) {
       "players.username": { $all: usernames },
     });
     if (duplicateMatch) {
-      return NextResponse.json(duplicateMatch, { status: 200 });
+      return NextResponse.json(
+        { match: duplicateMatch, users: existingUsers.map(sanitizeUser) },
+        { status: 200 }
+      );
     }
 
     const match = await Match.create({
@@ -295,7 +317,10 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ match, users: existingUsers }, { status: 201 });
+    return NextResponse.json(
+      { match, users: existingUsers.map(sanitizeUser) },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/matches error:", error);
     return NextResponse.json(

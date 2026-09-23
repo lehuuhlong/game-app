@@ -10,6 +10,7 @@ export type WordChainLanguage = "en" | "vi";
 export interface Player {
   id: string;
   username: string;
+  userId?: string;
   socketId: string;
 }
 
@@ -369,6 +370,7 @@ export interface ClientToServerEvents {
   billiards_ball_in_hand_confirm: (data: BilliardsConfirmBallInHandData) => void;
   billiards_restart: (data: { roomId: string }) => void;
   billiards_sync_physics: (data: BilliardsPhysicsSyncData) => void;
+  match_saved: (data: { roomId: string; users: any[] }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -377,6 +379,7 @@ export interface ServerToClientEvents {
   player_joined: (data: { player: Player; room: Room }) => void;
   player_left: (data: { playerId: string; room: Room }) => void;
   room_expired: (data: { roomId: string; message: string }) => void;
+  match_saved: (data: { users: any[] }) => void;
   error: (data: { message: string }) => void;
   online_players_count: (count: number) => void;
 
@@ -450,5 +453,6 @@ export interface InterServerEvents {
 
 export interface SocketData {
   username: string;
+  userId?: string;
   currentRoom: string | null;
 }
