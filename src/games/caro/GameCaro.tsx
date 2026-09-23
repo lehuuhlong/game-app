@@ -46,6 +46,9 @@ export function GameCaro() {
   const playersRef = useRef<{ id: string; username: string; userId?: string }[]>([]);
   const allPlayersRef = useRef<{ id: string; username: string; userId?: string }[]>([]);
   const moveCountRef = useRef(0);
+  const matchSubmittedToApiRef = useRef(false);
+  const matchSavedViaSocketRef = useRef(false);
+  const fallbackSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Game state (kept in refs to avoid stale closure issues + also in state for rendering)
   const boardRef = useRef<CellValue[][]>(makeEmptyBoard());
@@ -137,6 +140,7 @@ export function GameCaro() {
 
     if (matchSavedRef.current) return;
     matchSavedRef.current = true;
+    if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
 
     // Record match to MongoDB for Match History, Head-to-Head stats & User totals
     const currentPlayers =
@@ -146,9 +150,14 @@ export function GameCaro() {
       const p2 = currentPlayers[1];
       const p1Won = !isDraw && winnerSymbol === "X";
       const p2Won = !isDraw && winnerSymbol === "O";
-      const shouldSubmit = isMe || (isDraw && mySymbolRef.current === "X");
-      if (shouldSubmit) {
-        const currentUser = userRef.current;
+      const isWinner = isMe;
+      const isHostDraw = isDraw && mySymbolRef.current === "X";
+      const currentUser = userRef.current;
+
+      const submitMatch = () => {
+        if (matchSubmittedToApiRef.current) return;
+        matchSubmittedToApiRef.current = true;
+
         fetch("/api/matches", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -193,6 +202,17 @@ export function GameCaro() {
             }
           })
           .catch((err) => console.error("Failed to post caro match:", err));
+      };
+
+      if (isWinner || isHostDraw) {
+        submitMatch();
+      } else {
+        // Fallback for loser: if winner closes tab or disconnects, ensure match is submitted
+        fallbackSubmitTimerRef.current = setTimeout(() => {
+          if (!matchSavedViaSocketRef.current && !matchSubmittedToApiRef.current) {
+            submitMatch();
+          }
+        }, 1800);
       }
     }
   }, [stopTimer, setScreen]);
@@ -203,6 +223,8 @@ export function GameCaro() {
       .off("match_saved");
 
     socket.on("match_saved", ({ users }: any) => {
+      matchSavedViaSocketRef.current = true;
+      if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
       if (users && Array.isArray(users)) {
         const currentUser = userRef.current;
         const updatedMe = users.find(
@@ -286,6 +308,9 @@ export function GameCaro() {
 
       // Reset board
       matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
+      matchSavedViaSocketRef.current = false;
+      if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
       const fresh = makeEmptyBoard();
       boardRef.current = fresh;
       currentTurnRef.current = "X";
@@ -343,6 +368,7 @@ export function GameCaro() {
 
   useEffect(() => {
     return () => {
+      if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
       stopTimer();
       socketRef.current?.disconnect();
       socketRef.current = null;
@@ -390,6 +416,7 @@ export function GameCaro() {
   };
 
   const handleLeaveRoom = () => {
+    if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
     stopTimer();
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();

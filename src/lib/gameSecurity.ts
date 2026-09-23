@@ -246,6 +246,66 @@ export function validateActionLog(
     return { valid: false, reason: 'Action log proof-of-play missing for high score' };
   }
 
+  // Flappy Bird proof-of-play action log verification
+  if (game === 'flappybird') {
+    if (score > 5 && actionLog.length === 0) {
+      return { valid: false, reason: 'Action log proof-of-play missing for Flappy Bird score' };
+    }
+
+    const pipes = actionLog.filter((a) => a && a.type === 'pipe');
+    const flaps = actionLog.filter((a) => a && a.type === 'flap');
+
+    // Number of cleared pipe events must match reported score
+    if (score > 0 && pipes.length !== score) {
+      return {
+        valid: false,
+        reason: `Action log pipe count (${pipes.length}) does not match reported score (${score})`,
+      };
+    }
+
+    // Flappy Bird requires frequent flapping due to gravity (1480 px/s^2).
+    // For score > 5, having fewer than score * 0.8 flaps is physically impossible.
+    if (score > 5 && flaps.length < Math.floor(score * 0.8)) {
+      return {
+        valid: false,
+        reason: 'Flappy Bird flap count physically insufficient to sustain flight',
+      };
+    }
+
+    // Pipe timing intervals check
+    if (pipes.length >= 2) {
+      for (let p = 1; p < pipes.length; p++) {
+        const interval = pipes[p].t - pipes[p - 1].t;
+        // Pipes spawn every ~1.1 to 1.5 seconds. Faster than 900ms is physically impossible.
+        if (interval < 900) {
+          return { valid: false, reason: 'Pipes passed suspiciously fast' };
+        }
+        // Slower than 3500ms per pipe is impossible as pipes move continuously without pause.
+        if (interval > 3500) {
+          return { valid: false, reason: 'Pipe intervals exceed continuous game scroll speed' };
+        }
+      }
+    }
+
+    // Bot detection for flap timing
+    if (flaps.length >= 8) {
+      const flapIntervals: number[] = [];
+      for (let f = 1; f < flaps.length; f++) {
+        flapIntervals.push(flaps[f].t - flaps[f - 1].t);
+      }
+      const mean = flapIntervals.reduce((a, b) => a + b, 0) / flapIntervals.length;
+      const variance =
+        flapIntervals.reduce((acc, dt) => acc + Math.pow(dt - mean, 2), 0) /
+        flapIntervals.length;
+      const stdDev = Math.sqrt(variance);
+      if (stdDev < 20) {
+        return { valid: false, reason: 'Inhuman uniform flap timing detected (bot script)' };
+      }
+    }
+
+    return { valid: true };
+  }
+
   if (actionLog.length === 0) {
     return { valid: true };
   }

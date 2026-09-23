@@ -15,6 +15,7 @@ export function GameFlappyBird() {
     startGame,
     flap,
     config,
+    getActionLog,
   } = useFlappyBird(user?.bestScoreFlappy || 0);
 
   const matchSavedRef = useRef(false);
@@ -61,6 +62,7 @@ export function GameFlappyBird() {
     try {
       const sessionToken = await ensureSessionToken(targetUser.id, targetUser.username);
       const elapsed = getElapsedDuration();
+      const actionLog = getActionLog();
       const res = await fetch(`/api/users/${targetUser.id}/score`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -69,6 +71,7 @@ export function GameFlappyBird() {
           score: finalScore,
           sessionToken,
           duration: elapsed,
+          actionLog,
         }),
       });
       const d = await res.json();

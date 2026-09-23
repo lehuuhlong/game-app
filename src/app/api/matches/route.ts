@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import Match from "@/models/Match";
 import User from "@/models/User";
@@ -212,15 +213,21 @@ export async function POST(request: Request) {
     }
 
     // Auto-link user IDs if not provided & load full user models to update stats
-    const userIds = players.map((p: any) => p.userId).filter(Boolean);
-    const usernames = players.map((p: any) => p.username).filter(Boolean);
+    const validUserIds = players
+      .map((p: any) => p.userId?.toString())
+      .filter((id: any) => id && mongoose.Types.ObjectId.isValid(id));
+    const usernames = players
+      .map((p: any) => p.username?.toString())
+      .filter(Boolean);
+
+    const escapeRegex = (s: string) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 
     const queryOr: Record<string, unknown>[] = [];
-    if (userIds.length > 0) queryOr.push({ _id: { $in: userIds } });
+    if (validUserIds.length > 0) queryOr.push({ _id: { $in: validUserIds } });
     if (usernames.length > 0) {
       queryOr.push({
         username: {
-          $in: usernames.map((name: string) => new RegExp(`^${name}$`, "i")),
+          $in: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
         },
       });
     }
@@ -238,10 +245,12 @@ export async function POST(request: Request) {
 
     const formattedPlayers = players.map((p: any) => {
       const u =
-        (p.userId ? userById.get(p.userId.toString()) : null) ||
+        (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+          ? userById.get(p.userId.toString())
+          : null) ||
         userByName.get(p.username?.toLowerCase());
       return {
-        userId: u ? u._id : p.userId || null,
+        userId: u ? u._id : (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString()) ? p.userId : null),
         username: u ? u.username : p.username,
         score: p.score ?? 0,
         result: p.result,
@@ -266,16 +275,20 @@ export async function POST(request: Request) {
       billiardsTotal: u.billiardsTotal ?? 0,
     });
 
-    // Server-side duplicate match guard: Prevent saving identical match if posted within 3 seconds
-    const threeSecondsAgo = new Date(Date.now() - 3000);
+    // Server-side duplicate match guard: Prevent saving identical match if posted within 4 seconds
+    const fourSecondsAgo = new Date(Date.now() - 4000);
     const duplicateMatch = await Match.findOne({
       gameType,
-      createdAt: { $gte: threeSecondsAgo },
-      "players.username": { $all: usernames },
+      createdAt: { $gte: fourSecondsAgo },
+      "players.username": {
+        $all: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
+      },
     });
     if (duplicateMatch) {
+      // Re-fetch users to get their latest saved stats from MongoDB
+      const freshUsers = queryOr.length > 0 ? await User.find({ $or: queryOr }) : [];
       return NextResponse.json(
-        { match: duplicateMatch, users: existingUsers.map(sanitizeUser) },
+        { match: duplicateMatch, users: freshUsers.map(sanitizeUser) },
         { status: 200 }
       );
     }
@@ -289,9 +302,11 @@ export async function POST(request: Request) {
 
     // Update User total and wins for all participants in multiplayer/1v1 games
     for (const p of formattedPlayers) {
-      const u = p.userId
-        ? userById.get(p.userId.toString())
-        : userByName.get(p.username?.toLowerCase());
+      const u =
+        (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+          ? userById.get(p.userId.toString())
+          : null) ||
+        userByName.get(p.username?.toLowerCase());
       if (u) {
         const isWin = p.result === "win";
         if (gameType === "caro") {

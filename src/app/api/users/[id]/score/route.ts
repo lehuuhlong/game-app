@@ -82,7 +82,7 @@ export async function PATCH(
     const sessionVerification = await verifyAndConsumeGameSession(
       sessionToken,
       game,
-      { userId: id, action: 'score' }
+      { userId: id, action: 'score', isFinal: body.isFinal !== false }
     );
 
     if (!sessionVerification.valid) {
@@ -116,7 +116,11 @@ export async function PATCH(
 
     // 3.1 Proof-of-Play Action Log & Human Timing Verification
     const actionLog = body.actionLog || body.moves;
-    if (game === 'line98' && reportedScore > 200) {
+    const requiresActionLog =
+      (game === 'line98' && reportedScore > 200) ||
+      (game === 'flappybird' && reportedScore > 5);
+
+    if (requiresActionLog) {
       const sessionStartTime =
         sessionVerification.sessionStartTime ||
         Date.now() - elapsedSeconds * 1000;
