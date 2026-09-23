@@ -148,6 +148,19 @@ export function validateGameScore(
       return { valid: true };
     }
 
+    case 'blockdrop': {
+      if (score > 1000000) {
+        return { valid: false, reason: 'Block Drop score exceeds realistic threshold' };
+      }
+      if (score > 500) {
+        const minDuration = (score / 1500) * 0.5;
+        if (durationSeconds < minDuration) {
+          return { valid: false, reason: 'Block Drop score rate physically impossible' };
+        }
+      }
+      return { valid: true };
+    }
+
     case 'aimtrainer': {
       // Aim Trainer is a fixed 60-second challenge
       if (durationSeconds < 15) {

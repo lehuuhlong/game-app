@@ -226,6 +226,24 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "blockdrop") {
+      const leaderboard = await User.find({ bestScoreBlockDrop: { $gt: 0 } })
+        .select("username avatarUrl bestScoreBlockDrop")
+        .sort({ bestScoreBlockDrop: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "blockdrop",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.bestScoreBlockDrop,
+        })),
+      });
+    }
+
     if (game === "wordchain") {
       const leaderboard = await User.find({ wordchainTotal: { $gt: 0 } })
         .select("username avatarUrl wordchainWins wordchainTotal")

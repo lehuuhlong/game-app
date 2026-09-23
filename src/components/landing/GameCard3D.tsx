@@ -32,6 +32,7 @@ const GAME_DURATIONS: Record<string, string> = {
   'billiards': '10–20m',
   'line98': '5–20m',
   'neonsnake': '1–5m',
+  'blockdrop': '2–10m',
 };
 
 /**

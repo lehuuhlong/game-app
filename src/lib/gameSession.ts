@@ -153,6 +153,7 @@ export async function verifyAndConsumeGameSession(
     "2048": 150 * 60 * 1000,    // 2.5 hours max
     line98: 150 * 60 * 1000,    // 2.5 hours max
     neonsnake: 30 * 60 * 1000,  // 30 minutes max
+    blockdrop: 60 * 60 * 1000,  // 60 minutes max
   };
   const maxAllowedAge = MAX_SESSION_AGE_MS[gameType] || 120 * 60 * 1000;
   if (sessionAgeMs > maxAllowedAge) {

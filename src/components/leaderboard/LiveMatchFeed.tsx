@@ -262,6 +262,16 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
       );
     }
 
+    if (gameType === 'blockdrop') {
+      const score = (p.score ?? gameData.score ?? 0).toLocaleString();
+      const lines = gameData.lines !== undefined ? ` • ${gameData.lines} lines` : '';
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+          {score} pts{lines}
+        </span>
+      );
+    }
+
     if (gameType === 'aimtrainer') {
       const score = (p.score ?? 0).toLocaleString();
       const acc = gameData.accuracy !== undefined ? ` • ${gameData.accuracy}% acc` : '';
@@ -333,6 +343,7 @@ export function LiveMatchFeed({ onInspectH2H, onOpenPlayer }: LiveMatchFeedProps
             <option value="wordle">Wordle</option>
             <option value="line98">Line 98</option>
             <option value="neonsnake">Neon Snake</option>
+            <option value="blockdrop">Retro Block Drop</option>
           </select>
         </div>
 

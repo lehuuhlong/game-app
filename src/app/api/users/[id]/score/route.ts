@@ -30,6 +30,7 @@ const VALID_GAMES = [
   'pikachu',
   'line98',
   'neonsnake',
+  'blockdrop',
 ];
 
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
@@ -265,6 +266,11 @@ export async function PATCH(
       if (score > (user.bestScoreNeonSnake || 0)) {
         user.bestScoreNeonSnake = score;
       }
+    } else if (game === 'blockdrop') {
+      const { score } = body;
+      if (score > (user.bestScoreBlockDrop || 0)) {
+        user.bestScoreBlockDrop = score;
+      }
     }
 
     await user.save();
@@ -304,6 +310,7 @@ export async function PATCH(
       pikachuHighestLevel: user.pikachuHighestLevel,
       bestScoreLine98: user.bestScoreLine98,
       bestScoreNeonSnake: user.bestScoreNeonSnake,
+      bestScoreBlockDrop: user.bestScoreBlockDrop,
     });
   } catch (error) {
     console.error('PATCH /api/users/[id]/score error:', error);

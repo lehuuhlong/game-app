@@ -25,6 +25,7 @@ const DAILY_CHALLENGES: Record<string, { goal: string; reward: string; difficult
   'pikachu': { goal: 'Conquer Stage 1 and trigger a 3x combo chain', reward: '+200 Arcade XP', difficulty: 'Classic' },
   'line98': { goal: 'Form 5+ ball alignments to score 250+ points', reward: '+180 Arcade XP', difficulty: 'Logic' },
   'neonsnake': { goal: 'Grow snake to 35 length and score 150+ points', reward: '+220 Arcade XP', difficulty: 'Speed' },
+  'blockdrop': { goal: 'Clear 15+ lines and reach Level 3 in a single run', reward: '+250 Arcade XP', difficulty: 'Puzzle' },
 };
 
 export function DailySpotlight() {

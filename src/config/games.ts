@@ -205,4 +205,17 @@ export const GAMES: GameInfo[] = [
     tags: ['Arcade', 'Single Player', 'Reflex', 'Cyberpunk'],
     color: 'from-cyan-500 via-blue-600 to-fuchsia-600',
   },
+  {
+    id: 'blockdrop',
+    title: 'Retro Block Drop',
+    description:
+      'Classic falling-block puzzle with shiny 3D gems. Rotate pieces, align rows, clear lines, and beat escalating gravity drop speeds.',
+    thumbnail: '/games/blockdrop/thumbnail.svg',
+    route: '/games/blockdrop',
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ['Puzzle', 'Retro', 'Arcade', 'Single Player'],
+    color: 'from-amber-500 via-purple-600 to-cyan-500',
+  },
 ];
+

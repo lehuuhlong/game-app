@@ -404,7 +404,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     );
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
-                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer', 'line98', 'neonsnake'].includes(m.gameType);
+                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer', 'line98', 'neonsnake', 'blockdrop'].includes(m.gameType);
 
                     return (
                       <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs">
@@ -433,7 +433,9 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 ? 'Line 98'
                                 : m.gameType === 'neonsnake'
                                   ? 'Neon Snake'
-                                  : m.gameType}
+                                  : m.gameType === 'blockdrop'
+                                    ? 'Retro Block Drop'
+                                    : m.gameType}
                           </span>
                           {/* Game Specific Details */}
                           {m.gameType === 'wordle' && m.gameData?.solution ? (
@@ -463,11 +465,13 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             m.gameType === 'flappybird' ||
                             m.gameType === 'aimtrainer' ||
                             m.gameType === 'line98' ||
-                            m.gameType === 'neonsnake' ? (
+                            m.gameType === 'neonsnake' ||
+                            m.gameType === 'blockdrop' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
                               {m.gameType === 'pikachu' && m.gameData?.level ? ` • Lvl ${m.gameData.level}` : ''}
                               {m.gameType === 'line98' && m.gameData?.moveCount ? ` • ${m.gameData.moveCount} moves` : ''}
+                              {m.gameType === 'blockdrop' && m.gameData?.lines ? ` • ${m.gameData.lines} lines` : ''}
                             </span>
                           ) : (
                             <span className="text-foreground-muted text-[11px]">

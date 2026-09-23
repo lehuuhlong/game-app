@@ -9,7 +9,7 @@ export interface GameMeta {
   duration: string;
   difficulty: 'Beginner' | 'Medium' | 'Expert' | 'Master';
   difficultyColor: string;
-  badge?: '🔥 Hot' | '⚡ 1v1 Duel' | '🏆 Classic' | '🎯 Daily' | '⚡ Turbo';
+  badge?: '🔥 Hot' | '⚡ 1v1 Duel' | '🏆 Classic' | '🎯 Daily' | '⚡ Turbo' | '💎 Retro';
 }
 
 export const GAME_METAS: Record<string, GameMeta> = {
@@ -88,6 +88,12 @@ export const GAME_METAS: Record<string, GameMeta> = {
     difficulty: 'Medium',
     difficultyColor: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
     badge: '⚡ Turbo',
+  },
+  blockdrop: {
+    duration: '2-8m',
+    difficulty: 'Medium',
+    difficultyColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30',
+    badge: '💎 Retro',
   },
 };
 
@@ -211,6 +217,17 @@ const gameIcons: Record<string, React.ReactNode> = {
       <path d="M34 14 H18 C15 14 14 16 14 19 C14 22 16 24 19 24 H29 C32 24 34 26 34 29 C34 32 32 34 29 34 H14" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="34" cy="14" r="3" fill="#22d3ee" />
       <circle cx="14" cy="34" r="3" fill="#f43f5e" />
+    </svg>
+  ),
+  blockdrop: (
+    <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+      <rect x="18" y="8" width="12" height="12" rx="2.5" fill="rgba(168,85,247,0.9)" stroke="#d8b4fe" strokeWidth="1" />
+      <rect x="6" y="20" width="12" height="12" rx="2.5" fill="rgba(168,85,247,0.9)" stroke="#d8b4fe" strokeWidth="1" />
+      <rect x="18" y="20" width="12" height="12" rx="2.5" fill="rgba(168,85,247,0.9)" stroke="#d8b4fe" strokeWidth="1" />
+      <rect x="30" y="20" width="12" height="12" rx="2.5" fill="rgba(168,85,247,0.9)" stroke="#d8b4fe" strokeWidth="1" />
+      <rect x="6" y="32" width="12" height="12" rx="2.5" fill="rgba(234,179,8,0.85)" stroke="#fef08a" strokeWidth="1" />
+      <rect x="18" y="32" width="12" height="12" rx="2.5" fill="rgba(234,179,8,0.85)" stroke="#fef08a" strokeWidth="1" />
+      <rect x="30" y="32" width="12" height="12" rx="2.5" fill="rgba(6,182,212,0.85)" stroke="#a5f3fc" strokeWidth="1" />
     </svg>
   ),
 };

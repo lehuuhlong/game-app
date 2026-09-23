@@ -1273,8 +1273,79 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+
+      {/* ── 17. RETRO BLOCK DROP ───────────────────────────────────── */}
+      {id === 'blockdrop' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-amber-100/90 via-purple-50/80 to-cyan-200/80 dark:from-slate-950 dark:via-purple-950/20 dark:to-slate-900">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Retro Block Drop"
+          >
+            <defs>
+              <pattern id="bd-card-grid" width="14" height="14" patternUnits="userSpaceOnUse">
+                <path d="M 14 0 L 0 0 0 14" fill="none" className="stroke-slate-300/60 dark:stroke-slate-800/70" strokeWidth="0.75" />
+              </pattern>
+            </defs>
+
+            {/* Inner Plate Board */}
+            <rect
+              x="26"
+              y="8"
+              width="140"
+              height="96"
+              rx="6"
+              className="fill-white/80 dark:fill-slate-950/75 stroke-purple-300/50 dark:stroke-purple-900/40"
+              strokeWidth="1"
+            />
+            <rect x="26" y="8" width="140" height="96" rx="6" fill="url(#bd-card-grid)" />
+
+            {/* Falling T-Piece (Amethyst Purple) */}
+            <g transform="translate(86, 26)">
+              {/* Pulse animation */}
+              <rect x="-6" y="-19" width="12" height="12" rx="2" className="fill-purple-500 stroke-purple-300" strokeWidth="1">
+                <animate attributeName="opacity" values="0.85;1;0.85" dur="2s" repeatCount="indefinite" />
+              </rect>
+              <rect x="-19" y="-6" width="12" height="12" rx="2" className="fill-purple-500 stroke-purple-300" strokeWidth="1" />
+              <rect x="-6" y="-6" width="12" height="12" rx="2" className="fill-purple-500 stroke-purple-300" strokeWidth="1" />
+              <rect x="7" y="-6" width="12" height="12" rx="2" className="fill-purple-500 stroke-purple-300" strokeWidth="1" />
+            </g>
+
+            {/* Ghost outline below */}
+            <g transform="translate(86, 68)" opacity="0.4">
+              <rect x="-6" y="-19" width="12" height="12" rx="2" fill="none" stroke="#c084fc" strokeWidth="1" strokeDasharray="2,2" />
+              <rect x="-19" y="-6" width="12" height="12" rx="2" fill="none" stroke="#c084fc" strokeWidth="1" strokeDasharray="2,2" />
+              <rect x="-6" y="-6" width="12" height="12" rx="2" fill="none" stroke="#c084fc" strokeWidth="1" strokeDasharray="2,2" />
+              <rect x="7" y="-6" width="12" height="12" rx="2" fill="none" stroke="#c084fc" strokeWidth="1" strokeDasharray="2,2" />
+            </g>
+
+            {/* Bottom Stack Blocks */}
+            {/* Solar Gold Cube (2x2) */}
+            <rect x="36" y="68" width="12" height="12" rx="2" className="fill-amber-500 stroke-amber-200" strokeWidth="1" />
+            <rect x="49" y="68" width="12" height="12" rx="2" className="fill-amber-500 stroke-amber-200" strokeWidth="1" />
+            <rect x="36" y="81" width="12" height="12" rx="2" className="fill-amber-500 stroke-amber-200" strokeWidth="1" />
+            <rect x="49" y="81" width="12" height="12" rx="2" className="fill-amber-500 stroke-amber-200" strokeWidth="1" />
+
+            {/* Emerald Serpent */}
+            <rect x="62" y="81" width="12" height="12" rx="2" className="fill-emerald-500 stroke-emerald-200" strokeWidth="1" />
+            <rect x="75" y="81" width="12" height="12" rx="2" className="fill-emerald-500 stroke-emerald-200" strokeWidth="1" />
+
+            {/* Cyan Long Beam */}
+            <rect x="114" y="81" width="12" height="12" rx="2" className="fill-cyan-500 stroke-cyan-200" strokeWidth="1" />
+            <rect x="127" y="81" width="12" height="12" rx="2" className="fill-cyan-500 stroke-cyan-200" strokeWidth="1" />
+            <rect x="140" y="81" width="12" height="12" rx="2" className="fill-cyan-500 stroke-cyan-200" strokeWidth="1" />
+
+            {/* Tangerine Angle */}
+            <rect x="140" y="68" width="12" height="12" rx="2" className="fill-orange-500 stroke-orange-200" strokeWidth="1" />
+            <rect x="140" y="55" width="12" height="12" rx="2" className="fill-orange-500 stroke-orange-200" strokeWidth="1" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
+
 
 export default GameVisualGraphic;
