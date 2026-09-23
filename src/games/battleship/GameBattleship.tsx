@@ -56,7 +56,7 @@ export function GameBattleship() {
     localShots,
     joinError: hookJoinError,
     moveShip,
-  } = useBattleship(user?.username || '');
+  } = useBattleship(user?.username || '', user?.id || (user as any)?._id);
 
   const isMyTurn = currentTurnPlayerId === playerId;
   const opponent = room?.players.find(p => p.id !== playerId);

@@ -30,3 +30,11 @@ export interface FlappyParticle {
   life: number;
   maxLife: number;
 }
+
+export interface FlappyActionEvent {
+  t: number;
+  type: "flap" | "pipe";
+  y?: number;
+  gapY?: number;
+  score?: number;
+}

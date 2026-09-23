@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import Match from "@/models/Match";
 import User from "@/models/User";
@@ -178,7 +179,8 @@ export async function POST(request: Request) {
       }
       const p1Name = (players[0].username || "").trim().toLowerCase();
       const p2Name = (players[1].username || "").trim().toLowerCase();
-      if (p1Name && p2Name && p1Name === p2Name) {
+      // In production, block players from playing against themselves to farm stats
+      if (process.env.NODE_ENV === "production" && p1Name && p2Name && p1Name === p2Name) {
         return NextResponse.json(
           { error: "Match cannot be recorded with identical players" },
           { status: 400 }
@@ -211,15 +213,21 @@ export async function POST(request: Request) {
     }
 
     // Auto-link user IDs if not provided & load full user models to update stats
-    const userIds = players.map((p: any) => p.userId).filter(Boolean);
-    const usernames = players.map((p: any) => p.username).filter(Boolean);
+    const validUserIds = players
+      .map((p: any) => p.userId?.toString())
+      .filter((id: any) => id && mongoose.Types.ObjectId.isValid(id));
+    const usernames = players
+      .map((p: any) => p.username?.toString())
+      .filter(Boolean);
+
+    const escapeRegex = (s: string) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 
     const queryOr: Record<string, unknown>[] = [];
-    if (userIds.length > 0) queryOr.push({ _id: { $in: userIds } });
+    if (validUserIds.length > 0) queryOr.push({ _id: { $in: validUserIds } });
     if (usernames.length > 0) {
       queryOr.push({
         username: {
-          $in: usernames.map((name: string) => new RegExp(`^${name}$`, "i")),
+          $in: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
         },
       });
     }
@@ -237,25 +245,52 @@ export async function POST(request: Request) {
 
     const formattedPlayers = players.map((p: any) => {
       const u =
-        (p.userId ? userById.get(p.userId.toString()) : null) ||
+        (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+          ? userById.get(p.userId.toString())
+          : null) ||
         userByName.get(p.username?.toLowerCase());
       return {
-        userId: u ? u._id : p.userId || null,
+        userId: u ? u._id : (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString()) ? p.userId : null),
         username: u ? u.username : p.username,
         score: p.score ?? 0,
         result: p.result,
       };
     });
 
-    // Server-side duplicate match guard: Prevent saving identical match if posted within 3 seconds
-    const threeSecondsAgo = new Date(Date.now() - 3000);
+    const sanitizeUser = (u: any) => ({
+      id: u._id.toString(),
+      username: u.username,
+      avatarUrl: u.avatarUrl || null,
+      caroWins: u.caroWins ?? 0,
+      caroTotal: u.caroTotal ?? 0,
+      chessWins: u.chessWins ?? 0,
+      chessTotal: u.chessTotal ?? 0,
+      battleshipWins: u.battleshipWins ?? 0,
+      battleshipTotal: u.battleshipTotal ?? 0,
+      wordchainWins: u.wordchainWins ?? 0,
+      wordchainTotal: u.wordchainTotal ?? 0,
+      monopolyWins: u.monopolyWins ?? 0,
+      monopolyTotal: u.monopolyTotal ?? 0,
+      billiardsWins: u.billiardsWins ?? 0,
+      billiardsTotal: u.billiardsTotal ?? 0,
+    });
+
+    // Server-side duplicate match guard: Prevent saving identical match if posted within 4 seconds
+    const fourSecondsAgo = new Date(Date.now() - 4000);
     const duplicateMatch = await Match.findOne({
       gameType,
-      createdAt: { $gte: threeSecondsAgo },
-      "players.username": { $all: usernames },
+      createdAt: { $gte: fourSecondsAgo },
+      "players.username": {
+        $all: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
+      },
     });
     if (duplicateMatch) {
-      return NextResponse.json(duplicateMatch, { status: 200 });
+      // Re-fetch users to get their latest saved stats from MongoDB
+      const freshUsers = queryOr.length > 0 ? await User.find({ $or: queryOr }) : [];
+      return NextResponse.json(
+        { match: duplicateMatch, users: freshUsers.map(sanitizeUser) },
+        { status: 200 }
+      );
     }
 
     const match = await Match.create({
@@ -267,9 +302,11 @@ export async function POST(request: Request) {
 
     // Update User total and wins for all participants in multiplayer/1v1 games
     for (const p of formattedPlayers) {
-      const u = p.userId
-        ? userById.get(p.userId.toString())
-        : userByName.get(p.username?.toLowerCase());
+      const u =
+        (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+          ? userById.get(p.userId.toString())
+          : null) ||
+        userByName.get(p.username?.toLowerCase());
       if (u) {
         const isWin = p.result === "win";
         if (gameType === "caro") {
@@ -295,7 +332,10 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ match, users: existingUsers }, { status: 201 });
+    return NextResponse.json(
+      { match, users: existingUsers.map(sanitizeUser) },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/matches error:", error);
     return NextResponse.json(

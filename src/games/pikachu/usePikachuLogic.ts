@@ -241,7 +241,11 @@ export function usePikachuLogic() {
             // Award time bonus: 10 points per remaining second
             const timeBonus = timeLeft * 10;
             setScore((s) => s + timeBonus + 500);
-            setStatus('level_cleared');
+            if (levelIdx === LEVELS.length - 1) {
+              setStatus('victory');
+            } else {
+              setStatus('level_cleared');
+            }
           } else {
             // Check if moves are still possible
             const available = findAvailableMove(updated);

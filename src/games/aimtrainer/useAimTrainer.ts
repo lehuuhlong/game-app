@@ -88,6 +88,9 @@ export function useAimTrainer() {
             u.aimTrainerBestScore = d.aimTrainerBestScore;
             u.aimTrainerBestAccuracy = d.aimTrainerBestAccuracy;
             localStorage.setItem("game-portal-user", JSON.stringify(u));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+            }
           }
         })
         .catch(() => {});
@@ -99,7 +102,7 @@ export function useAimTrainer() {
         body: JSON.stringify({
           gameType: "aimtrainer",
           sessionToken,
-          players: [{ username: u.username, score: finalScore, result: "win" }],
+          players: [{ userId: u.id || u._id, username: u.username, score: finalScore, result: "win" }],
           duration: 60,
           gameData: { accuracy, misses: finalMisses },
         }),

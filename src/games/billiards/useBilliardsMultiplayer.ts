@@ -33,6 +33,7 @@ interface UseBilliardsMultiplayerOptions {
   onGameStarted?: () => void;
   onGameRestarted?: () => void;
   onGameOver?: (data: { winner: 1 | 2; reason: string }) => void;
+  onMatchSaved?: (data: { users: any[] }) => void;
 }
 
 export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions = {}) {
@@ -172,6 +173,10 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
       optionsRef.current.onGameRestarted?.();
     });
 
+    socket.on("match_saved" as any, ({ users }: { users: any[] }) => {
+      optionsRef.current.onMatchSaved?.({ users });
+    });
+
     socket.on("room_expired", ({ message }) => {
       setScreen("lobby");
       setRoom(null);
@@ -206,9 +211,10 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
       roomId: code,
       gameType: "billiards",
       username: uName,
+      userId: user?.id || (user as any)?._id,
       action: "create",
     });
-  }, [username, getSocket, setupSocket]);
+  }, [username, user, getSocket, setupSocket]);
 
   const joinRoom = useCallback(
     (code: string, explicitUsername?: string) => {
@@ -231,10 +237,11 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
         roomId: cleanCode,
         gameType: "billiards",
         username: uName,
+        userId: user?.id || (user as any)?._id,
         action: "join",
       });
     },
-    [username, getSocket, setupSocket]
+    [username, user, getSocket, setupSocket]
   );
 
   const leaveRoom = useCallback(() => {
@@ -315,6 +322,14 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     []
   );
 
+  const sendMatchSaved = useCallback((users: any[]) => {
+    if (!socketRef.current || !roomIdRef.current) return;
+    socketRef.current.emit("match_saved" as any, {
+      roomId: roomIdRef.current,
+      users,
+    });
+  }, []);
+
   // Opponent player info
   const opponent =
     room?.players.find((p) => p.socketId !== socketRef.current?.id && p.id !== playerIdRef.current) ||
@@ -361,6 +376,7 @@ export function useBilliardsMultiplayer(options: UseBilliardsMultiplayerOptions 
     sendBallInHandMove,
     sendBallInHandConfirm,
     sendPhysicsTick,
+    sendMatchSaved,
     isMyTurn,
     originalPlayers: originalPlayersRef.current,
   };

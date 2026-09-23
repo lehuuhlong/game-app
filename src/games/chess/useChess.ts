@@ -73,6 +73,9 @@ export function useChess(username: string) {
   const screenRef = useRef<Screen>("lobby");
   const gameStateRef = useRef<ChessGameState | null>(null);
   const matchSavedRef = useRef<boolean>(false);
+  const matchSubmittedToApiRef = useRef<boolean>(false);
+  const matchSavedViaSocketRef = useRef<boolean>(false);
+  const fallbackSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [screen, setScreen] = useState<Screen>("lobby");
   const [room, setRoom] = useState<Room | null>(null);
@@ -231,6 +234,9 @@ export function useChess(username: string) {
         setLastMove(null);
         setError(null);
         matchSavedRef.current = false;
+        matchSubmittedToApiRef.current = false;
+        matchSavedViaSocketRef.current = false;
+        if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
         setScreen("playing");
         screenRef.current = "playing";
         startTimer();
@@ -288,63 +294,115 @@ export function useChess(username: string) {
           playDefeatSound();
         }
 
-        const matchSaved = matchSavedRef.current;
-        matchSavedRef.current = true;
+        if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
 
-        // Record 1v1 match in matches collection (only winner or White on draw submits to prevent duplicates)
-        try {
-          const whiteP = gs.whitePlayer?.username;
-          const blackP = gs.blackPlayer?.username;
-          const isMeWinner = (w === myC) || (w === "draw" && myC === "w");
-          if (!matchSaved && isMeWinner && whiteP && blackP) {
-            const isDraw = w === "draw";
-            const whiteWon = w === "w";
-            const blackWon = w === "b";
+        const whiteP = gs.whitePlayer?.username;
+        const blackP = gs.blackPlayer?.username;
+        const whiteUserId = (gs.whitePlayer as any)?.userId;
+        const blackUserId = (gs.blackPlayer as any)?.userId;
 
-            fetch("/api/matches", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                gameType: "chess",
-                players: [
-                  {
-                    username: whiteP,
-                    result: isDraw ? "draw" : whiteWon ? "win" : "loss",
-                    score: whiteWon ? 1 : 0,
-                  },
-                  {
-                    username: blackP,
-                    result: isDraw ? "draw" : blackWon ? "win" : "loss",
-                    score: blackWon ? 1 : 0,
-                  },
-                ],
-                duration: 0,
-                gameData: {
-                  movesCount: gs.moveHistory?.length || 0,
-                  endReason: reason,
-                  winner: w,
+        const isDraw = w === "draw";
+        const whiteWon = w === "w";
+        const blackWon = w === "b";
+        const isMeWinner = (w === myC) || (isDraw && myC === "w");
+
+        const submitMatch = () => {
+          if (matchSubmittedToApiRef.current) return;
+          matchSubmittedToApiRef.current = true;
+          if (!whiteP || !blackP) return;
+
+          fetch("/api/matches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              gameType: "chess",
+              players: [
+                {
+                  userId: whiteUserId || undefined,
+                  username: whiteP,
+                  result: isDraw ? "draw" : whiteWon ? "win" : "loss",
+                  score: whiteWon ? 1 : 0,
                 },
-              }),
-            })
-              .then((r) => r.json())
-              .then((resData) => {
+                {
+                  userId: blackUserId || undefined,
+                  username: blackP,
+                  result: isDraw ? "draw" : blackWon ? "win" : "loss",
+                  score: blackWon ? 1 : 0,
+                },
+              ],
+              duration: 0,
+              gameData: {
+                movesCount: gs.moveHistory?.length || 0,
+                endReason: reason,
+                winner: w,
+              },
+            }),
+          })
+            .then((r) => r.json())
+            .then((resData) => {
+              if (resData && resData.users && Array.isArray(resData.users)) {
+                // Broadcast to opponent via socket
+                socketRef.current?.emit("match_saved", {
+                  roomId: roomIdRef.current,
+                  users: resData.users,
+                });
+
                 try {
                   const stored = localStorage.getItem("game-portal-user");
-                  if (stored && resData.users) {
+                  if (stored) {
                     const u = JSON.parse(stored);
-                    const updated = resData.users.find((x: any) => x.username === u.username);
+                    const updated = resData.users.find(
+                      (x: any) =>
+                        (u.id && x.id === u.id) ||
+                        (x.username && x.username.toLowerCase() === u.username.toLowerCase())
+                    );
                     if (updated) {
                       Object.assign(u, updated);
                       localStorage.setItem("game-portal-user", JSON.stringify(u));
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                      }
                     }
                   }
                 } catch {}
-              })
-              .catch(() => {});
-          }
-        } catch {
-          // ignore
+              }
+            })
+            .catch((err) => console.error("Failed to save chess match:", err));
+        };
+
+        if (isMeWinner) {
+          submitMatch();
+        } else {
+          // Fallback submission for loser if winner disconnects or leaves early
+          fallbackSubmitTimerRef.current = setTimeout(() => {
+            if (!matchSavedViaSocketRef.current && !matchSubmittedToApiRef.current) {
+              submitMatch();
+            }
+          }, 1800);
         }
+      });
+
+      socket.on("match_saved", ({ users }: any) => {
+        matchSavedViaSocketRef.current = true;
+        if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
+        try {
+          const stored = localStorage.getItem("game-portal-user");
+          if (stored && Array.isArray(users)) {
+            const u = JSON.parse(stored);
+            const updated = users.find(
+              (x: any) =>
+                (u.id && x.id === u.id) ||
+                (x.username && x.username.toLowerCase() === u.username.toLowerCase())
+            );
+            if (updated) {
+              Object.assign(u, updated);
+              localStorage.setItem("game-portal-user", JSON.stringify(u));
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+              }
+            }
+          }
+        } catch {}
       });
 
       socket.on("room_expired", ({ message }) => {
@@ -427,6 +485,7 @@ export function useChess(username: string) {
   );
 
   const leaveRoom = useCallback(() => {
+    if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
     stopTimer();
     if (socketRef.current && roomIdRef.current) {
       socketRef.current.emit("leave_room", { roomId: roomIdRef.current });

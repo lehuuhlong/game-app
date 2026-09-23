@@ -75,7 +75,7 @@ export interface VerifySessionResult {
 export async function verifyAndConsumeGameSession(
   sessionToken: string,
   gameType: string,
-  options?: { userId?: string; username?: string; action?: "score" | "match" }
+  options?: { userId?: string; username?: string; action?: "score" | "match"; isFinal?: boolean }
 ): Promise<VerifySessionResult> {
   if (!sessionToken || typeof sessionToken !== "string") {
     return { valid: false, error: "Session token is required", status: 400 };
@@ -164,12 +164,14 @@ export async function verifyAndConsumeGameSession(
   }
 
   const action = options?.action || "score";
+  const isProgressiveGame = gameType === "pikachu" || gameType === "2048";
+  const isFinal = options?.isFinal ?? (!isProgressiveGame);
 
   // 3. Prevent Replay Attack via MongoDB consumed session registry
   await dbConnect();
 
   const claimExistingSession = async (existing: any): Promise<VerifySessionResult> => {
-    if (action === "score" && existing.scoreSubmitted) {
+    if (action === "score" && existing.scoreSubmitted && (!isProgressiveGame || existing.completed)) {
       return {
         valid: false,
         error: "Score has already been recorded for this game session",
@@ -187,12 +189,20 @@ export async function verifyAndConsumeGameSession(
     // Atomically set the flag using findOneAndUpdate to prevent race condition
     const updateCond =
       action === "score"
-        ? { sessionId, scoreSubmitted: { $ne: true } }
+        ? isProgressiveGame && !existing.completed
+          ? { sessionId, completed: { $ne: true } }
+          : { sessionId, scoreSubmitted: { $ne: true } }
         : { sessionId, matchSubmitted: { $ne: true } };
 
     const updateSet =
       action === "score"
-        ? { $set: { scoreSubmitted: true, completed: true, completedAt: new Date() } }
+        ? {
+            $set: {
+              scoreSubmitted: true,
+              completed: isFinal,
+              completedAt: new Date(),
+            },
+          }
         : { $set: { matchSubmitted: true, completed: true, completedAt: new Date() } };
 
     const updated = await GameSession.findOneAndUpdate(updateCond, updateSet, { returnDocument: 'after' });
@@ -224,7 +234,7 @@ export async function verifyAndConsumeGameSession(
         username: options?.username || null,
         gameType,
         startTime: new Date(startTimeMs),
-        completed: true,
+        completed: isFinal,
         scoreSubmitted: action === "score",
         matchSubmitted: action === "match",
         completedAt: new Date(),

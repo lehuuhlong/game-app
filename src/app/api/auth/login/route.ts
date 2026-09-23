@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Match from "@/models/Match";
@@ -55,7 +56,40 @@ function toClientUser(user: InstanceType<typeof User>) {
     billiardsWins: (user as any).billiardsWins ?? 0,
     billiardsTotal: (user as any).billiardsTotal ?? 0,
     bestScoreLine98: user.bestScoreLine98 ?? 0,
+    bestScoreNeonSnake: (user as any).bestScoreNeonSnake ?? 0,
   };
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const username = searchParams.get("username");
+
+    if (!id && !username) {
+      return NextResponse.json({ error: "id or username is required" }, { status: 400 });
+    }
+
+    await dbConnect();
+    let user = null;
+    if (id && mongoose.Types.ObjectId.isValid(id)) {
+      user = await User.findById(id);
+    }
+    if (!user && username) {
+      user = await User.findOne({
+        username: { $regex: `^${username.trim()}$`, $options: "i" },
+      });
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user: toClientUser(user) });
+  } catch (error) {
+    console.error("GET /api/auth/login error:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

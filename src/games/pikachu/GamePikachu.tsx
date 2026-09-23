@@ -38,18 +38,21 @@ export function GamePikachu() {
   const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
   const [localBestScore, setLocalBestScore] = useState(0);
   const scoreSavedRef = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const wasGameOverRef = useRef(false);
 
   useEffect(() => {
     startSession(user?.id, user?.username);
   }, [startSession, user?.id, user?.username]);
 
-  // ── Auto-renew session on game start/restart ───────────────────────
+  // ── Auto-renew session ONLY when game restarts after game over ─────
   useEffect(() => {
-    if (status === 'playing' && !wasPlayingRef.current) {
+    const isGameOver = status === 'game_over' || status === 'victory';
+    if (!isGameOver && wasGameOverRef.current) {
+      // Starting a fresh run after previous game over: force new session token & reset start time
       startSession(user?.id, user?.username, true);
+      scoreSavedRef.current = false;
     }
-    wasPlayingRef.current = status === 'playing';
+    wasGameOverRef.current = isGameOver;
   }, [status, startSession, user?.id, user?.username]);
 
   // Load local best score on mount
@@ -70,14 +73,16 @@ export function GamePikachu() {
     }
   }, [score, localBestScore]);
 
-  // Sync to database only when the player loses / finishes the game (game_over)
+  // Sync to database when a level is cleared or the game ends (victory / game_over)
   useEffect(() => {
     if (status === 'playing') {
       scoreSavedRef.current = false;
+      return;
     }
 
+    const isLevelCleared = status === 'level_cleared';
     const isGameOver = status === 'game_over' || status === 'victory';
-    if (!isGameOver || score <= 0) return;
+    if ((!isLevelCleared && !isGameOver) || score <= 0) return;
     if (scoreSavedRef.current) return;
     scoreSavedRef.current = true;
 
@@ -85,28 +90,30 @@ export function GamePikachu() {
       const sessionToken = await ensureSessionToken(user?.id, user?.username);
       const elapsed = getElapsedDuration();
 
-      // Save final match session to /api/matches (score-based format like 2048)
-      fetch('/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameType: 'pikachu',
-          sessionToken,
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : 'Guest',
-              score,
-              result: 'loss',
-            },
-          ],
-          duration: elapsed,
-          gameData: { level: levelIdx + 1, score },
-        }),
-      }).catch((e) => console.error('Failed to post match:', e));
+      // Save match session to /api/matches on game completion
+      if (isGameOver) {
+        fetch('/api/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameType: 'pikachu',
+            sessionToken,
+            players: [
+              {
+                userId: user?.id,
+                username: user ? user.username : 'Guest',
+                score,
+                result: status === 'victory' ? 'win' : 'loss',
+              },
+            ],
+            duration: elapsed,
+            gameData: { level: levelIdx + 1, score },
+          }),
+        }).catch((e) => console.error('Failed to post match:', e));
+      }
 
-      // Save user record ONLY if the score is greater than current user's best score
-      if (user && user.id && score > (user.pikachuBestScore || 0)) {
+      // Save user record if score or level exceeds previous best
+      if (user && user.id && (score > (user.pikachuBestScore || 0) || (levelIdx + 1) > (user.pikachuHighestLevel || 0))) {
         fetch(`/api/users/${user.id}/score`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -116,6 +123,7 @@ export function GamePikachu() {
             level: levelIdx + 1,
             sessionToken,
             duration: elapsed,
+            isFinal: isGameOver,
           }),
         })
           .then((r) => r.json())
@@ -125,12 +133,26 @@ export function GamePikachu() {
                 pikachuBestScore: d.pikachuBestScore,
                 pikachuHighestLevel: d.pikachuHighestLevel,
               });
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+              }
             }
           })
           .catch((e) => console.error('Failed to save pikachu score:', e));
       }
     })();
-  }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser, ensureSessionToken, getElapsedDuration]);
+  }, [status, score, user, levelIdx, refreshUser, ensureSessionToken, getElapsedDuration]);
+
+  const handleNextLevel = () => {
+    scoreSavedRef.current = false;
+    nextLevel();
+  };
+
+  const handleRestart = () => {
+    scoreSavedRef.current = false;
+    startSession(user?.id, user?.username, true);
+    restartGame();
+  };
 
   const bestScore = Math.max(user?.pikachuBestScore || 0, localBestScore, score);
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));
@@ -385,7 +407,7 @@ export function GamePikachu() {
 
               <button
                 type="button"
-                onClick={nextLevel}
+                onClick={handleNextLevel}
                 className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
               >
                 {levelConfig.level === 6 ? 'Enter Endless Mode (Level 7) ➔' : `Next Level (Level ${levelConfig.level + 1}) ➔`}
@@ -425,7 +447,7 @@ export function GamePikachu() {
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={restartGame}
+                  onClick={handleRestart}
                   className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
                   🔄 Play Again
@@ -472,10 +494,17 @@ export function GamePikachu() {
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={restartGame}
+                  onClick={handleNextLevel}
                   className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
-                  Play Again to Break Record
+                  Enter Endless Mode (Level 7) ➔
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  className="w-full py-2.5 rounded-xl font-semibold bg-surface border border-border hover:bg-surface-hover text-foreground-secondary hover:text-foreground text-sm transition-colors text-center shadow-xs"
+                >
+                  Play Again from Level 1
                 </button>
                 <Link
                   href="/leaderboard?game=pikachu"

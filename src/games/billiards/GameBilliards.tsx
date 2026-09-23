@@ -38,6 +38,8 @@ export function GameBilliards() {
   const lastAimEmitRef = useRef<number>(0);
   const lastPhysicsTickEmitRef = useRef<number>(0);
   const matchSavedRef = useRef(false);
+  const matchSubmittedToApiRef = useRef(false);
+  const fallbackSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Physics engine
   const {
@@ -99,6 +101,11 @@ export function GameBilliards() {
       setAimPower(0);
       setIsAiming(false);
       matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
 
       if (engineRef.current) {
         startCollisionDetection(engineRef.current, handleRemoveBall);
@@ -245,6 +252,32 @@ export function GameBilliards() {
         winner,
         winReason: displayReason,
       });
+    },
+    onMatchSaved: ({ users }) => {
+      matchSavedRef.current = true;
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
+      try {
+        const stored = localStorage.getItem("game-portal-user");
+        if (stored && users && Array.isArray(users)) {
+          const u = JSON.parse(stored);
+          const updated = users.find(
+            (x: any) =>
+              (u.id && x.id === u.id) ||
+              (u._id && x._id === u._id) ||
+              (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+          );
+          if (updated) {
+            Object.assign(u, updated);
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+            }
+          }
+        }
+      } catch {}
     },
   });
 
@@ -563,6 +596,10 @@ export function GameBilliards() {
         clearInterval(ballStopCheckRef.current);
         ballStopCheckRef.current = null;
       }
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
       mountedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,64 +608,93 @@ export function GameBilliards() {
   // ── Record match when game ends ──────────────────────────────────────────
   useEffect(() => {
     if (rulesState.gameOver && rulesState.winner && !matchSavedRef.current) {
-      // Only the winner submits to /api/matches to prevent duplicate records
-      if (multiplayer.myPlayerNum && rulesState.winner !== multiplayer.myPlayerNum) {
-        return;
-      }
-      matchSavedRef.current = true;
+      const isWinner = multiplayer.myPlayerNum === rulesState.winner;
 
-      const p1Original = multiplayer.originalPlayers?.[0]?.username;
-      const p2Original = multiplayer.originalPlayers?.[1]?.username;
-      const p1Room = multiplayer.room?.players?.[0]?.username;
-      const p2Room = multiplayer.room?.players?.[1]?.username;
+      const submitMatch = () => {
+        if (matchSubmittedToApiRef.current) return;
+        matchSubmittedToApiRef.current = true;
+        matchSavedRef.current = true;
 
-      const p1Name = p1Original || p1Room || "Player 1";
-      const p2Name = p2Original || p2Room || "Player 2";
+        const p1Original = multiplayer.originalPlayers?.[0];
+        const p2Original = multiplayer.originalPlayers?.[1];
+        const p1Room = multiplayer.room?.players?.[0];
+        const p2Room = multiplayer.room?.players?.[1];
 
-      const p1Won = rulesState.winner === 1;
+        const p1 = p1Original || p1Room;
+        const p2 = p2Original || p2Room;
 
-      fetch("/api/matches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameType: "billiards",
-          players: [
-            {
-              username: p1Name,
-              result: p1Won ? "win" : "loss",
-              score: rulesState.player1.pottedBalls.length,
+        const p1Name = p1?.username || "Player 1";
+        const p2Name = p2?.username || "Player 2";
+        const p1UserId = (p1 as any)?.userId || (p1Name === user?.username ? (user?.id || (user as any)?._id) : undefined);
+        const p2UserId = (p2 as any)?.userId || (p2Name === user?.username ? (user?.id || (user as any)?._id) : undefined);
+
+        const p1Won = rulesState.winner === 1;
+
+        fetch("/api/matches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gameType: "billiards",
+            players: [
+              {
+                userId: p1UserId,
+                username: p1Name,
+                result: p1Won ? "win" : "loss",
+                score: rulesState.player1.pottedBalls.length,
+              },
+              {
+                userId: p2UserId,
+                username: p2Name,
+                result: !p1Won ? "win" : "loss",
+                score: rulesState.player2.pottedBalls.length,
+              },
+            ],
+            duration: 0,
+            gameData: {
+              reason: rulesState.winReason,
+              winner: rulesState.winner,
+              mode: "online",
             },
-            {
-              username: p2Name,
-              result: !p1Won ? "win" : "loss",
-              score: rulesState.player2.pottedBalls.length,
-            },
-          ],
-          duration: 0,
-          gameData: {
-            reason: rulesState.winReason,
-            winner: rulesState.winner,
-            mode: "online",
-          },
-        }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          try {
-            const stored = localStorage.getItem("game-portal-user");
-            if (stored && data.users) {
-              const u = JSON.parse(stored);
-              const updated = data.users.find((x: any) => x.username === u.username);
-              if (updated) {
-                Object.assign(u, updated);
-                localStorage.setItem("game-portal-user", JSON.stringify(u));
-              }
-            }
-          } catch {}
+          }),
         })
-        .catch(() => {});
+          .then((r) => r.json())
+          .then((data) => {
+            if (data && data.users && Array.isArray(data.users)) {
+              multiplayer.sendMatchSaved(data.users);
+              try {
+                const stored = localStorage.getItem("game-portal-user");
+                if (stored) {
+                  const u = JSON.parse(stored);
+                  const updated = data.users.find(
+                    (x: any) =>
+                      (u.id && x.id === u.id) ||
+                      (u._id && x._id === u._id) ||
+                      (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+                  );
+                  if (updated) {
+                    Object.assign(u, updated);
+                    localStorage.setItem("game-portal-user", JSON.stringify(u));
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                    }
+                  }
+                }
+              } catch {}
+            }
+          })
+          .catch(() => {});
+      };
+
+      if (isWinner) {
+        submitMatch();
+      } else {
+        if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = setTimeout(() => {
+          submitMatch();
+        }, 1800);
+      }
     }
-  }, [rulesState.gameOver, rulesState.winner, rulesState.winReason, rulesState.player1.pottedBalls.length, rulesState.player2.pottedBalls.length, multiplayer.myPlayerNum, multiplayer.room, multiplayer.originalPlayers, user]);
+  }, [rulesState.gameOver, rulesState.winner, rulesState.winReason, rulesState.player1.pottedBalls.length, rulesState.player2.pottedBalls.length, multiplayer, user]);
 
   const handleRestart = useCallback(() => {
     if (!multiplayer.room || multiplayer.room.players.length < 2) {

@@ -52,7 +52,7 @@ export function GameMonopoly() {
     hostWorldCup,
     selectChanceTarget,
     joinError: hookJoinError,
-  } = useMonopoly(user?.username || '');
+  } = useMonopoly(user?.username || '', user?.id || (user as any)?._id);
 
   // ── Screen transitions ──────────────────────────────────────────
 
