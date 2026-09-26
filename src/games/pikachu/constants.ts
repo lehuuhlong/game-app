@@ -25,6 +25,18 @@ export const TILE_DEFINITIONS = [
   { type: 21, name: 'Diglett', emoji: '🌱', glowColor: '#b45309', badgeBg: 'from-amber-700 to-yellow-900' },
   { type: 22, name: 'Togepi', emoji: '🥚', glowColor: '#fef08a', badgeBg: 'from-yellow-200 to-amber-400' },
   { type: 23, name: 'Rayquaza', emoji: '🐲', glowColor: '#10b981', badgeBg: 'from-emerald-500 to-teal-700' },
+  { type: 24, name: 'Slowpoke', emoji: '🌸', glowColor: '#f472b6', badgeBg: 'from-pink-400 to-rose-600' },
+  { type: 25, name: 'Bellsprout', emoji: '🌿', glowColor: '#a3e635', badgeBg: 'from-lime-400 to-green-600' },
+  { type: 26, name: 'Gastly', emoji: '🌑', glowColor: '#9333ea', badgeBg: 'from-purple-600 to-indigo-800' },
+  { type: 27, name: 'Onix', emoji: '⛰️', glowColor: '#78716c', badgeBg: 'from-stone-500 to-zinc-700' },
+  { type: 28, name: 'Drowzee', emoji: '🌀', glowColor: '#eab308', badgeBg: 'from-yellow-500 to-amber-600' },
+  { type: 29, name: 'Krabby', emoji: '🦀', glowColor: '#ef4444', badgeBg: 'from-red-500 to-orange-600' },
+  { type: 30, name: 'Voltorb', emoji: '🔴', glowColor: '#dc2626', badgeBg: 'from-red-600 to-rose-700' },
+  { type: 31, name: 'Exeggcute', emoji: '🌱', glowColor: '#ec4899', badgeBg: 'from-pink-500 to-emerald-600' },
+  { type: 32, name: 'Cubone', emoji: '🦴', glowColor: '#d97706', badgeBg: 'from-amber-600 to-yellow-700' },
+  { type: 33, name: 'Hitmonlee', emoji: '🥋', glowColor: '#b45309', badgeBg: 'from-amber-700 to-stone-700' },
+  { type: 34, name: 'Koffing', emoji: '💨', glowColor: '#8b5cf6', badgeBg: 'from-violet-500 to-purple-700' },
+  { type: 35, name: 'Horsea', emoji: '🌊', glowColor: '#0ea5e9', badgeBg: 'from-sky-500 to-blue-600' },
 ];
 
 export const LEVELS: LevelConfig[] = [
@@ -32,60 +44,60 @@ export const LEVELS: LevelConfig[] = [
     level: 1,
     name: 'Neon Genesis',
     description: 'Classic board with no gravity. Master the turning angles!',
-    rows: 8,
-    cols: 12,
-    uniqueTilesCount: 12,
-    timeLimit: 200, // fixed 200s
+    rows: 9,
+    cols: 16,
+    uniqueTilesCount: 18,
+    timeLimit: 300, // fixed 300s
     gravity: 'none',
   },
   {
     level: 2,
     name: 'Downfall Shift',
     description: 'Gravity pulls downward! Upper tiles fall when space opens.',
-    rows: 8,
-    cols: 12,
-    uniqueTilesCount: 14,
-    timeLimit: 200,
+    rows: 9,
+    cols: 16,
+    uniqueTilesCount: 22,
+    timeLimit: 300,
     gravity: 'down',
   },
   {
     level: 3,
     name: 'Leftward Drift',
     description: 'Gravity shifts leftward! The grid constantly compresses to the left.',
-    rows: 8,
-    cols: 12,
-    uniqueTilesCount: 16,
-    timeLimit: 200,
+    rows: 9,
+    cols: 16,
+    uniqueTilesCount: 26,
+    timeLimit: 300,
     gravity: 'left',
   },
   {
     level: 4,
     name: 'Rightward Surge',
     description: 'Gravity shifts rightward! Anticipate tile displacement.',
-    rows: 8,
-    cols: 12,
-    uniqueTilesCount: 18,
-    timeLimit: 200,
+    rows: 9,
+    cols: 16,
+    uniqueTilesCount: 30,
+    timeLimit: 300,
     gravity: 'right',
   },
   {
     level: 5,
     name: 'Vortex Inward',
     description: 'Gravity pulls toward center! Top and bottom halves converge.',
-    rows: 8,
-    cols: 12,
-    uniqueTilesCount: 20,
-    timeLimit: 200,
+    rows: 9,
+    cols: 16,
+    uniqueTilesCount: 34,
+    timeLimit: 300,
     gravity: 'center-vertical',
   },
   {
     level: 6,
     name: 'Cyber Chaos',
-    description: 'The ultimate trial! 22 creature symbols with upward gravity.',
-    rows: 8,
-    cols: 12,
-    uniqueTilesCount: 22,
-    timeLimit: 200,
+    description: 'The ultimate trial! All 36 creature symbols with upward gravity.',
+    rows: 9,
+    cols: 16,
+    uniqueTilesCount: 36,
+    timeLimit: 300,
     gravity: 'up',
   },
 ];
@@ -144,20 +156,20 @@ export function getLevelConfig(levelIdx: number): LevelConfig {
   const cycleIdx = (levelIdx - LEVELS.length) % endlessGravities.length;
   const g = endlessGravities[cycleIdx];
 
-  // Increase to 23 at Level 7, and max 24 unique creatures at Level 8+
+  // Progressively increase unique creatures up to 36 at higher levels
   const uniqueTilesCount = Math.min(
     TILE_DEFINITIONS.length,
-    22 + Math.min(2, Math.floor((levelIdx - 5) / 2))
+    22 + Math.min(14, Math.floor((levelIdx - 5) * 2))
   );
 
   return {
     level: levelNumber,
     name: `${g.name} (Loop ${loopNumber})`,
     description: `[Endless Loop ${loopNumber}] ${g.desc}`,
-    rows: 8,
-    cols: 12,
+    rows: 9,
+    cols: 16,
     uniqueTilesCount,
-    timeLimit: 200, // Fixed 200 seconds per level
+    timeLimit: 300, // Fixed 300 seconds per level
     gravity: g.gravity,
   };
 }

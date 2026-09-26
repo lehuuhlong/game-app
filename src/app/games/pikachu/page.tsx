@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function PikachuPage() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+    <main className="mx-auto max-w-5xl px-2 sm:px-4 py-4 sm:py-6">
       <GamePikachu />
     </main>
   );

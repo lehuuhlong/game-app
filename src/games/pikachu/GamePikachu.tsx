@@ -158,41 +158,41 @@ export function GamePikachu() {
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:gap-6 w-full select-none">
+    <div className="flex flex-col items-center gap-3.5 sm:gap-4.5 w-full max-w-[800px] mx-auto select-none">
       {/* ── 1. Header Matching Portal Style ───────────────────────────── */}
-      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
               Pikachu
             </h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               Level {levelConfig.level}
             </span>
           </div>
-          <p className="text-sm text-foreground-secondary mt-0.5">
+          <p className="text-xs sm:text-sm text-foreground-secondary mt-0.5">
             {levelConfig.name} • {levelConfig.description}
           </p>
         </div>
 
         {/* Scoreboard & Audio */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Score */}
-          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[75px] shadow-xs">
+          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-3.5 py-1.5 min-w-[70px] shadow-xs">
             <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
               Score
             </span>
-            <span className="text-base sm:text-lg font-bold text-foreground tabular-nums">
+            <span className="text-sm sm:text-base font-bold text-foreground tabular-nums">
               {score.toLocaleString()}
             </span>
           </div>
 
           {/* Best Score */}
-          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[75px] shadow-xs">
+          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-3.5 py-1.5 min-w-[70px] shadow-xs">
             <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
               Best
             </span>
-            <span className="text-base sm:text-lg font-bold text-accent tabular-nums" suppressHydrationWarning>
+            <span className="text-sm sm:text-base font-bold text-accent tabular-nums" suppressHydrationWarning>
               {bestScore.toLocaleString()}
             </span>
           </div>
@@ -201,7 +201,7 @@ export function GamePikachu() {
           <button
             type="button"
             onClick={toggleMute}
-            className={`p-2.5 rounded-xl border transition-colors shadow-xs ${
+            className={`p-2 rounded-xl border transition-colors shadow-xs ${
               isMuted
                 ? 'bg-red-500/10 text-red-500 border-red-500/30'
                 : 'bg-surface text-foreground-secondary border-border hover:text-foreground hover:bg-surface-hover'
@@ -209,12 +209,12 @@ export function GamePikachu() {
             title={isMuted ? 'Unmute sound' : 'Mute sound'}
           >
             {isMuted ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
               </svg>
             )}
@@ -223,9 +223,9 @@ export function GamePikachu() {
       </div>
 
       {/* ── 2. Timer Bar & Combo Streak ──────────────────────────────── */}
-      <div className="w-full flex items-center gap-3 h-8">
+      <div className="w-full flex items-center gap-3 h-7">
         {/* Time bar */}
-        <div className="relative flex-1 h-2.5 sm:h-3 bg-surface-hover/80 rounded-full overflow-hidden border border-border shadow-xs">
+        <div className="relative flex-1 h-2 sm:h-2.5 bg-surface-hover/80 rounded-full overflow-hidden border border-border shadow-xs">
           <motion.div
             className={`h-full rounded-full transition-all duration-300 ${
               timePercent > 40
@@ -257,11 +257,11 @@ export function GamePikachu() {
       </div>
 
       {/* ── 3. Main Playing Board ────────────────────────────────────── */}
-      <div className="relative w-full flex items-center justify-center p-2.5 sm:p-4 rounded-2xl bg-surface border border-border shadow-sm overflow-hidden">
+      <div className="relative w-full flex items-center justify-center p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl bg-[#1a2744] border border-[#2a3f6e] shadow-lg overflow-hidden">
         {/* Board container */}
         <div
           ref={boardRef}
-          className="relative w-full grid gap-1 sm:gap-1.5 md:gap-2 z-10"
+          className="relative w-full grid gap-[1px] sm:gap-[2px] md:gap-1 z-10"
           style={{
             gridTemplateColumns: `repeat(${levelConfig.cols}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${levelConfig.rows}, minmax(0, 1fr))`,
@@ -272,7 +272,7 @@ export function GamePikachu() {
             row.map((cell) => (
               <div
                 key={`slot_${cell.r}_${cell.c}`}
-                className="aspect-square w-full rounded-xl bg-surface-hover/50 border border-border/40 pointer-events-none"
+                className="aspect-[4/5] w-full rounded-none bg-[#0f1b33]/40 border border-[#1e2f52]/30 pointer-events-none"
                 style={{
                   gridRowStart: cell.r + 1,
                   gridColumnStart: cell.c + 1,
