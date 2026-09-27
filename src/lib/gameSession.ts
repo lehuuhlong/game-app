@@ -149,7 +149,7 @@ export async function verifyAndConsumeGameSession(
     wordle: 30 * 60 * 1000,     // 30 minutes max
     minesweeper: 45 * 60 * 1000,// 45 minutes max
     sudoku: 90 * 60 * 1000,     // 90 minutes max
-    pikachu: 150 * 60 * 1000,   // 2.5 hours max
+    pikachu: 360 * 60 * 1000,   // 6 hours max (high-level players with breaks between levels)
     "2048": 150 * 60 * 1000,    // 2.5 hours max
     line98: 150 * 60 * 1000,    // 2.5 hours max
     neonsnake: 30 * 60 * 1000,  // 30 minutes max

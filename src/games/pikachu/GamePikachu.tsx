@@ -113,7 +113,7 @@ export function GamePikachu() {
       }
 
       // Save user record if score or level exceeds previous best
-      if (user && user.id && (score > (user.pikachuBestScore || 0) || (levelIdx + 1) > (user.pikachuHighestLevel || 0))) {
+      if (user && user.id && (score > (user.pikachuBestScore || 0))) {
         fetch(`/api/users/${user.id}/score`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -145,6 +145,11 @@ export function GamePikachu() {
 
   const handleNextLevel = () => {
     scoreSavedRef.current = false;
+    // Renew session token (but preserve original start time) when advancing to next level.
+    // - force=true: get a fresh token so the server TTL resets
+    // - preserveStartTime=true: keep the original start time so getElapsedDuration()
+    //   still reports total cumulative play time (needed for score/duration validation)
+    startSession(user?.id, user?.username, true, true);
     nextLevel();
   };
 
@@ -240,7 +245,7 @@ export function GamePikachu() {
 
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs sm:text-sm font-mono font-bold text-foreground-secondary tabular-nums min-w-[55px] text-right">
-            ⏱️ {timeLeft}s
+            ⏱️ {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </span>
 
           {/* Reserved slot for Combo Multiplier - zero layout shift */}
