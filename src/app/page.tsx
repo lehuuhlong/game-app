@@ -26,14 +26,13 @@ const KINETIC_PHRASES = [
 ];
 
 // Top 6 Hot & Trending games showcased on Home Page (2 wide featured + 4 standard = balanced 2-row Bento grid)
-// Top 6 Hot & Trending games showcased on Home Page (Chess & Caro featured 2-col, Monopoly, Minesweeper, Battleship, Wordle standard)
 const HOT_GAME_IDS = [
+  'blockdrop',
   'pikachu',
   'flappybird',
   'neonsnake',
   'minesweeper',
   'aimtrainer',
-  'wordle',
 ];
 
 // All completed browser games for the Arcade Bento Grid
@@ -54,27 +53,11 @@ const COMPLETED_GAME_IDS = [
   'billiards',
   'line98',
   'neonsnake',
+  'blockdrop',
 ];
 
 // Upcoming teaser game profiles
 const COMING_SOON_GAMES = [
-  {
-    id: 'tetris',
-    title: 'Neon Tetris Classic',
-    category: 'Voxel Block Puzzle',
-    description:
-      'The iconic falling block puzzle with glowing cyber voxels. Rotate tetrominoes, execute T-spins, clear multi-lines, and survive escalating drop speeds.',
-    features: [
-      'Super Rotation System (SRS)',
-      'Ghost piece & Hold queue',
-      'T-spin & Back-to-Back bonuses',
-      'Endless speed progression',
-    ],
-    accentColor: 'from-cyan-400 to-indigo-600',
-    glowColor: 'bg-cyan-500',
-    icon: 'tetris' as const,
-    status: 'In Active Development',
-  },
   {
     id: 'brickbreaker',
     title: 'Neon Brick Breaker',
@@ -91,6 +74,23 @@ const COMING_SOON_GAMES = [
     glowColor: 'bg-rose-500',
     icon: 'breakout' as const,
     status: 'Alpha Sandbox Phase',
+  },
+  {
+    id: 'mazemuncher',
+    title: 'Neon Maze Muncher',
+    category: 'Retro Arcade Labyrinth',
+    description:
+      'High-speed neon labyrinth chase. Devour glowing energy pellets, hunt ghost chasers with power surges, and survive procedurally generated cyber mazes.',
+    features: [
+      'Smart AI ghost chasing algorithms',
+      'Power pellets & chaser eating frenzy',
+      'Dynamic neon corridor mazes',
+      'Chiptune audio & combo multipliers',
+    ],
+    accentColor: 'from-amber-400 via-yellow-500 to-rose-600',
+    glowColor: 'bg-amber-500',
+    icon: 'pacman' as const,
+    status: 'In Active Development',
   },
 ];
 
@@ -297,7 +297,7 @@ export default function HomePage() {
               {hotGames.map((game, i) => {
                 if (!game) return null;
                 // Chess and Caro are the 2 main featured wide cards
-                const isWide = game.id === 'pikachu' || game.id === 'flappybird';
+                const isWide = i === 0 || i === 1;
 
                 return (
                   <GameCard3D

@@ -46,6 +46,7 @@ interface PlayerProfileData {
   pikachuHighestLevel?: number;
   bestScoreLine98?: number;
   bestScoreNeonSnake?: number;
+  bestScoreBlockDrop?: number;
 }
 
 interface PlayerProfileModalProps {
@@ -702,6 +703,17 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     Best: <strong className="text-foreground">{profile.bestScoreNeonSnake?.toLocaleString() || 0} pts</strong>
                   </div>
                 </div>
+
+                {/* Retro Block Drop */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>🧱</span>
+                    <span className="font-semibold text-foreground">Retro Block Drop</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px]">
+                    Best: <strong className="text-foreground">{profile.bestScoreBlockDrop?.toLocaleString() || 0} pts</strong>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -729,6 +741,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                       'aimtrainer',
                       'line98',
                       'neonsnake',
+                      'blockdrop',
                     ].includes(m.gameType);
 
                     return (
@@ -761,6 +774,8 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                               ? 'Line 98'
                               : m.gameType === 'neonsnake'
                               ? 'Neon Snake'
+                              : m.gameType === 'blockdrop'
+                              ? 'Retro Block Drop'
                               : m.gameType}
                           </span>
                           {/* Game Specific Details */}
@@ -793,7 +808,8 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             m.gameType === 'flappybird' ||
                             m.gameType === 'aimtrainer' ||
                             m.gameType === 'line98' ||
-                            m.gameType === 'neonsnake' ? (
+                            m.gameType === 'neonsnake' ||
+                            m.gameType === 'blockdrop' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
                               {m.gameType === 'pikachu' && m.gameData?.level
@@ -801,6 +817,9 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 : ''}
                               {m.gameType === 'line98' && m.gameData?.moveCount
                                 ? ` • ${m.gameData.moveCount} moves`
+                                : ''}
+                              {m.gameType === 'blockdrop' && m.gameData?.lines
+                                ? ` • ${m.gameData.lines} lines`
                                 : ''}
                             </span>
                           ) : (

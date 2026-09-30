@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="bd-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#030712"/>
+      <stop offset="50%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+
+    <!-- 3D Gem Radial Gradients -->
+    <radialGradient id="gem-cyan" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#cffafe"/>
+      <stop offset="30%" stop-color="#22d3ee"/>
+      <stop offset="70%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#164e63"/>
+    </radialGradient>
+
+    <radialGradient id="gem-purple" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f3e8ff"/>
+      <stop offset="30%" stop-color="#c084fc"/>
+      <stop offset="70%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#581c87"/>
+    </radialGradient>
+
+    <radialGradient id="gem-gold" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fef9c3"/>
+      <stop offset="30%" stop-color="#fde047"/>
+      <stop offset="70%" stop-color="#ca8a04"/>
+      <stop offset="100%" stop-color="#713f12"/>
+    </radialGradient>
+
+    <radialGradient id="gem-orange" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffedd5"/>
+      <stop offset="30%" stop-color="#fb923c"/>
+      <stop offset="70%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </radialGradient>
+
+    <radialGradient id="gem-green" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#d1fae5"/>
+      <stop offset="30%" stop-color="#34d399"/>
+      <stop offset="70%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="200" rx="28" fill="url(#bd-bg)"/>
+
+  <!-- Retro Matrix Grid -->
+  <g stroke="#1f2937" stroke-width="0.8" opacity="0.5">
+    <line x1="25" y1="0" x2="25" y2="200"/>
+    <line x1="50" y1="0" x2="50" y2="200"/>
+    <line x1="75" y1="0" x2="75" y2="200"/>
+    <line x1="100" y1="0" x2="100" y2="200"/>
+    <line x1="125" y1="0" x2="125" y2="200"/>
+    <line x1="150" y1="0" x2="150" y2="200"/>
+    <line x1="175" y1="0" x2="175" y2="200"/>
+
+    <line x1="0" y1="25" x2="200" y2="25"/>
+    <line x1="0" y1="50" x2="200" y2="50"/>
+    <line x1="0" y1="75" x2="200" y2="75"/>
+    <line x1="0" y1="100" x2="200" y2="100"/>
+    <line x1="0" y1="125" x2="200" y2="125"/>
+    <line x1="0" y1="150" x2="200" y2="150"/>
+    <line x1="0" y1="175" x2="200" y2="175"/>
+  </g>
+
+  <!-- T-Shape Block (Purple Amethyst Crest, Falling at top center) -->
+  <g transform="translate(75, 30)">
+    <!-- Top stem -->
+    <rect x="2" y="-23" width="21" height="21" rx="4" fill="url(#gem-purple)" stroke="#d8b4fe" stroke-width="1"/>
+    <!-- Bottom row -->
+    <rect x="-23" y="2" width="21" height="21" rx="4" fill="url(#gem-purple)" stroke="#d8b4fe" stroke-width="1"/>
+    <rect x="2" y="2" width="21" height="21" rx="4" fill="url(#gem-purple)" stroke="#d8b4fe" stroke-width="1"/>
+    <rect x="27" y="2" width="21" height="21" rx="4" fill="url(#gem-purple)" stroke="#d8b4fe" stroke-width="1"/>
+  </g>
+
+  <!-- Ghost Drop Trail Indicator -->
+  <rect x="52" y="102" width="21" height="21" rx="4" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.4"/>
+  <rect x="77" y="102" width="21" height="21" rx="4" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.4"/>
+  <rect x="102" y="102" width="21" height="21" rx="4" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.4"/>
+  <rect x="77" y="77" width="21" height="21" rx="4" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3" fill="none" opacity="0.4"/>
+
+  <!-- Stack at bottom -->
+  <!-- Cube (Solar Gold, 2x2) at bottom left -->
+  <rect x="27" y="127" width="21" height="21" rx="4" fill="url(#gem-gold)" stroke="#fef08a" stroke-width="1"/>
+  <rect x="52" y="127" width="21" height="21" rx="4" fill="url(#gem-gold)" stroke="#fef08a" stroke-width="1"/>
+  <rect x="27" y="152" width="21" height="21" rx="4" fill="url(#gem-gold)" stroke="#fef08a" stroke-width="1"/>
+  <rect x="52" y="152" width="21" height="21" rx="4" fill="url(#gem-gold)" stroke="#fef08a" stroke-width="1"/>
+
+  <!-- S-Shape (Emerald Serpent) in center -->
+  <rect x="102" y="127" width="21" height="21" rx="4" fill="url(#gem-green)" stroke="#a7f3d0" stroke-width="1"/>
+  <rect x="127" y="127" width="21" height="21" rx="4" fill="url(#gem-green)" stroke="#a7f3d0" stroke-width="1"/>
+  <rect x="77" y="152" width="21" height="21" rx="4" fill="url(#gem-green)" stroke="#a7f3d0" stroke-width="1"/>
+  <rect x="102" y="152" width="21" height="21" rx="4" fill="url(#gem-green)" stroke="#a7f3d0" stroke-width="1"/>
+
+  <!-- L-Shape (Amber Angle) on right -->
+  <rect x="152" y="102" width="21" height="21" rx="4" fill="url(#gem-orange)" stroke="#fed7aa" stroke-width="1"/>
+  <rect x="152" y="127" width="21" height="21" rx="4" fill="url(#gem-orange)" stroke="#fed7aa" stroke-width="1"/>
+  <rect x="152" y="152" width="21" height="21" rx="4" fill="url(#gem-orange)" stroke="#fed7aa" stroke-width="1"/>
+  <rect x="127" y="152" width="21" height="21" rx="4" fill="url(#gem-orange)" stroke="#fed7aa" stroke-width="1"/>
+
+  <!-- Vertical Cyan I-Beam on left wall -->
+  <rect x="2" y="77" width="21" height="21" rx="4" fill="url(#gem-cyan)" stroke="#a5f3fc" stroke-width="1"/>
+  <rect x="2" y="102" width="21" height="21" rx="4" fill="url(#gem-cyan)" stroke="#a5f3fc" stroke-width="1"/>
+  <rect x="2" y="127" width="21" height="21" rx="4" fill="url(#gem-cyan)" stroke="#a5f3fc" stroke-width="1"/>
+  <rect x="2" y="152" width="21" height="21" rx="4" fill="url(#gem-cyan)" stroke="#a5f3fc" stroke-width="1"/>
+
+  <!-- Outer Border -->
+  <rect x="1" y="1" width="198" height="198" rx="27" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.3"/>
+</svg>

@@ -153,6 +153,7 @@ export async function verifyAndConsumeGameSession(
     "2048": 24 * 60 * 60 * 1000, // 24 hours max (allows long runs & overnight pauses)
     line98: 24 * 60 * 60 * 1000, // 24 hours max (allows long strategic play)
     neonsnake: 60 * 60 * 1000,   // 60 minutes max
+    blockdrop: 60 * 60 * 1000,   // 60 minutes max
   };
   const maxAllowedAge = MAX_SESSION_AGE_MS[gameType] || 120 * 60 * 1000;
   if (sessionAgeMs > maxAllowedAge) {

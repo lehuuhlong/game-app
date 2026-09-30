@@ -379,6 +379,30 @@ export function NeonSnakeIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function BlockDropIcon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <rect x="9" y="3" width="6" height="6" rx="1" />
+      <rect x="3" y="9" width="6" height="6" rx="1" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <rect x="15" y="9" width="6" height="6" rx="1" />
+      <rect x="3" y="15" width="6" height="6" rx="1" />
+      <rect x="9" y="15" width="6" height="6" rx="1" />
+      <rect x="15" y="15" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
+
 /**
  * Returns the matching SVG icon for any game ID
  */
@@ -416,7 +440,10 @@ export function getGameSvgIcon(id: string, className = '', size = 20) {
       return <Line98Icon className={className} size={size} />;
     case 'neonsnake':
       return <NeonSnakeIcon className={className} size={size} />;
+    case 'blockdrop':
+      return <BlockDropIcon className={className} size={size} />;
     default:
       return <Puzzle2048Icon className={className} size={size} />;
   }
 }
+

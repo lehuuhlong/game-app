@@ -156,6 +156,42 @@ export function validateGameScore(
       return { valid: true };
     }
 
+    case 'blockdrop': {
+      // 1. Hard maximum cap on score
+      if (score > 1000000) {
+        return { valid: false, reason: 'Block Drop score exceeds realistic threshold' };
+      }
+
+      const lines = typeof extraData.lines === 'number' ? extraData.lines : undefined;
+      const level = typeof extraData.level === 'number' ? extraData.level : undefined;
+
+      // 2. Proportional duration check:
+      // Even with rapid hard-drops, scoring high points requires pieces to fall and lock.
+      if (score > 300) {
+        const minDuration = Math.max(2, (score / 1200) * 1.2);
+        if (durationSeconds < minDuration) {
+          return { valid: false, reason: 'Block Drop score rate physically impossible' };
+        }
+      }
+
+      // 3. Score vs Lines consistency check
+      if (lines !== undefined) {
+        if (lines < 0) {
+          return { valid: false, reason: 'Invalid lines cleared count' };
+        }
+        // If 0 lines cleared, max score is purely from soft/hard drops (at most ~400-500 pts before stacking out)
+        if (lines === 0 && score > 600) {
+          return { valid: false, reason: 'High score reported with 0 lines cleared' };
+        }
+        // Level consistency: level cannot be significantly higher than lines / 10 + 1
+        if (level !== undefined && level > Math.floor(lines / 10) + 2) {
+          return { valid: false, reason: 'Reported level does not match cleared lines' };
+        }
+      }
+
+      return { valid: true };
+    }
+
     case 'aimtrainer': {
       // Aim Trainer is a fixed 60-second challenge
       if (durationSeconds < 15) {

@@ -47,6 +47,7 @@ export interface AuthUser {
   pikachuHighestLevel?: number;
   bestScoreLine98?: number;
   bestScoreNeonSnake?: number;
+  bestScoreBlockDrop?: number;
 }
 
 interface AuthContextValue {
