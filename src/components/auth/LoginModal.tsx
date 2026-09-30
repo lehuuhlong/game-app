@@ -83,6 +83,8 @@ export function LoginModal({
                 placeholder="Your username..."
                 autoFocus
                 autoComplete="off"
+                spellCheck={false}
+                maxLength={30}
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               />
 

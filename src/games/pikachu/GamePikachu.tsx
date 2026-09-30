@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/components/auth';
+import { useAuth, LoginModal } from '@/components/auth';
 import { usePikachuLogic } from './usePikachuLogic';
 import { PikachuTile } from './PikachuTile';
 import { ElectricPathOverlay } from './ElectricPathOverlay';
@@ -35,9 +35,19 @@ export function GamePikachu() {
   } = usePikachuLogic();
 
   // ── Sync High Score & Persistence ──────────────────────────────────
-  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
-  const [localBestScore, setLocalBestScore] = useState(0);
-  const scoreSavedRef = useRef(false);
+  const { startSession, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
+  const [localBestScore] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const saved = Number(localStorage.getItem('pikachu_best_score') || '0');
+      return saved > 0 ? saved : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [showLogin, setShowLogin] = useState(false);
+  const matchSavedRef = useRef(false);
+  const userScoreSavedRef = useRef(false);
   const wasGameOverRef = useRef(false);
 
   useEffect(() => {
@@ -50,48 +60,49 @@ export function GamePikachu() {
     if (!isGameOver && wasGameOverRef.current) {
       // Starting a fresh run after previous game over: force new session token & reset start time
       startSession(user?.id, user?.username, true);
-      scoreSavedRef.current = false;
+      matchSavedRef.current = false;
+      userScoreSavedRef.current = false;
     }
     wasGameOverRef.current = isGameOver;
   }, [status, startSession, user?.id, user?.username]);
 
-  // Load local best score on mount
-  useEffect(() => {
-    try {
-      const saved = Number(localStorage.getItem('pikachu_best_score') || '0');
-      if (saved > 0) setLocalBestScore(saved);
-    } catch (e) {}
-  }, []);
-
-  // Update local best score when current score exceeds it
+  // Persist local best score when current score exceeds it
   useEffect(() => {
     if (score > localBestScore) {
-      setLocalBestScore(score);
       try {
         localStorage.setItem('pikachu_best_score', String(score));
-      } catch (e) {}
+      } catch {}
     }
   }, [score, localBestScore]);
+
+  // Show login modal when unauthenticated player completes a level or gets game over
+  useEffect(() => {
+    const isFinished = status === 'level_cleared' || status === 'game_over' || status === 'victory';
+    if (isFinished && !user) {
+      const t = setTimeout(() => setShowLogin(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [status, user]);
 
   // Sync to database when a level is cleared or the game ends (victory / game_over)
   useEffect(() => {
     if (status === 'playing') {
-      scoreSavedRef.current = false;
+      matchSavedRef.current = false;
+      userScoreSavedRef.current = false;
       return;
     }
 
     const isLevelCleared = status === 'level_cleared';
     const isGameOver = status === 'game_over' || status === 'victory';
     if ((!isLevelCleared && !isGameOver) || score <= 0) return;
-    if (scoreSavedRef.current) return;
-    scoreSavedRef.current = true;
 
     (async () => {
       const sessionToken = await ensureSessionToken(user?.id, user?.username);
       const elapsed = getElapsedDuration();
 
       // Save match session to /api/matches on game completion
-      if (isGameOver) {
+      if (isGameOver && !matchSavedRef.current) {
+        matchSavedRef.current = true;
         fetch('/api/matches', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -112,61 +123,73 @@ export function GamePikachu() {
         }).catch((e) => console.error('Failed to post match:', e));
       }
 
-      // Save user record if user is logged in
-      if (user && user.id) {
-        const payload = {
-          game: 'pikachu',
-          score,
-          level: levelIdx + 1,
-          sessionToken,
-          duration: elapsed,
-          isFinal: isGameOver,
-        };
+      // Save user record ONLY if user is logged in AND score or level exceeds previous best
+      if (user && user.id && !userScoreSavedRef.current) {
+        const shouldUpdateScore = score > (user.pikachuBestScore || 0);
+        const shouldUpdateLevel = (levelIdx + 1) > (user.pikachuHighestLevel || 0);
 
-        fetch(`/api/users/${user.id}/score`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-          .then(async (r) => {
-            if (r.status === 403 || r.status === 400) {
-              const errData = await r.json().catch(() => ({}));
-              // Auto-recover if session expired (e.g. computer left idle overnight)
-              if (
-                typeof errData.error === 'string' &&
-                (errData.error.toLowerCase().includes('expired') || errData.error.toLowerCase().includes('session'))
-              ) {
-                const freshToken = await startSession(user.id, user.username, true, true);
-                if (freshToken) {
-                  return fetch(`/api/users/${user.id}/score`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...payload, sessionToken: freshToken }),
-                  }).then((res) => res.json());
+        if (shouldUpdateScore || shouldUpdateLevel) {
+          userScoreSavedRef.current = true;
+
+          const payload = {
+            game: 'pikachu',
+            score,
+            level: levelIdx + 1,
+            sessionToken,
+            duration: elapsed,
+            isFinal: isGameOver,
+          };
+
+          fetch(`/api/users/${user.id}/score`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+            .then(async (r) => {
+              if (r.status === 403 || r.status === 400) {
+                const errData = await r.json().catch(() => ({}));
+                // Auto-recover if session expired (e.g. computer left idle overnight)
+                if (
+                  typeof errData.error === 'string' &&
+                  (errData.error.toLowerCase().includes('expired') || errData.error.toLowerCase().includes('session'))
+                ) {
+                  const freshToken = await startSession(user.id, user.username, true, true);
+                  if (freshToken) {
+                    return fetch(`/api/users/${user.id}/score`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...payload, sessionToken: freshToken }),
+                    }).then((res) => res.json());
+                  }
+                }
+                return errData;
+              }
+              return r.json();
+            })
+            .then((d) => {
+              if (d && d.pikachuBestScore !== undefined) {
+                refreshUser({
+                  pikachuBestScore: d.pikachuBestScore,
+                  pikachuHighestLevel: d.pikachuHighestLevel,
+                });
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('userProfileUpdated'));
                 }
               }
-              return errData;
-            }
-            return r.json();
-          })
-          .then((d) => {
-            if (d && d.pikachuBestScore !== undefined) {
-              refreshUser({
-                pikachuBestScore: d.pikachuBestScore,
-                pikachuHighestLevel: d.pikachuHighestLevel,
-              });
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('userProfileUpdated'));
-              }
-            }
-          })
-          .catch((e) => console.error('Failed to save pikachu score:', e));
+            })
+            .catch((e) => console.error('Failed to save pikachu score:', e));
+        } else {
+          // Score has not beaten best score, mark handled so we don't repeatedly check
+          userScoreSavedRef.current = true;
+        }
       }
     })();
   }, [status, score, user, levelIdx, refreshUser, ensureSessionToken, startSession, getElapsedDuration]);
 
   const handleNextLevel = () => {
-    scoreSavedRef.current = false;
+    matchSavedRef.current = false;
+    userScoreSavedRef.current = false;
+    setShowLogin(false);
     // Renew session token (but preserve original start time) when advancing to next level.
     // - force=true: get a fresh token so the server TTL resets
     // - preserveStartTime=true: keep the original start time so getElapsedDuration()
@@ -176,7 +199,9 @@ export function GamePikachu() {
   };
 
   const handleRestart = () => {
-    scoreSavedRef.current = false;
+    matchSavedRef.current = false;
+    userScoreSavedRef.current = false;
+    setShowLogin(false);
     startSession(user?.id, user?.username, true);
     restartGame();
   };
@@ -544,6 +569,20 @@ export function GamePikachu() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── 9. Login Modal ─────────────────────────────────────────── */}
+      {showLogin && (
+        <LoginModal
+          title={status === 'game_over' ? 'Save your score!' : 'Level Cleared!'}
+          subtitle={
+            status === 'game_over'
+              ? `You scored ${score.toLocaleString()} points! Choose a username to save your score to the leaderboard.`
+              : `Level ${levelConfig.level} conquered with ${score.toLocaleString()} points! Choose a username to save your progress.`
+          }
+          onSuccess={() => setShowLogin(false)}
+          onClose={() => setShowLogin(false)}
+        />
+      )}
     </div>
   );
 }

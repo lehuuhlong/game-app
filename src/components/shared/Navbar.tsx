@@ -6,7 +6,7 @@ import { useTheme } from "./ThemeProvider";
 import { usePerformance } from "./PerformanceProvider";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/components/auth";
+import { useAuth, LoginModal } from "@/components/auth";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -165,6 +165,7 @@ function UserAvatar({
 function UserMenu() {
   const { user, logout, changeUsername, updateAvatar } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [editError, setEditError] = useState("");
@@ -218,12 +219,26 @@ function UserMenu() {
   // Not logged in
   if (!user) {
     return (
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface border border-border text-foreground-muted" title="Not logged in">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      </div>
+      <>
+        <button
+          onClick={() => setShowLoginModal(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-surface border border-border text-foreground-muted hover:text-foreground hover:border-accent/40 hover:bg-surface-hover transition-all cursor-pointer shadow-xs active:scale-95"
+          title="Click to log in / choose username"
+          aria-label="Log in"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
+
+        {showLoginModal && (
+          <LoginModal
+            onClose={() => setShowLoginModal(false)}
+            onSuccess={() => setShowLoginModal(false)}
+          />
+        )}
+      </>
     );
   }
 

@@ -9,8 +9,20 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Match from "@/models/Match";
 
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function sanitizeUsername(username: string): string {
+  if (typeof username !== "string") return "";
+  return username
+    .normalize("NFC")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 function validateUsername(username: string) {
-  const u = username.trim();
+  const u = sanitizeUsername(username);
   if (!u) return "Username is required";
   if (u.length < 2 || u.length > 30) return "Username must be 2–30 characters";
   return null;
@@ -51,12 +63,12 @@ function toClientUser(user: InstanceType<typeof User>) {
     battleshipTotal: user.battleshipTotal ?? 0,
     monopolyWins: user.monopolyWins ?? 0,
     monopolyTotal: user.monopolyTotal ?? 0,
-    pikachuBestScore: (user as any).pikachuBestScore ?? 0,
-    pikachuHighestLevel: (user as any).pikachuHighestLevel ?? 0,
-    billiardsWins: (user as any).billiardsWins ?? 0,
-    billiardsTotal: (user as any).billiardsTotal ?? 0,
+    pikachuBestScore: user.pikachuBestScore ?? 0,
+    pikachuHighestLevel: user.pikachuHighestLevel ?? 0,
+    billiardsWins: user.billiardsWins ?? 0,
+    billiardsTotal: user.billiardsTotal ?? 0,
     bestScoreLine98: user.bestScoreLine98 ?? 0,
-    bestScoreNeonSnake: (user as any).bestScoreNeonSnake ?? 0,
+    bestScoreNeonSnake: user.bestScoreNeonSnake ?? 0,
   };
 }
 
@@ -76,9 +88,13 @@ export async function GET(request: Request) {
       user = await User.findById(id);
     }
     if (!user && username) {
-      user = await User.findOne({
-        username: { $regex: `^${username.trim()}$`, $options: "i" },
-      });
+      const clean = sanitizeUsername(username);
+      user = await User.findOne({ username: clean });
+      if (!user) {
+        user = await User.findOne({
+          username: { $regex: `^${escapeRegex(clean)}$`, $options: "i" },
+        });
+      }
     }
 
     if (!user) {
@@ -100,11 +116,29 @@ export async function POST(request: Request) {
 
     await dbConnect();
 
-    const cleanUsername = username.trim();
+    const cleanUsername = sanitizeUsername(username);
     let user = await User.findOne({ username: cleanUsername });
+    if (!user) {
+      user = await User.findOne({
+        username: { $regex: `^${escapeRegex(cleanUsername)}$`, $options: "i" },
+      });
+    }
 
     if (!user) {
-      user = await User.create({ username: cleanUsername });
+      try {
+        user = await User.create({ username: cleanUsername });
+      } catch (createErr: unknown) {
+        const mongoErr = createErr as { code?: number };
+        if (mongoErr && mongoErr.code === 11000) {
+          user = await User.findOne({ username: cleanUsername });
+          if (!user) {
+            user = await User.findOne({
+              username: { $regex: `^${escapeRegex(cleanUsername)}$`, $options: "i" },
+            });
+          }
+        }
+        if (!user) throw createErr;
+      }
     }
 
     return NextResponse.json({ user: toClientUser(user) });
@@ -122,9 +156,9 @@ export async function PATCH(request: Request) {
 
     await dbConnect();
 
-    const cleanUsername = newUsername.trim();
+    const cleanUsername = sanitizeUsername(newUsername);
     const existing = await User.findOne({
-      username: { $regex: `^${cleanUsername}$`, $options: "i" },
+      username: { $regex: `^${escapeRegex(cleanUsername)}$`, $options: "i" },
     });
     if (existing && existing._id.toString() !== id) {
       return NextResponse.json(
@@ -150,14 +184,14 @@ export async function PATCH(request: Request) {
     // 2. Also update any legacy matches where players.username was oldUsername (and link their userId)
     if (oldUsername && oldUsername.toLowerCase() !== cleanUsername.toLowerCase()) {
       await Match.updateMany(
-        { "players.username": { $regex: `^${oldUsername}$`, $options: "i" } },
+        { "players.username": { $regex: `^${escapeRegex(oldUsername)}$`, $options: "i" } },
         {
           $set: {
             "players.$[elem].username": cleanUsername,
             "players.$[elem].userId": user._id,
           },
         },
-        { arrayFilters: [{ "elem.username": { $regex: `^${oldUsername}$`, $options: "i" } }] }
+        { arrayFilters: [{ "elem.username": { $regex: `^${escapeRegex(oldUsername)}$`, $options: "i" } }] }
       );
     }
 
