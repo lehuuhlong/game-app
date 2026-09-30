@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   BOARD_WIDTH,
   BOARD_HEIGHT,
@@ -147,6 +147,15 @@ export function useBlockEngine() {
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [lastClearEffect, setLastClearEffect] = useState<{ lines: number; timestamp: number } | null>(null);
+
+  // Automatically reset line clear visual effect after brief duration
+  useEffect(() => {
+    if (!lastClearEffect) return;
+    const timer = setTimeout(() => {
+      setLastClearEffect(null);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [lastClearEffect]);
 
   /**
    * Locks the specified piece directly onto the board,

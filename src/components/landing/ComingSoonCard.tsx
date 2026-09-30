@@ -11,7 +11,7 @@ interface ComingSoonGame {
   features: string[];
   accentColor: string;
   glowColor: string;
-  icon: 'crosshair' | 'radar' | 'lightning' | 'breakout' | 'tetris';
+  icon: 'crosshair' | 'radar' | 'lightning' | 'breakout' | 'tetris' | 'pacman';
   status: string;
 }
 
@@ -152,6 +152,96 @@ export function ComingSoonCard({ game, index }: ComingSoonCardProps) {
 
               {/* Bottom Cyber Paddle */}
               <div className="h-2.5 w-24 rounded-full bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 shadow-md shadow-sky-500/50" />
+            </div>
+          ) : game.icon === 'pacman' ? (
+            /* ── Neon Maze Muncher (Cyber Pac-Man) Graphic ── */
+            <div className="relative flex flex-col items-center justify-center h-28 w-60 z-10 select-none">
+              {/* Neon Maze Top Wall */}
+              <div className="w-full flex items-center justify-between px-2">
+                <div className="h-1.5 w-16 rounded-full bg-blue-500 shadow-sm shadow-blue-500/80 border border-blue-400/60" />
+                <div className="h-1.5 w-20 rounded-full bg-blue-500 shadow-sm shadow-blue-500/80 border border-blue-400/60" />
+                <div className="h-1.5 w-12 rounded-full bg-blue-500 shadow-sm shadow-blue-500/80 border border-blue-400/60" />
+              </div>
+
+              {/* Main Corridor with Characters & Pellets */}
+              <div className="relative w-full h-16 my-1 flex items-center justify-between px-2 overflow-hidden">
+                {/* Left side: Ghosts in pursuit */}
+                <div className="flex items-center gap-2">
+                  {/* Crimson Ghost */}
+                  <div className="relative flex flex-col items-center">
+                    <div className="relative h-7 w-7 rounded-t-full bg-rose-500 shadow-md shadow-rose-500/80 flex items-center justify-center">
+                      <div className="flex gap-1">
+                        <div className="h-2 w-2 rounded-full bg-white flex items-center justify-end p-0.5">
+                          <div className="h-1 w-1 rounded-full bg-blue-700" />
+                        </div>
+                        <div className="h-2 w-2 rounded-full bg-white flex items-center justify-end p-0.5">
+                          <div className="h-1 w-1 rounded-full bg-blue-700" />
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-1 left-0 right-0 flex justify-between px-0.5">
+                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pinky Ghost */}
+                  <div className="relative flex flex-col items-center opacity-85">
+                    <div className="relative h-6 w-6 rounded-t-full bg-pink-500 shadow-sm shadow-pink-500/80 flex items-center justify-center">
+                      <div className="flex gap-0.5">
+                        <div className="h-1.5 w-1.5 rounded-full bg-white flex items-center justify-end p-0.5">
+                          <div className="h-0.5 w-0.5 rounded-full bg-blue-700" />
+                        </div>
+                        <div className="h-1.5 w-1.5 rounded-full bg-white flex items-center justify-end p-0.5">
+                          <div className="h-0.5 w-0.5 rounded-full bg-blue-700" />
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-1 left-0 right-0 flex justify-between px-0.5">
+                        <div className="h-1 w-1 rounded-full bg-pink-500" />
+                        <div className="h-1 w-1 rounded-full bg-pink-500" />
+                        <div className="h-1 w-1 rounded-full bg-pink-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Center / Right: Chomping Pac-Man & Glowing Pellets */}
+                <div className="flex items-center gap-2.5">
+                  {/* Muncher / Pac-Man SVG with glow */}
+                  <div className="relative flex items-center justify-center">
+                    <svg
+                      width="30"
+                      height="30"
+                      viewBox="0 0 32 32"
+                      className="filter drop-shadow-[0_0_10px_rgba(250,204,21,0.9)] animate-pulse"
+                    >
+                      <path
+                        d="M 16 16 L 30 7 A 15 15 0 1 0 30 25 Z"
+                        fill="#facc15"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Pellets */}
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-amber-300 shadow-sm shadow-amber-300" />
+                    <div className="h-2 w-2 rounded-full bg-amber-300 shadow-sm shadow-amber-300" />
+                    {/* Glowing Power Pellet */}
+                    <div className="relative flex items-center justify-center">
+                      <span className="absolute h-4 w-4 animate-ping rounded-full bg-amber-400 opacity-70" />
+                      <div className="relative h-3 w-3 rounded-full bg-white border border-amber-300 shadow-md shadow-amber-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Neon Maze Bottom Wall */}
+              <div className="w-full flex items-center justify-between px-2">
+                <div className="h-1.5 w-24 rounded-full bg-blue-500 shadow-sm shadow-blue-500/80 border border-blue-400/60" />
+                <div className="h-1.5 w-14 rounded-full bg-blue-500 shadow-sm shadow-blue-500/80 border border-blue-400/60" />
+                <div className="h-1.5 w-16 rounded-full bg-blue-500 shadow-sm shadow-blue-500/80 border border-blue-400/60" />
+              </div>
             </div>
           ) : game.icon === 'crosshair' ? (
             <div className="relative flex items-center justify-center">

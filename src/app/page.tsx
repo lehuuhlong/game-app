@@ -75,6 +75,23 @@ const COMING_SOON_GAMES = [
     icon: 'breakout' as const,
     status: 'Alpha Sandbox Phase',
   },
+  {
+    id: 'mazemuncher',
+    title: 'Neon Maze Muncher',
+    category: 'Retro Arcade Labyrinth',
+    description:
+      'High-speed neon labyrinth chase. Devour glowing energy pellets, hunt ghost chasers with power surges, and survive procedurally generated cyber mazes.',
+    features: [
+      'Smart AI ghost chasing algorithms',
+      'Power pellets & chaser eating frenzy',
+      'Dynamic neon corridor mazes',
+      'Chiptune audio & combo multipliers',
+    ],
+    accentColor: 'from-amber-400 via-yellow-500 to-rose-600',
+    glowColor: 'bg-amber-500',
+    icon: 'pacman' as const,
+    status: 'In Active Development',
+  },
 ];
 
 export default function HomePage() {

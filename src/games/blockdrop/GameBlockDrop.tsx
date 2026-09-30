@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BOARD_WIDTH,
   BOARD_HEIGHT,
@@ -183,7 +184,8 @@ export function GameBlockDrop() {
 
   const [localHighScore, setLocalHighScore] = useState<number>(0);
   const [showLogin, setShowLogin] = useState(false);
-  const scoreSavedRef = useRef(false);
+  const matchSavedRef = useRef(false);
+  const userScoreSavedRef = useRef(false);
   const wasPlayingRef = useRef(false);
 
   // Load initial high score
@@ -207,34 +209,80 @@ export function GameBlockDrop() {
   // Restart session when resetting after game over
   useEffect(() => {
     if (!isGameOver && wasPlayingRef.current) {
-      scoreSavedRef.current = false;
+      matchSavedRef.current = false;
+      userScoreSavedRef.current = false;
+      startSession(user?.id, user?.username, true);
     }
     wasPlayingRef.current = !isGameOver;
-  }, [isGameOver]);
+  }, [isGameOver, startSession, user?.id, user?.username]);
 
-  // Show login modal prompt on Game Over if guest with great score
+  // Submit high score to user profile & leaderboard
+  const submitUserScore = useCallback(
+    async (
+      targetUserId: string,
+      targetScore: number,
+      targetLines: number,
+      targetLevel: number
+    ) => {
+      if (userScoreSavedRef.current || !targetUserId) return;
+      try {
+        const sessionToken = await ensureSessionToken(targetUserId);
+        const elapsed = getElapsedDuration();
+
+        const res = await fetch(`/api/users/${targetUserId}/score`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game: 'blockdrop',
+            score: targetScore,
+            lines: targetLines,
+            level: targetLevel,
+            sessionToken,
+            duration: elapsed,
+          }),
+        });
+        const data = await res.json();
+        if (data.bestScoreBlockDrop !== undefined) {
+          userScoreSavedRef.current = true;
+          refreshUser({ bestScoreBlockDrop: data.bestScoreBlockDrop });
+        }
+      } catch (err) {
+        console.error('Failed to update Block Drop score:', err);
+      }
+    },
+    [ensureSessionToken, getElapsedDuration, refreshUser]
+  );
+
+  // Show login modal prompt on Game Over if guest
   useEffect(() => {
-    if (isGameOver && !user && score >= 400) {
-      const t = setTimeout(() => setShowLogin(true), 600);
+    if (isGameOver && !user) {
+      const t = setTimeout(() => setShowLogin(true), 500);
       return () => clearTimeout(t);
     }
-  }, [isGameOver, score, user]);
+  }, [isGameOver, user]);
+
+  // If a guest logs in during game over, immediately save their score to profile & leaderboard
+  useEffect(() => {
+    if (isGameOver && user?.id && !userScoreSavedRef.current && score > 0) {
+      submitUserScore(user.id, score, lines, level);
+    }
+  }, [isGameOver, user?.id, score, lines, level, submitUserScore]);
 
   // Save score & match history on Game Over
   useEffect(() => {
     if (!isGameOver) {
-      scoreSavedRef.current = false;
+      matchSavedRef.current = false;
       return;
     }
-    if (scoreSavedRef.current) return;
-    scoreSavedRef.current = true;
+    if (matchSavedRef.current) return;
+    matchSavedRef.current = true;
 
     (async () => {
       try {
         const sessionToken = await ensureSessionToken(user?.id, user?.username);
         const elapsed = getElapsedDuration();
 
-        // 1. Record Match History
+        // 1. Record Match History in MongoDB
         fetch('/api/matches', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -259,25 +307,9 @@ export function GameBlockDrop() {
         }).catch((err) => console.error('Failed to save Block Drop match:', err));
 
         // 2. Save high score to user profile if logged in
-        if (!user) return;
-
-        fetch(`/api/users/${user.id}/score`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            game: 'blockdrop',
-            score,
-            sessionToken,
-            duration: elapsed,
-          }),
-        })
-          .then((r) => r.json())
-          .then((d) => {
-            if (d.bestScoreBlockDrop !== undefined) {
-              refreshUser({ bestScoreBlockDrop: d.bestScoreBlockDrop });
-            }
-          })
-          .catch((err) => console.error('Failed to update Block Drop score:', err));
+        if (user?.id) {
+          submitUserScore(user.id, score, lines, level);
+        }
       } catch (err) {
         console.error('Match session save error:', err);
       }
@@ -287,10 +319,11 @@ export function GameBlockDrop() {
     score,
     lines,
     level,
-    user,
-    refreshUser,
+    user?.id,
+    user?.username,
     ensureSessionToken,
     getElapsedDuration,
+    submitUserScore,
   ]);
 
   const displayHighScore = user
@@ -309,8 +342,8 @@ export function GameBlockDrop() {
     <>
       {showLogin && (
         <LoginModal
-          title="Save your record!"
-          subtitle={`Awesome drop! You scored ${score} points and cleared ${lines} lines. Sign in to save your score to the global leaderboard.`}
+          title="Lưu điểm kỷ lục!"
+          subtitle={`Tuyệt vời! Bạn đã đạt ${score.toLocaleString()} điểm và phá ${lines} hàng gạch! Đăng nhập ngay để lưu điểm lên Bảng xếp hạng toàn cầu.`}
           onSuccess={() => setShowLogin(false)}
           onClose={() => setShowLogin(false)}
         />
@@ -409,13 +442,39 @@ export function GameBlockDrop() {
                   '0 20px 50px -10px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.8)',
               }}
             >
-              {/* Line Clear Flash Effect */}
-              {lastClearEffect && (
-                <div
-                  key={lastClearEffect.timestamp}
-                  className="absolute inset-0 bg-white/20 z-20 pointer-events-none animate-ping duration-300"
-                />
-              )}
+              {/* Line Clear Flash & Reward Toast Effect */}
+              <AnimatePresence>
+                {lastClearEffect && (
+                  <>
+                    <motion.div
+                      key={`flash-${lastClearEffect.timestamp}`}
+                      initial={{ opacity: 0.35 }}
+                      animate={{ opacity: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: 'easeOut' }}
+                      className="absolute inset-0 rounded-xl bg-gradient-to-b from-cyan-400/20 via-white/30 to-blue-500/20 z-20 pointer-events-none"
+                    />
+                    <motion.div
+                      key={`popup-${lastClearEffect.timestamp}`}
+                      initial={{ opacity: 0, scale: 0.8, y: 15 }}
+                      animate={{ opacity: 1, scale: 1.05, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -15 }}
+                      transition={{ duration: 0.35, ease: 'easeOut' }}
+                      className="absolute top-1/3 left-1/2 -translate-x-1/2 z-25 pointer-events-none whitespace-nowrap"
+                    >
+                      <span className="px-3 py-1 rounded-full bg-slate-900/90 border border-cyan-400/60 text-cyan-300 font-black text-xs sm:text-sm tracking-wider shadow-lg shadow-cyan-500/25">
+                        {lastClearEffect.lines === 4
+                          ? '🔥 TETRIS CLEAR! +800'
+                          : lastClearEffect.lines === 3
+                          ? '✨ TRIPLE CLEAR! +500'
+                          : lastClearEffect.lines === 2
+                          ? '⚡ DOUBLE CLEAR! +300'
+                          : '✓ LINE CLEAR! +100'}
+                      </span>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
 
               {/* 10x20 CSS Grid */}
               <div
@@ -565,12 +624,33 @@ export function GameBlockDrop() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={resetGame}
-                    className="px-7 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-transform active:scale-95 cursor-pointer"
-                  >
-                    Play Again
-                  </button>
+                  {!user ? (
+                    <button
+                      onClick={() => setShowLogin(true)}
+                      className="mb-3 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>⚡</span> Đăng nhập để lưu điểm kỷ lục
+                    </button>
+                  ) : (
+                    <div className="mb-3 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium text-[11px] flex items-center gap-1.5">
+                      <span>✓</span> Điểm đã lưu vào Bảng xếp hạng
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      onClick={resetGame}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-transform active:scale-95 cursor-pointer"
+                    >
+                      Chơi lại
+                    </button>
+                    <Link
+                      href="/leaderboard"
+                      className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs transition-colors"
+                    >
+                      Bảng xếp hạng
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

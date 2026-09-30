@@ -28,7 +28,8 @@ type GameTab =
   | "wordle"
   | "pikachu"
   | "line98"
-  | "neonsnake";
+  | "neonsnake"
+  | "blockdrop";
 
 interface EntryLine98 {
   rank: number;
@@ -143,6 +144,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "pikachu", label: "Pikachu", category: "singleplayer" },
   { id: "line98", label: "Line 98", category: "singleplayer" },
   { id: "neonsnake", label: "Neon Snake", category: "singleplayer" },
+  { id: "blockdrop", label: "Block Drop", category: "singleplayer" },
 ];
 
 const GAME_ICONS: Record<GameTab, React.ReactNode> = {
@@ -261,6 +263,14 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <circle cx="19" cy="7" r="1.5" fill="currentColor" />
     </svg>
   ),
+  blockdrop: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+    </svg>
+  ),
 };
 
 const TAB_INDEX: Record<string, number> = {
@@ -280,6 +290,7 @@ const TAB_INDEX: Record<string, number> = {
   billiards: 13,
   line98: 14,
   neonsnake: 15,
+  blockdrop: 16,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -390,6 +401,7 @@ export default function LeaderboardPage() {
   const [dataPikachu, setDataPikachu] = useState<EntryPikachu[]>([]);
   const [dataLine98, setDataLine98] = useState<EntryLine98[]>([]);
   const [dataNeonSnake, setDataNeonSnake] = useState<EntryLine98[]>([]);
+  const [dataBlockDrop, setDataBlockDrop] = useState<EntryLine98[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected player profile modal
@@ -488,6 +500,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "pikachu") setDataPikachu(json.leaderboard || []);
           else if (activeGame === "line98") setDataLine98(json.leaderboard || []);
           else if (activeGame === "neonsnake") setDataNeonSnake(json.leaderboard || []);
+          else if (activeGame === "blockdrop") setDataBlockDrop(json.leaderboard || []);
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -662,8 +675,17 @@ export default function LeaderboardPage() {
         metricLabel: "Score",
       };
     }
+    if (activeGame === "blockdrop") {
+      if (dataBlockDrop.length === 0) return null;
+      return {
+        first: dataBlockDrop[0] ? { rank: 1 as const, username: dataBlockDrop[0].username, avatarUrl: dataBlockDrop[0].avatarUrl, primaryStat: `${dataBlockDrop[0].score.toLocaleString()} pts`, secondaryStat: "Block Drop Champion" } : null,
+        second: dataBlockDrop[1] ? { rank: 2 as const, username: dataBlockDrop[1].username, avatarUrl: dataBlockDrop[1].avatarUrl, primaryStat: `${dataBlockDrop[1].score.toLocaleString()} pts`, secondaryStat: "Block Drop Master" } : null,
+        third: dataBlockDrop[2] ? { rank: 3 as const, username: dataBlockDrop[2].username, avatarUrl: dataBlockDrop[2].avatarUrl, primaryStat: `${dataBlockDrop[2].score.toLocaleString()} pts`, secondaryStat: "Block Drop Expert" } : null,
+        metricLabel: "Score",
+      };
+    }
     return null;
-  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu, dataLine98]);
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu, dataLine98, dataNeonSnake, dataBlockDrop]);
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
@@ -1653,6 +1675,39 @@ export default function LeaderboardPage() {
                                   <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
                                   <span className="text-sm font-bold text-cyan-400 text-right font-mono flex items-center justify-end gap-1.5">
                                     <span>⚡</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Retro Block Drop ── */}
+                      {activeGame === "blockdrop" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Score</span>
+                          </TableHeader>
+                          {dataBlockDrop.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Block Drop scores recorded yet. Stack blocks, clear lines and claim #1!"} />
+                          ) : (
+                            dataBlockDrop
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataBlockDrop.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-amber-400 text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span>🧱</span>
                                     {e.score.toLocaleString()}
                                   </span>
                                 </TableRow>

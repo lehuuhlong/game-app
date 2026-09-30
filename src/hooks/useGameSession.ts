@@ -99,6 +99,7 @@ export function useGameSession(gameType: string) {
           "2048": 24 * 60 * 60 * 1000,
           line98: 24 * 60 * 60 * 1000,
           neonsnake: 60 * 60 * 1000,
+          blockdrop: 60 * 60 * 1000,
         };
         const maxTtl = GAME_TTL_MS[gameType] || 2 * 60 * 60 * 1000;
         const PROACTIVE_RENEW_MS = maxTtl * 0.75;

@@ -46,6 +46,7 @@ interface PlayerProfileData {
   pikachuHighestLevel?: number;
   bestScoreLine98?: number;
   bestScoreNeonSnake?: number;
+  bestScoreBlockDrop?: number;
 }
 
 interface PlayerProfileModalProps {
@@ -700,6 +701,17 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                   </div>
                   <div className="text-right font-mono text-[11px]">
                     Best: <strong className="text-foreground">{profile.bestScoreNeonSnake?.toLocaleString() || 0} pts</strong>
+                  </div>
+                </div>
+
+                {/* Retro Block Drop */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>🧱</span>
+                    <span className="font-semibold text-foreground">Retro Block Drop</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px]">
+                    Best: <strong className="text-foreground">{profile.bestScoreBlockDrop?.toLocaleString() || 0} pts</strong>
                   </div>
                 </div>
               </div>
