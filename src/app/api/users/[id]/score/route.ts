@@ -83,7 +83,7 @@ export async function PATCH(
     const sessionVerification = await verifyAndConsumeGameSession(
       sessionToken,
       game,
-      { userId: id, action: 'score' }
+      { userId: id, action: 'score', isFinal: body.isFinal !== false }
     );
 
     if (!sessionVerification.valid) {
@@ -93,7 +93,23 @@ export async function PATCH(
       );
     }
 
-    const elapsedSeconds = sessionVerification.elapsedSeconds || 0;
+    const reportedDuration =
+      typeof body.duration === 'number' && body.duration >= 0
+        ? body.duration
+        : typeof body.time === 'number' && body.time >= 0
+        ? body.time
+        : sessionVerification.elapsedSeconds || 0;
+
+    const isProgressiveGame = game === 'pikachu' || game === '2048';
+    const isPuzzleOrLongGame =
+      isProgressiveGame ||
+      game === 'minesweeper' ||
+      game === 'sudoku' ||
+      game === 'line98';
+
+    const elapsedSeconds = isPuzzleOrLongGame
+      ? Math.max(sessionVerification.elapsedSeconds || 0, reportedDuration)
+      : (sessionVerification.elapsedSeconds || reportedDuration);
 
     // 3. Proportional Rate of Score & Sanity Checks
     const reportedScore =
@@ -117,7 +133,11 @@ export async function PATCH(
 
     // 3.1 Proof-of-Play Action Log & Human Timing Verification
     const actionLog = body.actionLog || body.moves;
-    if (game === 'line98' && reportedScore > 200) {
+    const requiresActionLog =
+      (game === 'line98' && reportedScore > 200) ||
+      (game === 'flappybird' && reportedScore > 5);
+
+    if (requiresActionLog) {
       const sessionStartTime =
         sessionVerification.sessionStartTime ||
         Date.now() - elapsedSeconds * 1000;

@@ -68,11 +68,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let initialUser: AuthUser | null = null;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setUser(JSON.parse(stored));
+      if (stored) {
+        initialUser = JSON.parse(stored);
+        setUser(initialUser);
+      }
     } catch { /* ignore */ }
     finally { setIsLoading(false); }
+
+    const syncWithServer = (targetUser?: AuthUser | null) => {
+      const u = targetUser || (function() {
+        try {
+          const s = localStorage.getItem(STORAGE_KEY);
+          return s ? JSON.parse(s) : null;
+        } catch { return null; }
+      })();
+      if (!u || (!u.id && !u.username)) return;
+
+      const param = u.id ? `id=${encodeURIComponent(u.id)}` : `username=${encodeURIComponent(u.username)}`;
+      fetch(`/api/auth/login?${param}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && data.user) {
+            setUser((current) => {
+              if (!current || current.id === data.user.id || current.username === data.user.username) {
+                try {
+                  localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+                } catch {}
+                return data.user;
+              }
+              return current;
+            });
+          }
+        })
+        .catch(() => {});
+    };
+
+    if (initialUser) {
+      syncWithServer(initialUser);
+    }
+
+    const handleFocus = () => {
+      syncWithServer();
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        if (e.newValue) {
+          try {
+            setUser(JSON.parse(e.newValue));
+          } catch {}
+        } else {
+          setUser(null);
+        }
+      }
+    };
+
+    const handleProfileUpdated = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) setUser(JSON.parse(stored));
+      } catch {}
+      syncWithServer();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("userProfileUpdated", handleProfileUpdated);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("userProfileUpdated", handleProfileUpdated);
+    };
   }, []);
 
   const persistUser = useCallback((u: AuthUser) => {
@@ -137,9 +206,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, persistUser]);
 
   const refreshUser = useCallback((updates: Partial<AuthUser>) => {
-    if (!user) return;
-    persistUser({ ...user, ...updates });
-  }, [user, persistUser]);
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...updates };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+    }
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);

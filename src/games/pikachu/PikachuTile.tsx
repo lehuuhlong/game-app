@@ -22,15 +22,15 @@ export const PikachuTile: React.FC<PikachuTileProps> = React.memo(({ cell, onSel
       type="button"
       layout="position"
       onClick={() => onSelect(cell)}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.96 }}
       animate={
         isRemoving
           ? { scale: [1, 1.15, 0], opacity: [1, 1, 0], rotate: 0 }
           : isSelected
-          ? { scale: 1.08, rotate: 0 }
+          ? { scale: 1.06, rotate: 0 }
           : isHinted
-          ? { scale: [1, 1.08, 1], rotate: 0, transition: { repeat: Infinity, duration: 1 } }
+          ? { scale: [1, 1.06, 1], rotate: 0, transition: { repeat: Infinity, duration: 1 } }
           : { scale: 1, opacity: 1, rotate: 0 }
       }
       transition={{
@@ -41,22 +41,19 @@ export const PikachuTile: React.FC<PikachuTileProps> = React.memo(({ cell, onSel
         },
         duration: isRemoving ? 0.25 : 0.15,
       }}
-      className={`relative aspect-square w-full rounded-xl select-none flex flex-col items-center justify-center cursor-pointer p-0.5 sm:p-1 md:p-1.5 focus:outline-none transition-colors ${
+      className={`relative aspect-[4/5] w-full select-none flex items-center justify-center cursor-pointer focus:outline-none transition-all p-0 overflow-visible ${
         isSelected
-          ? 'ring-2 ring-amber-500 bg-amber-500/15 border border-amber-500 shadow-sm z-20'
+          ? 'ring-2 sm:ring-[3px] ring-red-500 shadow-[0_0_12px_rgba(239,68,68,0.7)] z-20 brightness-110'
           : isHinted
-          ? 'ring-2 ring-sky-500 bg-sky-500/15 border border-sky-500 shadow-sm animate-pulse z-20'
-          : 'bg-surface border border-border hover:border-foreground/30 hover:bg-surface-hover shadow-xs'
+          ? 'ring-2 sm:ring-[3px] ring-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.8)] z-20 animate-pulse brightness-110'
+          : 'hover:brightness-105 hover:ring-1 hover:ring-amber-300/70 shadow-xs'
       }`}
       style={{
         gridRowStart: r + 1,
         gridColumnStart: c + 1,
       }}
     >
-      {/* Synchronized Vector SVG Creature Icon */}
-      <div className="relative z-10 w-full h-full p-1 sm:p-1.5 flex items-center justify-center filter drop-shadow-xs select-none">
-        <CreatureIcon type={tile.type} className="w-full h-full object-contain" />
-      </div>
+      <CreatureIcon type={tile.type} className="w-full h-full block" />
     </motion.button>
   );
 });

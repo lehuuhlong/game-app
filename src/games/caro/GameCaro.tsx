@@ -19,7 +19,12 @@ function makeEmptyBoard(): CellValue[][] {
 }
 
 export function GameCaro() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const userRef = useRef(user);
+  userRef.current = user;
+  const refreshUserRef = useRef(refreshUser);
+  refreshUserRef.current = refreshUser;
+
   const [showLogin, setShowLogin] = useState(false);
   const [screenState, setScreenState] = useState<Screen>("lobby");
   const screenRef = useRef<Screen>("lobby");
@@ -38,8 +43,12 @@ export function GameCaro() {
   const myPlayerIdRef = useRef("");
   const mySymbolRef = useRef<Player | null>(null);
   const socketRef = useRef<Socket | null>(null);
-  const playersRef = useRef<{ id: string; username: string }[]>([]);
+  const playersRef = useRef<{ id: string; username: string; userId?: string }[]>([]);
+  const allPlayersRef = useRef<{ id: string; username: string; userId?: string }[]>([]);
   const moveCountRef = useRef(0);
+  const matchSubmittedToApiRef = useRef(false);
+  const matchSavedViaSocketRef = useRef(false);
+  const fallbackSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Game state (kept in refs to avoid stale closure issues + also in state for rendering)
   const boardRef = useRef<CellValue[][]>(makeEmptyBoard());
@@ -131,51 +140,109 @@ export function GameCaro() {
 
     if (matchSavedRef.current) return;
     matchSavedRef.current = true;
+    if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
 
     // Record match to MongoDB for Match History, Head-to-Head stats & User totals
-    const currentPlayers = playersRef.current;
+    const currentPlayers =
+      allPlayersRef.current.length >= 2 ? allPlayersRef.current : playersRef.current;
     if (currentPlayers.length >= 2) {
       const p1 = currentPlayers[0];
       const p2 = currentPlayers[1];
       const p1Won = !isDraw && winnerSymbol === "X";
       const p2Won = !isDraw && winnerSymbol === "O";
-      const shouldSubmit = isMe || (isDraw && mySymbolRef.current === "X");
-      if (shouldSubmit) {
+      const isWinner = isMe;
+      const isHostDraw = isDraw && mySymbolRef.current === "X";
+      const currentUser = userRef.current;
+
+      const submitMatch = () => {
+        if (matchSubmittedToApiRef.current) return;
+        matchSubmittedToApiRef.current = true;
+
         fetch("/api/matches", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             gameType: "caro",
             players: [
-              { username: p1.username, result: isDraw ? "draw" : p1Won ? "win" : "loss", score: p1Won ? 1 : 0 },
-              { username: p2.username, result: isDraw ? "draw" : p2Won ? "win" : "loss", score: p2Won ? 1 : 0 },
+              {
+                userId: p1.userId || (p1.username === currentUser?.username ? currentUser?.id : undefined),
+                username: p1.username,
+                result: isDraw ? "draw" : p1Won ? "win" : "loss",
+                score: p1Won ? 1 : 0,
+              },
+              {
+                userId: p2.userId || (p2.username === currentUser?.username ? currentUser?.id : undefined),
+                username: p2.username,
+                result: isDraw ? "draw" : p2Won ? "win" : "loss",
+                score: p2Won ? 1 : 0,
+              },
             ],
             duration: 0,
-            gameData: { moves: moveCountRef.current, winner: isDraw ? "draw" : winnerSymbol, reason },
+            gameData: {
+              roomId: roomIdRef.current,
+              moves: moveCountRef.current,
+              winner: isDraw ? "draw" : winnerSymbol,
+              reason,
+            },
           }),
         })
           .then((r) => r.json())
           .then((data) => {
-            try {
-              const stored = localStorage.getItem("game-portal-user");
-              if (stored && data.users) {
-                const u = JSON.parse(stored);
-                const updated = data.users.find((x: any) => x.username === u.username);
-                if (updated) {
-                  Object.assign(u, updated);
-                  localStorage.setItem("game-portal-user", JSON.stringify(u));
-                }
+            if (data && data.users && Array.isArray(data.users)) {
+              // 1. Notify other players in the room via socket
+              socketRef.current?.emit("match_saved", {
+                roomId: roomIdRef.current,
+                users: data.users,
+              });
+
+              // 2. Update current player's state
+              const updatedMe = data.users.find(
+                (x: any) =>
+                  (currentUser?.id && x.id === currentUser.id) ||
+                  (currentUser?.username && x.username === currentUser.username)
+              );
+              if (updatedMe) {
+                refreshUserRef.current(updatedMe);
               }
-            } catch {}
+            }
           })
-          .catch(() => {});
+          .catch((err) => console.error("Failed to post caro match:", err));
+      };
+
+      if (isWinner || isHostDraw) {
+        submitMatch();
+      } else {
+        // Fallback for loser: if winner closes tab or drops socket, ensure match is submitted
+        // 6000ms gives winner ample time to complete POST and broadcast match_saved
+        fallbackSubmitTimerRef.current = setTimeout(() => {
+          if (!matchSavedViaSocketRef.current && !matchSubmittedToApiRef.current) {
+            submitMatch();
+          }
+        }, 6000);
       }
     }
   }, [stopTimer, setScreen]);
 
   const setupSocket = useCallback((socket: Socket) => {
     socket.off("room_joined").off("player_joined").off("player_left")
-      .off("game_started").off("move_made").off("game_over").off("error").off("room_expired");
+      .off("game_started").off("move_made").off("game_over").off("error").off("room_expired")
+      .off("match_saved");
+
+    socket.on("match_saved", ({ users }: any) => {
+      matchSavedViaSocketRef.current = true;
+      if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
+      if (users && Array.isArray(users)) {
+        const currentUser = userRef.current;
+        const updatedMe = users.find(
+          (x: any) =>
+            (currentUser?.id && x.id === currentUser.id) ||
+            (currentUser?.username && x.username === currentUser.username)
+        );
+        if (updatedMe) {
+          refreshUserRef.current(updatedMe);
+        }
+      }
+    });
 
     socket.on("room_expired", ({ message }: any) => {
       stopTimer();
@@ -186,12 +253,16 @@ export function GameCaro() {
       mySymbolRef.current = null;
       setRoomId("");
       setPlayers([]);
+      allPlayersRef.current = [];
     });
 
     socket.on("room_joined", ({ room, playerId }: any) => {
       myPlayerIdRef.current = playerId;
       setPlayers(room.players);
       playersRef.current = room.players;
+      if (room.players.length >= 2) {
+        allPlayersRef.current = room.players;
+      }
       setStatusMsg(room.players.length < 2 ? "Waiting for opponent..." : "2/2 players connected");
       setScreen("waiting");
     });
@@ -199,6 +270,9 @@ export function GameCaro() {
     socket.on("player_joined", ({ room }: any) => {
       setPlayers(room.players);
       playersRef.current = room.players;
+      if (room.players.length >= 2) {
+        allPlayersRef.current = room.players;
+      }
       setStatusMsg("2/2 players connected");
     });
 
@@ -236,9 +310,13 @@ export function GameCaro() {
       mySymbolRef.current = idx === 0 ? "X" : "O";
       setPlayers(room.players);
       playersRef.current = room.players;
+      allPlayersRef.current = room.players;
 
       // Reset board
       matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
+      matchSavedViaSocketRef.current = false;
+      if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
       const fresh = makeEmptyBoard();
       boardRef.current = fresh;
       currentTurnRef.current = "X";
@@ -296,6 +374,7 @@ export function GameCaro() {
 
   useEffect(() => {
     return () => {
+      if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
       stopTimer();
       socketRef.current?.disconnect();
       socketRef.current = null;
@@ -308,7 +387,13 @@ export function GameCaro() {
     roomIdRef.current = id;
     setRoomId(id);
     setupSocket(socket);
-    socket.emit("join_room", { roomId: id, gameType: "caro", username: user.username, action });
+    socket.emit("join_room", {
+      roomId: id,
+      gameType: "caro",
+      username: user.username,
+      userId: user.id,
+      action,
+    });
   }, [user, getSocket, setupSocket]);
 
   const handleCreateRoom = () => {
@@ -337,6 +422,7 @@ export function GameCaro() {
   };
 
   const handleLeaveRoom = () => {
+    if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
     stopTimer();
     socketRef.current?.emit("leave_room", { roomId: roomIdRef.current });
     socketRef.current?.disconnect();
@@ -361,6 +447,11 @@ export function GameCaro() {
   };
 
   const handleRematch = () => {
+    if (fallbackSubmitTimerRef.current) {
+      clearTimeout(fallbackSubmitTimerRef.current);
+      fallbackSubmitTimerRef.current = null;
+    }
+    matchSubmittedToApiRef.current = true;
     stopTimer();
     socketRef.current?.emit("restart_game", { roomId: roomIdRef.current });
     boardRef.current = makeEmptyBoard();

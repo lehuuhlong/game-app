@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FlappyConfig, FlappyGameState, FlappyParticle, FlappyPipe } from "./types";
+import type { FlappyConfig, FlappyGameState, FlappyParticle, FlappyPipe, FlappyActionEvent } from "./types";
 
 const CONFIG: FlappyConfig = { canvasWidth: 480, canvasHeight: 640 };
 const STORAGE_KEY = "flappy-bird-high-score";
@@ -274,6 +274,7 @@ export function useFlappyBird(externalHighScore = 0) {
   const elapsedRef = useRef(0);
   const lastFrameRef = useRef(0);
   const speedRef = useRef(175);
+  const actionLogRef = useRef<FlappyActionEvent[]>([]);
   const externalHighScoreRef = useRef(externalHighScore);
   externalHighScoreRef.current = externalHighScore;
 
@@ -348,6 +349,9 @@ export function useFlappyBird(externalHighScore = 0) {
     elapsedRef.current = 0;
     playingRef.current = true;
     gameOverRef.current = false;
+    actionLogRef.current = [
+      { t: Date.now(), type: "flap", y: Math.round(birdYRef.current) },
+    ];
 
     setGameState((state) => ({
       ...state,
@@ -365,6 +369,11 @@ export function useFlappyBird(externalHighScore = 0) {
       return;
     }
     velocityRef.current = FLAP_VELOCITY;
+    actionLogRef.current.push({
+      t: Date.now(),
+      type: "flap",
+      y: Math.round(birdYRef.current),
+    });
   }, [startGame]);
 
   useEffect(() => {
@@ -455,6 +464,12 @@ export function useFlappyBird(externalHighScore = 0) {
           if (!pipe.scored && pipe.x + PIPE_WIDTH < BIRD_X) {
             pipe.scored = true;
             scoreRef.current += 1;
+            actionLogRef.current.push({
+              t: Date.now(),
+              type: "pipe",
+              score: scoreRef.current,
+              gapY: Math.round(pipe.gapY),
+            });
             spawnScoreParticles(BIRD_X + 10, birdYRef.current);
             setGameState((state) => ({
               ...state,
@@ -582,11 +597,14 @@ export function useFlappyBird(externalHighScore = 0) {
     return () => cancelAnimationFrame(animationFrame);
   }, []);
 
+  const getActionLog = useCallback(() => [...actionLogRef.current], []);
+
   return {
     canvasRef,
     gameState,
     startGame,
     flap,
     config: CONFIG,
+    getActionLog,
   };
 }

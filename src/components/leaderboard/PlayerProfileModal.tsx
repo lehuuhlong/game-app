@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/components/auth';
 
 interface PlayerProfileData {
@@ -45,6 +45,7 @@ interface PlayerProfileData {
   pikachuBestScore?: number;
   pikachuHighestLevel?: number;
   bestScoreLine98?: number;
+  bestScoreNeonSnake?: number;
 }
 
 interface PlayerProfileModalProps {
@@ -66,10 +67,26 @@ function capitalize(str: string): string {
 }
 
 export function PlayerProfileModal({ username, onClose, onCompareWithMe }: PlayerProfileModalProps) {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout, changeUsername, updateAvatar } = useAuth();
   const [profile, setProfile] = useState<PlayerProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
+
+  // Editing state for profile owner
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [editError, setEditError] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // Check if viewing profile of current logged-in user
+  const isCurrentUser = Boolean(
+    currentUser &&
+      username &&
+      currentUser.username.trim() === username.trim()
+  );
 
   useEffect(() => {
     if (!username) return;
@@ -79,15 +96,17 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     async function fetchUserData() {
       try {
         const [userRes, matchesRes] = await Promise.all([
-          fetch(`/api/users?q=${encodeURIComponent(username!)}`),
-          fetch(`/api/matches?username=${encodeURIComponent(username!)}&limit=5`),
+          fetch(`/api/users?username=${encodeURIComponent(username!)}`),
+          fetch(`/api/matches?username=${encodeURIComponent(username!)}&limit=10`),
         ]);
 
         const userData = await userRes.json();
         const matchesData = await matchesRes.json();
 
         if (active) {
-          const matchedUser = userData.users?.find((u: any) => u.username.toLowerCase() === username!.toLowerCase());
+          const matchedUser =
+            userData.user ||
+            userData.users?.find((u: any) => u.username === username);
           setProfile(matchedUser || null);
           setRecentMatches(matchesData.matches || []);
         }
@@ -111,6 +130,114 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     };
   }, [username]);
 
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !editingName) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, editingName]);
+
+  // Lock body scroll while profile modal is open
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+
+    // Prevent layout shift from scrollbar disappearing
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    // Pause Lenis smooth scroll if present
+    window.dispatchEvent(new CustomEvent('lenis:stop'));
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.target === backdropRef.current) {
+        e.preventDefault();
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.target === backdropRef.current) {
+        e.preventDefault();
+      }
+    };
+
+    const backdropEl = backdropRef.current;
+    if (backdropEl) {
+      backdropEl.addEventListener('touchmove', handleTouchMove, { passive: false });
+      backdropEl.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+      window.dispatchEvent(new CustomEvent('lenis:start'));
+
+      if (backdropEl) {
+        backdropEl.removeEventListener('touchmove', handleTouchMove);
+        backdropEl.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, []);
+
+  const handleAvatarFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.size > 1_000_000) {
+        alert('Image must be under 1 MB');
+        return;
+      }
+      setUploadingAvatar(true);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        const result = await updateAvatar(base64);
+        if (result.error) {
+          alert(result.error);
+        } else {
+          setProfile((prev) => (prev ? { ...prev, avatarUrl: base64 } : null));
+        }
+        setUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    },
+    [updateAvatar]
+  );
+
+  const handleSaveName = async () => {
+    setEditError('');
+    const trimmed = newName.normalize('NFC').trim().replace(/\s+/g, ' ');
+    if (!trimmed) {
+      setEditError('Username cannot be empty');
+      return;
+    }
+    if (trimmed.length < 2 || trimmed.length > 20) {
+      setEditError('Username must be between 2 and 20 characters');
+      return;
+    }
+    setSavingName(true);
+    const result = await changeUsername(trimmed);
+    setSavingName(false);
+    if (result.error) {
+      setEditError(result.error);
+    } else {
+      setEditingName(false);
+      setProfile((prev) => (prev ? { ...prev, username: trimmed } : null));
+    }
+  };
+
   if (!username) return null;
 
   const totalMultiplayerWins =
@@ -129,28 +256,73 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     (profile?.monopolyTotal || 0) +
     (profile?.billiardsTotal || 0);
 
-  const overallWinRate = totalMultiplayerGames > 0 ? Math.round((totalMultiplayerWins / totalMultiplayerGames) * 100) : 0;
-
-  const isCurrentUser = currentUser && currentUser.username.toLowerCase() === username.toLowerCase();
+  const overallWinRate =
+    totalMultiplayerGames > 0
+      ? Math.round((totalMultiplayerWins / totalMultiplayerGames) * 100)
+      : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div
+      ref={backdropRef}
+      data-lenis-prevent
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <motion.div
+        data-lenis-prevent
+        onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 12 }}
         className="w-full max-w-2xl rounded-3xl border border-border bg-surface shadow-2xl p-6 sm:p-8 relative overflow-hidden max-h-[90vh] flex flex-col"
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-foreground-muted hover:text-foreground hover:bg-surface-hover transition-colors"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        {/* Top-right action buttons */}
+        <div className="absolute top-5 right-5 flex items-center gap-2 z-10">
+          {isCurrentUser && (
+            <button
+              onClick={() => {
+                logout();
+                onClose();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-500 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-bold transition-all hover:scale-102 cursor-pointer shadow-xs"
+              title="Log out"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Log out</span>
+            </button>
+          )}
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-foreground-muted hover:text-foreground hover:bg-surface-hover transition-colors cursor-pointer"
+            title="Close"
+            aria-label="Close"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
 
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -161,35 +333,155 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
           <div className="py-16 text-center space-y-3">
             <div className="text-4xl">🕵️‍♂️</div>
             <h3 className="text-lg font-bold text-foreground">Player Not Found</h3>
-            <p className="text-xs text-foreground-muted">Could not retrieve stats for player &quot;{username}&quot;.</p>
+            <p className="text-xs text-foreground-muted">
+              Could not retrieve stats for player &quot;{username}&quot;.
+            </p>
           </div>
         ) : (
-          <div className="overflow-y-auto pr-1 space-y-6">
+          <div data-lenis-prevent className="overflow-y-auto overscroll-contain no-scrollbar space-y-6">
             {/* Header Profile Info */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={profile.username} className="h-20 w-20 rounded-2xl object-cover ring-4 ring-accent/20 shadow-md" />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-2xl font-black text-white shadow-md">
-                  {profile.username[0]?.toUpperCase()}
-                </div>
-              )}
+              {/* Avatar + change button if current user */}
+              <div className="relative group">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.username}
+                    className="h-20 w-20 rounded-2xl object-cover ring-4 ring-accent/20 shadow-md"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-2xl font-black text-white shadow-md">
+                    {profile.username[0]?.toUpperCase()}
+                  </div>
+                )}
 
+                {isCurrentUser && (
+                  <>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute inset-0 rounded-2xl bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer"
+                      title="Change avatar (Max 1MB)"
+                    >
+                      {uploadingAvatar ? (
+                        <div className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      ) : (
+                        <>
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                          </svg>
+                          <span className="text-[10px] font-semibold mt-0.5">Change</span>
+                        </>
+                      )}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarFile}
+                    />
+                  </>
+                )}
+              </div>
+
+              {/* Username + Bio/Actions */}
               <div className="flex-1 text-center sm:text-left space-y-1.5">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-                  <h2 className="text-2xl font-extrabold text-foreground tracking-tight">{profile.username}</h2>
-                  {isCurrentUser && <span className="px-2 py-0.5 rounded-md bg-accent-light text-accent text-[11px] font-bold">YOU</span>}
-                </div>
-                <p className="text-xs text-foreground-secondary">Active Player • {totalMultiplayerGames} multiplayer matches recorded</p>
+                {editingName ? (
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <input
+                        autoFocus
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveName();
+                          if (e.key === 'Escape') {
+                            setEditingName(false);
+                            setEditError('');
+                          }
+                        }}
+                        placeholder="New username..."
+                        maxLength={20}
+                        className="rounded-xl border border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground focus:border-accent focus:outline-none w-52 shadow-inner"
+                      />
+                      <button
+                        onClick={handleSaveName}
+                        disabled={savingName}
+                        className="rounded-xl bg-accent px-3 py-1.5 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
+                      >
+                        {savingName ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingName(false);
+                          setEditError('');
+                        }}
+                        className="rounded-xl px-2.5 py-1.5 text-xs font-medium text-foreground-muted hover:text-foreground hover:bg-surface-hover transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {editError && (
+                      <p className="text-xs text-rose-500 font-medium">{editError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
+                      {profile.username}
+                    </h2>
+                    {isCurrentUser && (
+                      <>
+                        <span className="px-2 py-0.5 rounded-md bg-accent-light text-accent text-[11px] font-bold">
+                          YOU
+                        </span>
+                        <button
+                          onClick={() => {
+                            setEditingName(true);
+                            setNewName(profile.username);
+                            setEditError('');
+                          }}
+                          className="p-1 rounded-lg text-foreground-muted hover:text-accent hover:bg-surface-hover transition-colors cursor-pointer"
+                          title="Change username"
+                          aria-label="Change username"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                          >
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
 
-                {/* Compare with Me Action */}
+                <p className="text-xs text-foreground-secondary">
+                  Active Player • {totalMultiplayerGames} multiplayer matches recorded
+                </p>
+
+                {/* Compare with Me Action for rivalries */}
                 {!isCurrentUser && currentUser && onCompareWithMe && (
                   <button
                     onClick={() => {
                       onCompareWithMe(profile.username);
                       onClose();
                     }}
-                    className="mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-bold shadow-md hover:from-sky-600 hover:to-blue-700 transition-all hover:scale-105"
+                    className="mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-bold shadow-md hover:from-sky-600 hover:to-blue-700 transition-all hover:scale-105 cursor-pointer"
                   >
                     <span>⚔️ Compare Rivalry with Me</span>
                   </button>
@@ -200,22 +492,32 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
             {/* Quick Aggregate Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">Total 1v1 Wins</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                  Total 1v1 Wins
+                </span>
                 <p className="text-xl font-black text-sky-400 mt-0.5">{totalMultiplayerWins}</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">PvP Win Rate</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                  PvP Win Rate
+                </span>
                 <p className="text-xl font-black text-emerald-400 mt-0.5">{overallWinRate}%</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">2048 Best</span>
-                <p className="text-xl font-black text-amber-400 mt-0.5">{profile.bestScore2048 > 0 ? profile.bestScore2048.toLocaleString() : '-'}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                  2048 Best
+                </span>
+                <p className="text-xl font-black text-amber-400 mt-0.5">
+                  {profile.bestScore2048 > 0 ? profile.bestScore2048.toLocaleString() : '-'}
+                </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-background border border-border/80 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">Aim Trainer Best</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-muted">
+                  Aim Trainer Best
+                </span>
                 <p className="text-xl font-black text-rose-400 mt-0.5">
                   {profile.aimTrainerBestScore > 0 ? `${profile.aimTrainerBestScore} pts` : '-'}
                 </p>
@@ -224,7 +526,9 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
 
             {/* Per Game Detailed Stats */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Game Records & Performance</h4>
+              <h4 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
+                Game Records & Performance
+              </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {/* Caro */}
@@ -387,27 +691,52 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     Best: <strong className="text-foreground">{profile.bestScoreLine98?.toLocaleString() || 0} pts</strong>
                   </div>
                 </div>
+
+                {/* Neon Snake */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>🐍</span>
+                    <span className="font-semibold text-foreground">Neon Snake</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px]">
+                    Best: <strong className="text-foreground">{profile.bestScoreNeonSnake?.toLocaleString() || 0} pts</strong>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Recent Match Feed */}
             {recentMatches.length > 0 && (
               <div className="space-y-2.5 pt-2">
-                <h4 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">Recent Match Activity</h4>
+                <h4 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
+                  Recent Match Activity ({recentMatches.length})
+                </h4>
                 <div className="space-y-1.5">
                   {recentMatches.map((m: any) => {
                     const myPlayer = m.players?.find(
                       (p: any) =>
                         (profile?._id && p.userId && p.userId.toString() === profile._id.toString()) ||
                         (profile?.id && p.userId && p.userId.toString() === profile.id.toString()) ||
-                        p.username.toLowerCase() === username.toLowerCase(),
+                        p.username === username
                     );
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
-                    const isScoreGame = ['2048', 'pikachu', 'trex', 'flappybird', 'aimtrainer', 'line98', 'neonsnake', 'blockdrop'].includes(m.gameType);
+                    const isScoreGame = [
+                      '2048',
+                      'pikachu',
+                      'trex',
+                      'flappybird',
+                      'aimtrainer',
+                      'line98',
+                      'neonsnake',
+                      'blockdrop',
+                    ].includes(m.gameType);
 
                     return (
-                      <div key={m._id} className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs">
+                      <div
+                        key={m._id}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-background border border-border/60 text-xs"
+                      >
                         <div className="flex items-center gap-2.5">
                           {isScoreGame ? (
                             <span className="px-2 py-0.5 rounded-md font-bold text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30">
@@ -419,8 +748,8 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                                 isWin
                                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                                   : isDraw
-                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
                               }`}
                             >
                               {myPlayer?.result || 'Played'}
@@ -430,22 +759,24 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             {m.gameType === 'pikachu'
                               ? 'Pikachu'
                               : m.gameType === 'line98'
-                                ? 'Line 98'
-                                : m.gameType === 'neonsnake'
-                                  ? 'Neon Snake'
-                                  : m.gameType === 'blockdrop'
-                                    ? 'Retro Block Drop'
-                                    : m.gameType}
+                              ? 'Line 98'
+                              : m.gameType === 'neonsnake'
+                              ? 'Neon Snake'
+                              : m.gameType === 'blockdrop'
+                              ? 'Retro Block Drop'
+                              : m.gameType}
                           </span>
                           {/* Game Specific Details */}
                           {m.gameType === 'wordle' && m.gameData?.solution ? (
                             <span className="text-[11px] font-mono">
                               {isWin ? (
                                 <span className="text-emerald-400">
-                                  "{m.gameData.solution.toUpperCase()}" ({m.gameData.guessesCount || 1}/6)
+                                  &quot;{m.gameData.solution.toUpperCase()}&quot; ({m.gameData.guessesCount || 1}/6)
                                 </span>
                               ) : (
-                                <span className="text-rose-400">Word: "{m.gameData.solution.toUpperCase()}"</span>
+                                <span className="text-rose-400">
+                                  Word: &quot;{m.gameData.solution.toUpperCase()}&quot;
+                                </span>
                               )}
                             </span>
                           ) : m.gameType === 'minesweeper' || m.gameType === 'sudoku' ? (
@@ -469,21 +800,31 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                             m.gameType === 'blockdrop' ? (
                             <span className="text-[11px] font-mono text-foreground-secondary">
                               {(myPlayer?.score ?? m.gameData?.score ?? 0).toLocaleString()} pts
-                              {m.gameType === 'pikachu' && m.gameData?.level ? ` • Lvl ${m.gameData.level}` : ''}
-                              {m.gameType === 'line98' && m.gameData?.moveCount ? ` • ${m.gameData.moveCount} moves` : ''}
-                              {m.gameType === 'blockdrop' && m.gameData?.lines ? ` • ${m.gameData.lines} lines` : ''}
+                              {m.gameType === 'pikachu' && m.gameData?.level
+                                ? ` • Lvl ${m.gameData.level}`
+                                : ''}
+                              {m.gameType === 'line98' && m.gameData?.moveCount
+                                ? ` • ${m.gameData.moveCount} moves`
+                                : ''}
+                              {m.gameType === 'blockdrop' && m.gameData?.lines
+                                ? ` • ${m.gameData.lines} lines`
+                                : ''}
                             </span>
                           ) : (
                             <span className="text-foreground-muted text-[11px]">
                               vs{' '}
                               {m.players
-                                ?.filter((p: any) => p.username.toLowerCase() !== username.toLowerCase())
+                                ?.filter(
+                                  (p: any) => p.username !== username
+                                )
                                 .map((p: any) => p.username)
                                 .join(', ') || 'Solo'}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-foreground-muted">{new Date(m.createdAt).toLocaleDateString()}</span>
+                        <span className="text-[11px] text-foreground-muted">
+                          {new Date(m.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
                     );
                   })}

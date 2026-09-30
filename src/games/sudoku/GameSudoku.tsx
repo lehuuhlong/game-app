@@ -184,26 +184,22 @@ export function GameSudoku() {
   } = useSudoku();
 
   const [savedTime, setSavedTime] = useState<number | null>(null);
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { startSession, getSessionToken, ensureSessionToken } = useGameSession('sudoku');
   const [showLogin, setShowLogin] = useState(false);
   const scoreSavedRef = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const wasGameOverRef = useRef(false);
 
-  useEffect(() => {
-    startSession(user?.id, user?.username);
-  }, [startSession, user?.id, user?.username, difficulty]);
-
-  // Reset flags and auto-renew session when game starts/restarts
+  // Reset flags and auto-renew session when game starts/restarts after game over
   useEffect(() => {
     if (gameState === 'playing') {
       scoreSavedRef.current = false;
       setShowLogin(false);
-      if (!wasPlayingRef.current) {
+      if (wasGameOverRef.current) {
         startSession(user?.id, user?.username, true);
       }
     }
-    wasPlayingRef.current = gameState === 'playing';
+    wasGameOverRef.current = gameState === 'won' || gameState === 'gameover';
   }, [gameState, startSession, user?.id, user?.username]);
 
   // Show login if won and not logged in
@@ -266,6 +262,14 @@ export function GameSudoku() {
                 if (d.sudokuBestHard !== undefined) u.sudokuBestHard = d.sudokuBestHard;
                 localStorage.setItem('game-portal-user', JSON.stringify(u));
               }
+              refreshUser({
+                sudokuBestEasy: d.sudokuBestEasy,
+                sudokuBestMedium: d.sudokuBestMedium,
+                sudokuBestHard: d.sudokuBestHard,
+              });
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+              }
             } catch {
               /* ignore */
             }
@@ -299,7 +303,7 @@ export function GameSudoku() {
         }).catch((err) => console.error('Failed to save sudoku match:', err));
       })();
     }
-  }, [gameState, user, difficulty, elapsedSeconds, ensureSessionToken]);
+  }, [gameState, user, difficulty, elapsedSeconds, ensureSessionToken, refreshUser]);
 
   // Compute remaining counts for each digit
   const remainingCounts = useCallback(() => {

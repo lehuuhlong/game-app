@@ -12,11 +12,14 @@ import type {
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
 
-export function useMonopoly(username: string) {
+export function useMonopoly(username: string, userId?: string) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const roomIdRef = useRef('');
   const playerIdRef = useRef<string | null>(null);
   const matchSavedRef = useRef(false);
+  const matchSubmittedToApiRef = useRef(false);
+  const fallbackSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const roomRef = useRef<Room | null>(null);
 
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -74,12 +77,14 @@ export function useMonopoly(username: string) {
       .off('mp_offer_buy')
       .off('mp_offer_upgrade')
       .off('mp_game_over')
+      .off('match_saved' as any)
       .off('error');
 
     // ── Shared room events ────────────────────────────────────────
 
     socket.on('room_joined', ({ room, playerId }) => {
       setRoom(room);
+      roomRef.current = room;
       setPlayerId(playerId);
       playerIdRef.current = playerId;
       onJoinSuccessRef.current?.();
@@ -88,18 +93,26 @@ export function useMonopoly(username: string) {
 
     socket.on('player_joined' as any, ({ room }: { room: Room }) => {
       setRoom(room);
+      roomRef.current = room;
     });
 
     socket.on('player_left' as any, ({ room }: { room: Room }) => {
       setRoom(room);
+      roomRef.current = room;
     });
 
     // ── Monopoly-specific events ──────────────────────────────────
 
     socket.on('mp_game_started', ({ room, gameState }) => {
       setRoom(room);
+      roomRef.current = room;
       setGameState(gameState);
       matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
       setBuyOffer(null);
       setUpgradeOffer(null);
       setWinner(null);
@@ -138,48 +151,118 @@ export function useMonopoly(username: string) {
       setWinner({ id: winnerId, name: winnerName });
       setEndReason(reason || 'win');
 
-      // Record score and match (only winner submits to prevent duplicate entries)
+      // Record score and match
       try {
         const isMeWinner = winnerId === playerIdRef.current;
-        if (!matchSavedRef.current && isMeWinner && gameState?.players && gameState.players.length >= 2) {
-          matchSavedRef.current = true;
-          fetch("/api/matches", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              gameType: "monopoly",
-              players: gameState.players.map((p: any) => ({
+        if (!matchSavedRef.current && gameState?.players && gameState.players.length >= 2) {
+          const submitMatch = () => {
+            if (matchSubmittedToApiRef.current) return;
+            matchSubmittedToApiRef.current = true;
+            matchSavedRef.current = true;
+
+            const roomPlayers = roomRef.current?.players || [];
+            const playersPayload = gameState.players.map((p: any) => {
+              const matchedRoomPlayer = roomPlayers.find((rp: any) => rp.username === p.username || rp.id === p.playerId);
+              const pUserId = matchedRoomPlayer?.userId || (p.username === username ? userId : undefined);
+              return {
+                userId: pUserId,
                 username: p.username,
                 result: p.playerId === winnerId ? "win" : "loss",
                 score: p.balance || 0,
-              })),
-              duration: 0,
-              gameData: { winnerName },
-            }),
-          })
-            .then((r) => r.json())
-            .then((resData) => {
-              try {
-                const stored = localStorage.getItem("game-portal-user");
-                if (stored && resData.users) {
-                  const u = JSON.parse(stored);
-                  const updated = resData.users.find((x: any) => x.username === u.username);
-                  if (updated) {
-                    Object.assign(u, updated);
-                    localStorage.setItem("game-portal-user", JSON.stringify(u));
-                  }
-                }
-              } catch {}
+              };
+            });
+
+            fetch("/api/matches", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                gameType: "monopoly",
+                players: playersPayload,
+                duration: 0,
+                gameData: { roomId: roomIdRef.current, winnerName },
+              }),
             })
-            .catch(() => {});
+              .then((r) => r.json())
+              .then((resData) => {
+                if (resData && resData.users && Array.isArray(resData.users)) {
+                  socketRef.current?.emit("match_saved" as any, {
+                    roomId: roomIdRef.current,
+                    users: resData.users,
+                  });
+                  try {
+                    const stored = localStorage.getItem("game-portal-user");
+                    if (stored) {
+                      const u = JSON.parse(stored);
+                      const updated = resData.users.find(
+                        (x: any) =>
+                          (u.id && x.id === u.id) ||
+                          (u._id && x._id === u._id) ||
+                          (x.username && x.username === u.username)
+                      );
+                      if (updated) {
+                        Object.assign(u, updated);
+                        localStorage.setItem("game-portal-user", JSON.stringify(u));
+                        if (typeof window !== "undefined") {
+                          window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+                        }
+                      }
+                    }
+                  } catch {}
+                }
+              })
+              .catch(() => {});
+          };
+
+          if (isMeWinner) {
+            submitMatch();
+          } else {
+            if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
+            fallbackSubmitTimerRef.current = setTimeout(() => {
+              submitMatch();
+            }, 6000);
+          }
         }
       } catch {
         // ignore
       }
     });
 
+    socket.on('match_saved' as any, ({ users }: { users: any[] }) => {
+      matchSavedRef.current = true;
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
+      try {
+        const stored = localStorage.getItem("game-portal-user");
+        if (stored && users && Array.isArray(users)) {
+          const u = JSON.parse(stored);
+          const updated = users.find(
+            (x: any) =>
+              (u.id && x.id === u.id) ||
+              (u._id && x._id === u._id) ||
+              (x.username && x.username === u.username)
+          );
+          if (updated) {
+            Object.assign(u, updated);
+            localStorage.setItem("game-portal-user", JSON.stringify(u));
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("userProfileUpdated"));
+            }
+          }
+        }
+      } catch {}
+    });
+
     socket.on('room_expired', (data) => {
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
+      matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
       setRoom(null);
+      roomRef.current = null;
       setPlayerId(null);
       playerIdRef.current = null;
       setGameState(null);
@@ -210,6 +293,9 @@ export function useMonopoly(username: string) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+      }
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
@@ -229,14 +315,22 @@ export function useMonopoly(username: string) {
         roomId,
         gameType: 'monopoly',
         username,
+        userId,
         action,
       });
     },
-    [username, getSocket, setupSocket]
+    [username, userId, getSocket, setupSocket]
   );
 
   const resetAllState = useCallback(() => {
+    if (fallbackSubmitTimerRef.current) {
+      clearTimeout(fallbackSubmitTimerRef.current);
+      fallbackSubmitTimerRef.current = null;
+    }
+    matchSavedRef.current = false;
+    matchSubmittedToApiRef.current = false;
     setRoom(null);
+    roomRef.current = null;
     setPlayerId(null);
     playerIdRef.current = null;
     setGameState(null);
@@ -251,10 +345,17 @@ export function useMonopoly(username: string) {
 
   const leaveRoom = useCallback(
     (roomId: string) => {
+      if (fallbackSubmitTimerRef.current) {
+        clearTimeout(fallbackSubmitTimerRef.current);
+        fallbackSubmitTimerRef.current = null;
+      }
+      matchSavedRef.current = false;
+      matchSubmittedToApiRef.current = false;
       socketRef.current?.emit('leave_room', { roomId });
       socketRef.current?.disconnect();
       socketRef.current = null;
       roomIdRef.current = '';
+      roomRef.current = null;
       resetAllState();
     },
     [resetAllState]
@@ -306,6 +407,12 @@ export function useMonopoly(username: string) {
 
   const restart = useCallback(() => {
     if (!roomIdRef.current) return;
+    if (fallbackSubmitTimerRef.current) {
+      clearTimeout(fallbackSubmitTimerRef.current);
+      fallbackSubmitTimerRef.current = null;
+    }
+    matchSavedRef.current = false;
+    matchSubmittedToApiRef.current = false;
     socketRef.current?.emit('restart_game', { roomId: roomIdRef.current });
     setBuyOffer(null);
     setUpgradeOffer(null);

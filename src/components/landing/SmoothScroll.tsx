@@ -36,9 +36,21 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 0.9,
+      prevent: (node) => {
+        return (
+          document.body.style.overflow === 'hidden' ||
+          Boolean(node?.closest?.('[data-lenis-prevent]'))
+        );
+      },
     });
 
     lenisRef.current = lenis;
+
+    const handleStop = () => lenis.stop();
+    const handleStart = () => lenis.start();
+
+    window.addEventListener('lenis:stop', handleStop);
+    window.addEventListener('lenis:start', handleStart);
 
     let rafId: number | null = null;
     let isTabVisible = true;
@@ -65,6 +77,8 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('lenis:stop', handleStop);
+      window.removeEventListener('lenis:start', handleStart);
       if (rafId) cancelAnimationFrame(rafId);
       lenis.destroy();
       lenisRef.current = null;

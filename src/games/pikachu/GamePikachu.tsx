@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/components/auth';
+import { useAuth, LoginModal } from '@/components/auth';
 import { usePikachuLogic } from './usePikachuLogic';
 import { PikachuTile } from './PikachuTile';
 import { ElectricPathOverlay } from './ElectricPathOverlay';
@@ -35,142 +35,216 @@ export function GamePikachu() {
   } = usePikachuLogic();
 
   // ── Sync High Score & Persistence ──────────────────────────────────
-  const { startSession, getSessionToken, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
-  const [localBestScore, setLocalBestScore] = useState(0);
-  const scoreSavedRef = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const { startSession, ensureSessionToken, getElapsedDuration } = useGameSession('pikachu');
+  const [localBestScore] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const saved = Number(localStorage.getItem('pikachu_best_score') || '0');
+      return saved > 0 ? saved : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [showLogin, setShowLogin] = useState(false);
+  const matchSavedRef = useRef(false);
+  const userScoreSavedRef = useRef(false);
+  const wasGameOverRef = useRef(false);
 
   useEffect(() => {
     startSession(user?.id, user?.username);
   }, [startSession, user?.id, user?.username]);
 
-  // ── Auto-renew session on game start/restart ───────────────────────
+  // ── Auto-renew session ONLY when game restarts after game over ─────
   useEffect(() => {
-    if (status === 'playing' && !wasPlayingRef.current) {
+    const isGameOver = status === 'game_over' || status === 'victory';
+    if (!isGameOver && wasGameOverRef.current) {
+      // Starting a fresh run after previous game over: force new session token & reset start time
       startSession(user?.id, user?.username, true);
+      matchSavedRef.current = false;
+      userScoreSavedRef.current = false;
     }
-    wasPlayingRef.current = status === 'playing';
+    wasGameOverRef.current = isGameOver;
   }, [status, startSession, user?.id, user?.username]);
 
-  // Load local best score on mount
-  useEffect(() => {
-    try {
-      const saved = Number(localStorage.getItem('pikachu_best_score') || '0');
-      if (saved > 0) setLocalBestScore(saved);
-    } catch (e) {}
-  }, []);
-
-  // Update local best score when current score exceeds it
+  // Persist local best score when current score exceeds it
   useEffect(() => {
     if (score > localBestScore) {
-      setLocalBestScore(score);
       try {
         localStorage.setItem('pikachu_best_score', String(score));
-      } catch (e) {}
+      } catch {}
     }
   }, [score, localBestScore]);
 
-  // Sync to database only when the player loses / finishes the game (game_over)
+  // Show login modal when unauthenticated player completes a level or gets game over
+  useEffect(() => {
+    const isFinished = status === 'level_cleared' || status === 'game_over' || status === 'victory';
+    if (isFinished && !user) {
+      const t = setTimeout(() => setShowLogin(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [status, user]);
+
+  // Sync to database when a level is cleared or the game ends (victory / game_over)
   useEffect(() => {
     if (status === 'playing') {
-      scoreSavedRef.current = false;
+      matchSavedRef.current = false;
+      userScoreSavedRef.current = false;
+      return;
     }
 
+    const isLevelCleared = status === 'level_cleared';
     const isGameOver = status === 'game_over' || status === 'victory';
-    if (!isGameOver || score <= 0) return;
-    if (scoreSavedRef.current) return;
-    scoreSavedRef.current = true;
+    if ((!isLevelCleared && !isGameOver) || score <= 0) return;
 
     (async () => {
       const sessionToken = await ensureSessionToken(user?.id, user?.username);
       const elapsed = getElapsedDuration();
 
-      // Save final match session to /api/matches (score-based format like 2048)
-      fetch('/api/matches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameType: 'pikachu',
-          sessionToken,
-          players: [
-            {
-              userId: user?.id,
-              username: user ? user.username : 'Guest',
-              score,
-              result: 'loss',
-            },
-          ],
-          duration: elapsed,
-          gameData: { level: levelIdx + 1, score },
-        }),
-      }).catch((e) => console.error('Failed to post match:', e));
-
-      // Save user record ONLY if the score is greater than current user's best score
-      if (user && user.id && score > (user.pikachuBestScore || 0)) {
-        fetch(`/api/users/${user.id}/score`, {
-          method: 'PATCH',
+      // Save match session to /api/matches on game completion
+      if (isGameOver && !matchSavedRef.current) {
+        matchSavedRef.current = true;
+        fetch('/api/matches', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            gameType: 'pikachu',
+            sessionToken,
+            players: [
+              {
+                userId: user?.id,
+                username: user ? user.username : 'Guest',
+                score,
+                result: status === 'victory' ? 'win' : 'loss',
+              },
+            ],
+            duration: elapsed,
+            gameData: { level: levelIdx + 1, score },
+          }),
+        }).catch((e) => console.error('Failed to post match:', e));
+      }
+
+      // Save user record ONLY if user is logged in AND score or level exceeds previous best
+      if (user && user.id && !userScoreSavedRef.current) {
+        const shouldUpdateScore = score > (user.pikachuBestScore || 0);
+        const shouldUpdateLevel = (levelIdx + 1) > (user.pikachuHighestLevel || 0);
+
+        if (shouldUpdateScore || shouldUpdateLevel) {
+          userScoreSavedRef.current = true;
+
+          const payload = {
             game: 'pikachu',
             score,
             level: levelIdx + 1,
             sessionToken,
             duration: elapsed,
-          }),
-        })
-          .then((r) => r.json())
-          .then((d) => {
-            if (d && d.pikachuBestScore !== undefined) {
-              refreshUser({
-                pikachuBestScore: d.pikachuBestScore,
-                pikachuHighestLevel: d.pikachuHighestLevel,
-              });
-            }
+            isFinal: isGameOver,
+          };
+
+          fetch(`/api/users/${user.id}/score`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
           })
-          .catch((e) => console.error('Failed to save pikachu score:', e));
+            .then(async (r) => {
+              if (r.status === 403 || r.status === 400) {
+                const errData = await r.json().catch(() => ({}));
+                // Auto-recover if session expired (e.g. computer left idle overnight)
+                if (
+                  typeof errData.error === 'string' &&
+                  (errData.error.toLowerCase().includes('expired') || errData.error.toLowerCase().includes('session'))
+                ) {
+                  const freshToken = await startSession(user.id, user.username, true, true);
+                  if (freshToken) {
+                    return fetch(`/api/users/${user.id}/score`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...payload, sessionToken: freshToken }),
+                    }).then((res) => res.json());
+                  }
+                }
+                return errData;
+              }
+              return r.json();
+            })
+            .then((d) => {
+              if (d && d.pikachuBestScore !== undefined) {
+                refreshUser({
+                  pikachuBestScore: d.pikachuBestScore,
+                  pikachuHighestLevel: d.pikachuHighestLevel,
+                });
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+                }
+              }
+            })
+            .catch((e) => console.error('Failed to save pikachu score:', e));
+        } else {
+          // Score has not beaten best score, mark handled so we don't repeatedly check
+          userScoreSavedRef.current = true;
+        }
       }
     })();
-  }, [status, score, user, levelIdx, levelConfig.timeLimit, timeLeft, refreshUser, ensureSessionToken, getElapsedDuration]);
+  }, [status, score, user, levelIdx, refreshUser, ensureSessionToken, startSession, getElapsedDuration]);
+
+  const handleNextLevel = () => {
+    matchSavedRef.current = false;
+    userScoreSavedRef.current = false;
+    setShowLogin(false);
+    // Renew session token (but preserve original start time) when advancing to next level.
+    // - force=true: get a fresh token so the server TTL resets
+    // - preserveStartTime=true: keep the original start time so getElapsedDuration()
+    //   still reports total cumulative play time (needed for score/duration validation)
+    startSession(user?.id, user?.username, true, true);
+    nextLevel();
+  };
+
+  const handleRestart = () => {
+    matchSavedRef.current = false;
+    userScoreSavedRef.current = false;
+    setShowLogin(false);
+    startSession(user?.id, user?.username, true);
+    restartGame();
+  };
 
   const bestScore = Math.max(user?.pikachuBestScore || 0, localBestScore, score);
   const timePercent = Math.max(0, Math.min(100, (timeLeft / levelConfig.timeLimit) * 100));
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:gap-6 w-full select-none">
+    <div className="flex flex-col items-center gap-3.5 sm:gap-4.5 w-full max-w-[800px] mx-auto select-none">
       {/* ── 1. Header Matching Portal Style ───────────────────────────── */}
-      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
               Pikachu
             </h1>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               Level {levelConfig.level}
             </span>
           </div>
-          <p className="text-sm text-foreground-secondary mt-0.5">
+          <p className="text-xs sm:text-sm text-foreground-secondary mt-0.5">
             {levelConfig.name} • {levelConfig.description}
           </p>
         </div>
 
         {/* Scoreboard & Audio */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Score */}
-          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[75px] shadow-xs">
+          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-3.5 py-1.5 min-w-[70px] shadow-xs">
             <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
               Score
             </span>
-            <span className="text-base sm:text-lg font-bold text-foreground tabular-nums">
+            <span className="text-sm sm:text-base font-bold text-foreground tabular-nums">
               {score.toLocaleString()}
             </span>
           </div>
 
           {/* Best Score */}
-          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-4 py-2 min-w-[75px] shadow-xs">
+          <div className="flex flex-col items-center rounded-xl border border-border bg-surface px-3.5 py-1.5 min-w-[70px] shadow-xs">
             <span className="text-[10px] uppercase tracking-wider text-foreground-muted font-semibold">
               Best
             </span>
-            <span className="text-base sm:text-lg font-bold text-accent tabular-nums" suppressHydrationWarning>
+            <span className="text-sm sm:text-base font-bold text-accent tabular-nums" suppressHydrationWarning>
               {bestScore.toLocaleString()}
             </span>
           </div>
@@ -179,7 +253,7 @@ export function GamePikachu() {
           <button
             type="button"
             onClick={toggleMute}
-            className={`p-2.5 rounded-xl border transition-colors shadow-xs ${
+            className={`p-2 rounded-xl border transition-colors shadow-xs ${
               isMuted
                 ? 'bg-red-500/10 text-red-500 border-red-500/30'
                 : 'bg-surface text-foreground-secondary border-border hover:text-foreground hover:bg-surface-hover'
@@ -187,12 +261,12 @@ export function GamePikachu() {
             title={isMuted ? 'Unmute sound' : 'Mute sound'}
           >
             {isMuted ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
               </svg>
             )}
@@ -201,9 +275,9 @@ export function GamePikachu() {
       </div>
 
       {/* ── 2. Timer Bar & Combo Streak ──────────────────────────────── */}
-      <div className="w-full flex items-center gap-3 h-8">
+      <div className="w-full flex items-center gap-3 h-7">
         {/* Time bar */}
-        <div className="relative flex-1 h-2.5 sm:h-3 bg-surface-hover/80 rounded-full overflow-hidden border border-border shadow-xs">
+        <div className="relative flex-1 h-2 sm:h-2.5 bg-surface-hover/80 rounded-full overflow-hidden border border-border shadow-xs">
           <motion.div
             className={`h-full rounded-full transition-all duration-300 ${
               timePercent > 40
@@ -218,7 +292,7 @@ export function GamePikachu() {
 
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs sm:text-sm font-mono font-bold text-foreground-secondary tabular-nums min-w-[55px] text-right">
-            ⏱️ {timeLeft}s
+            ⏱️ {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </span>
 
           {/* Reserved slot for Combo Multiplier - zero layout shift */}
@@ -235,11 +309,11 @@ export function GamePikachu() {
       </div>
 
       {/* ── 3. Main Playing Board ────────────────────────────────────── */}
-      <div className="relative w-full flex items-center justify-center p-2.5 sm:p-4 rounded-2xl bg-surface border border-border shadow-sm overflow-hidden">
+      <div className="relative w-full flex items-center justify-center p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl bg-[#1a2744] border border-[#2a3f6e] shadow-lg overflow-hidden">
         {/* Board container */}
         <div
           ref={boardRef}
-          className="relative w-full grid gap-1 sm:gap-1.5 md:gap-2 z-10"
+          className="relative w-full grid gap-[1px] sm:gap-[2px] md:gap-1 z-10"
           style={{
             gridTemplateColumns: `repeat(${levelConfig.cols}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${levelConfig.rows}, minmax(0, 1fr))`,
@@ -250,7 +324,7 @@ export function GamePikachu() {
             row.map((cell) => (
               <div
                 key={`slot_${cell.r}_${cell.c}`}
-                className="aspect-square w-full rounded-xl bg-surface-hover/50 border border-border/40 pointer-events-none"
+                className="aspect-[4/5] w-full rounded-none bg-[#0f1b33]/40 border border-[#1e2f52]/30 pointer-events-none"
                 style={{
                   gridRowStart: cell.r + 1,
                   gridColumnStart: cell.c + 1,
@@ -385,7 +459,7 @@ export function GamePikachu() {
 
               <button
                 type="button"
-                onClick={nextLevel}
+                onClick={handleNextLevel}
                 className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
               >
                 {levelConfig.level === 6 ? 'Enter Endless Mode (Level 7) ➔' : `Next Level (Level ${levelConfig.level + 1}) ➔`}
@@ -425,7 +499,7 @@ export function GamePikachu() {
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={restartGame}
+                  onClick={handleRestart}
                   className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
                   🔄 Play Again
@@ -472,10 +546,17 @@ export function GamePikachu() {
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={restartGame}
+                  onClick={handleNextLevel}
                   className="w-full py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-opacity text-sm sm:text-base"
                 >
-                  Play Again to Break Record
+                  Enter Endless Mode (Level 7) ➔
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  className="w-full py-2.5 rounded-xl font-semibold bg-surface border border-border hover:bg-surface-hover text-foreground-secondary hover:text-foreground text-sm transition-colors text-center shadow-xs"
+                >
+                  Play Again from Level 1
                 </button>
                 <Link
                   href="/leaderboard?game=pikachu"
@@ -488,6 +569,20 @@ export function GamePikachu() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── 9. Login Modal ─────────────────────────────────────────── */}
+      {showLogin && (
+        <LoginModal
+          title={status === 'game_over' ? 'Save your score!' : 'Level Cleared!'}
+          subtitle={
+            status === 'game_over'
+              ? `You scored ${score.toLocaleString()} points! Choose a username to save your score to the leaderboard.`
+              : `Level ${levelConfig.level} conquered with ${score.toLocaleString()} points! Choose a username to save your progress.`
+          }
+          onSuccess={() => setShowLogin(false)}
+          onClose={() => setShowLogin(false)}
+        />
+      )}
     </div>
   );
 }

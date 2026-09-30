@@ -7,9 +7,17 @@
  */
 
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import Match from "@/models/Match";
 import User from "@/models/User";
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Mutex map to deduplicate concurrent match requests in flight
+const inFlightMatchSubmissions = new Map<string, Promise<{ status: number; data: any }>>();
 
 export async function GET(request: Request) {
   try {
@@ -28,8 +36,9 @@ export async function GET(request: Request) {
     }
     if (username) {
       // Find the user by username to match matches by both their userId and username
+      const safeUsername = escapeRegex(username.trim());
       const targetUser = await User.findOne({
-        username: { $regex: `^${username.trim()}$`, $options: "i" },
+        username: { $regex: `^${safeUsername}$`, $options: "i" },
       })
         .select("_id")
         .lean();
@@ -37,10 +46,10 @@ export async function GET(request: Request) {
       if (targetUser) {
         filter.$or = [
           { "players.userId": targetUser._id },
-          { "players.username": { $regex: `^${username.trim()}$`, $options: "i" } },
+          { "players.username": { $regex: `^${safeUsername}$`, $options: "i" } },
         ];
       } else {
-        filter["players.username"] = { $regex: `^${username.trim()}$`, $options: "i" };
+        filter["players.username"] = { $regex: `^${safeUsername}$`, $options: "i" };
       }
     }
 
@@ -75,7 +84,7 @@ export async function GET(request: Request) {
     if (usernamesToFetch.length > 0) {
       queryOr.push({
         username: {
-          $in: usernamesToFetch.map((name) => new RegExp(`^${name}$`, "i")),
+          $in: usernamesToFetch,
         },
       });
     }
@@ -92,7 +101,7 @@ export async function GET(request: Request) {
     for (const u of users) {
       const data = { username: u.username, avatarUrl: u.avatarUrl || null };
       userByIdMap.set(u._id.toString(), data);
-      userByNameMap.set(u.username.toLowerCase(), data);
+      userByNameMap.set(u.username, data);
     }
 
     // Map each match participant to their LATEST username and avatarUrl
@@ -101,7 +110,7 @@ export async function GET(request: Request) {
       players: m.players.map((p) => {
         const u =
           (p.userId ? userByIdMap.get(p.userId.toString()) : null) ||
-          userByNameMap.get(p.username?.toLowerCase());
+          (p.username ? userByNameMap.get(p.username) : null);
         return {
           ...p,
           username: u ? u.username : p.username,
@@ -177,9 +186,10 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      const p1Name = (players[0].username || "").trim().toLowerCase();
-      const p2Name = (players[1].username || "").trim().toLowerCase();
-      if (p1Name && p2Name && p1Name === p2Name) {
+      const p1Name = (players[0].username || "").trim();
+      const p2Name = (players[1].username || "").trim();
+      // In production, block players from playing against themselves to farm stats
+      if (process.env.NODE_ENV === "production" && p1Name && p2Name && p1Name === p2Name) {
         return NextResponse.json(
           { error: "Match cannot be recorded with identical players" },
           { status: 400 }
@@ -212,15 +222,21 @@ export async function POST(request: Request) {
     }
 
     // Auto-link user IDs if not provided & load full user models to update stats
-    const userIds = players.map((p: any) => p.userId).filter(Boolean);
-    const usernames = players.map((p: any) => p.username).filter(Boolean);
+    const validUserIds = players
+      .map((p: any) => p.userId?.toString())
+      .filter((id: any) => id && mongoose.Types.ObjectId.isValid(id));
+    const usernames = players
+      .map((p: any) => p.username?.toString())
+      .filter(Boolean);
+
+    const escapeRegex = (s: string) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 
     const queryOr: Record<string, unknown>[] = [];
-    if (userIds.length > 0) queryOr.push({ _id: { $in: userIds } });
+    if (validUserIds.length > 0) queryOr.push({ _id: { $in: validUserIds } });
     if (usernames.length > 0) {
       queryOr.push({
         username: {
-          $in: usernames.map((name: string) => new RegExp(`^${name}$`, "i")),
+          $in: usernames,
         },
       });
     }
@@ -233,70 +249,138 @@ export async function POST(request: Request) {
       existingUsers.map((u) => [u._id.toString(), u])
     );
     const userByName = new Map<string, any>(
-      existingUsers.map((u) => [u.username.toLowerCase(), u])
+      existingUsers.map((u) => [u.username, u])
     );
 
     const formattedPlayers = players.map((p: any) => {
       const u =
-        (p.userId ? userById.get(p.userId.toString()) : null) ||
-        userByName.get(p.username?.toLowerCase());
+        (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+          ? userById.get(p.userId.toString())
+          : null) ||
+        (p.username ? userByName.get(p.username) : null);
       return {
-        userId: u ? u._id : p.userId || null,
+        userId: u ? u._id : (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString()) ? p.userId : null),
         username: u ? u.username : p.username,
         score: p.score ?? 0,
         result: p.result,
       };
     });
 
-    // Server-side duplicate match guard: Prevent saving identical match if posted within 3 seconds
-    const threeSecondsAgo = new Date(Date.now() - 3000);
-    const duplicateMatch = await Match.findOne({
-      gameType,
-      createdAt: { $gte: threeSecondsAgo },
-      "players.username": { $all: usernames },
+    const sanitizeUser = (u: any) => ({
+      id: u._id.toString(),
+      username: u.username,
+      avatarUrl: u.avatarUrl || null,
+      caroWins: u.caroWins ?? 0,
+      caroTotal: u.caroTotal ?? 0,
+      chessWins: u.chessWins ?? 0,
+      chessTotal: u.chessTotal ?? 0,
+      battleshipWins: u.battleshipWins ?? 0,
+      battleshipTotal: u.battleshipTotal ?? 0,
+      wordchainWins: u.wordchainWins ?? 0,
+      wordchainTotal: u.wordchainTotal ?? 0,
+      monopolyWins: u.monopolyWins ?? 0,
+      monopolyTotal: u.monopolyTotal ?? 0,
+      billiardsWins: u.billiardsWins ?? 0,
+      billiardsTotal: u.billiardsTotal ?? 0,
     });
-    if (duplicateMatch) {
-      return NextResponse.json(duplicateMatch, { status: 200 });
+
+    const sortedUsernames = usernames
+      .map((name: string) => name.trim())
+      .sort()
+      .join(":");
+
+    const lockKey = gameData && gameData.roomId
+      ? `${gameType}:${gameData.roomId}:${gameData.moves ?? gameData.movesCount ?? ""}`
+      : `${gameType}:${sortedUsernames}:${gameData?.moves ?? gameData?.movesCount ?? ""}`;
+
+    // If an identical match post is currently in flight, await its result to avoid duplicate DB insertions
+    const existingInFlight = inFlightMatchSubmissions.get(lockKey);
+    if (existingInFlight) {
+      const res = await existingInFlight;
+      return NextResponse.json(res.data, { status: res.status });
     }
 
-    const match = await Match.create({
-      gameType,
-      players: formattedPlayers,
-      duration: matchDuration,
-      gameData: gameData || {},
-    });
+    const submissionPromise = (async () => {
+      // Server-side duplicate match guard: Prevent saving identical match if posted within 30 seconds
+      const thirtySecondsAgo = new Date(Date.now() - 30_000);
+      let duplicateQuery: Record<string, unknown> = {
+        gameType,
+        createdAt: { $gte: thirtySecondsAgo },
+      };
 
-    // Update User total and wins for all participants in multiplayer/1v1 games
-    for (const p of formattedPlayers) {
-      const u = p.userId
-        ? userById.get(p.userId.toString())
-        : userByName.get(p.username?.toLowerCase());
-      if (u) {
-        const isWin = p.result === "win";
-        if (gameType === "caro") {
-          u.caroTotal = (u.caroTotal || 0) + 1;
-          if (isWin) u.caroWins = (u.caroWins || 0) + 1;
-        } else if (gameType === "chess") {
-          u.chessTotal = (u.chessTotal || 0) + 1;
-          if (isWin) u.chessWins = (u.chessWins || 0) + 1;
-        } else if (gameType === "battleship") {
-          u.battleshipTotal = (u.battleshipTotal || 0) + 1;
-          if (isWin) u.battleshipWins = (u.battleshipWins || 0) + 1;
-        } else if (gameType === "wordchain") {
-          u.wordchainTotal = (u.wordchainTotal || 0) + 1;
-          if (isWin) u.wordchainWins = (u.wordchainWins || 0) + 1;
-        } else if (gameType === "monopoly") {
-          u.monopolyTotal = (u.monopolyTotal || 0) + 1;
-          if (isWin) u.monopolyWins = (u.monopolyWins || 0) + 1;
-        } else if (gameType === "billiards") {
-          u.billiardsTotal = (u.billiardsTotal || 0) + 1;
-          if (isWin) u.billiardsWins = (u.billiardsWins || 0) + 1;
+      if (gameData && gameData.roomId) {
+        duplicateQuery["gameData.roomId"] = gameData.roomId;
+        if (gameData.moves !== undefined) {
+          duplicateQuery["gameData.moves"] = gameData.moves;
         }
-        await u.save();
+      } else {
+        duplicateQuery["players.username"] = {
+          $all: usernames,
+        };
       }
-    }
 
-    return NextResponse.json({ match, users: existingUsers }, { status: 201 });
+      const duplicateMatch = await Match.findOne(duplicateQuery);
+      if (duplicateMatch) {
+        // Re-fetch users to get their latest saved stats from MongoDB
+        const freshUsers = queryOr.length > 0 ? await User.find({ $or: queryOr }) : [];
+        return {
+          status: 200,
+          data: { match: duplicateMatch, users: freshUsers.map(sanitizeUser) },
+        };
+      }
+
+      const match = await Match.create({
+        gameType,
+        players: formattedPlayers,
+        duration: matchDuration,
+        gameData: gameData || {},
+      });
+
+      // Update User total and wins for all participants in multiplayer/1v1 games
+      for (const p of formattedPlayers) {
+        const u =
+          (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+            ? userById.get(p.userId.toString())
+            : null) ||
+          (p.username ? userByName.get(p.username) : null);
+        if (u) {
+          const isWin = p.result === "win";
+          if (gameType === "caro") {
+            u.caroTotal = (u.caroTotal || 0) + 1;
+            if (isWin) u.caroWins = (u.caroWins || 0) + 1;
+          } else if (gameType === "chess") {
+            u.chessTotal = (u.chessTotal || 0) + 1;
+            if (isWin) u.chessWins = (u.chessWins || 0) + 1;
+          } else if (gameType === "battleship") {
+            u.battleshipTotal = (u.battleshipTotal || 0) + 1;
+            if (isWin) u.battleshipWins = (u.battleshipWins || 0) + 1;
+          } else if (gameType === "wordchain") {
+            u.wordchainTotal = (u.wordchainTotal || 0) + 1;
+            if (isWin) u.wordchainWins = (u.wordchainWins || 0) + 1;
+          } else if (gameType === "monopoly") {
+            u.monopolyTotal = (u.monopolyTotal || 0) + 1;
+            if (isWin) u.monopolyWins = (u.monopolyWins || 0) + 1;
+          } else if (gameType === "billiards") {
+            u.billiardsTotal = (u.billiardsTotal || 0) + 1;
+            if (isWin) u.billiardsWins = (u.billiardsWins || 0) + 1;
+          }
+          await u.save();
+        }
+      }
+
+      return {
+        status: 201,
+        data: { match, users: existingUsers.map(sanitizeUser) },
+      };
+    })();
+
+    inFlightMatchSubmissions.set(lockKey, submissionPromise);
+    try {
+      const outcome = await submissionPromise;
+      return NextResponse.json(outcome.data, { status: outcome.status });
+    } finally {
+      inFlightMatchSubmissions.delete(lockKey);
+    }
   } catch (error) {
     console.error("POST /api/matches error:", error);
     return NextResponse.json(

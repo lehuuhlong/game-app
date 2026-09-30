@@ -41,7 +41,7 @@ export function GameWordChain() {
     didIWin,
     leaveRoom,
     requestRematch,
-  } = useWordChain();
+  } = useWordChain(user?.id || (user as any)?._id);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

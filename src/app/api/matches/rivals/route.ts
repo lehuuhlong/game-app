@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     }
 
     const targetUser = await User.findOne({
-      username: { $regex: `^${username}$`, $options: "i" },
+      username,
     })
       .select("_id username")
       .lean();
@@ -41,10 +41,10 @@ export async function GET(request: Request) {
     if (targetUser) {
       matchQuery.$or = [
         { "players.userId": targetUser._id },
-        { "players.username": { $regex: `^${username}$`, $options: "i" } },
+        { "players.username": username },
       ];
     } else {
-      matchQuery["players.username"] = { $regex: `^${username}$`, $options: "i" };
+      matchQuery["players.username"] = username;
     }
 
     const matches = await Match.find(matchQuery)
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
     const isMe = (p: any) =>
       (targetUser && p.userId?.toString() === targetUser._id.toString()) ||
-      p.username.toLowerCase() === username.toLowerCase();
+      p.username === username;
 
     const rivalMap: Record<
       string,
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       const opponents = m.players.filter((p) => !isMe(p));
 
       opponents.forEach((opp) => {
-        const oppKey = opp.userId ? opp.userId.toString() : opp.username.toLowerCase();
+        const oppKey = opp.userId ? opp.userId.toString() : opp.username;
         if (!rivalMap[oppKey]) {
           rivalMap[oppKey] = {
             userId: opp.userId ? opp.userId.toString() : null,
@@ -137,14 +137,14 @@ export async function GET(request: Request) {
     for (const u of users) {
       const data = { username: u.username, avatarUrl: u.avatarUrl || null };
       userById.set(u._id.toString(), data);
-      userByName.set(u.username.toLowerCase(), data);
+      userByName.set(u.username, data);
     }
 
     const rivals = Object.values(rivalMap)
       .map((r) => {
         const u =
           (r.userId ? userById.get(r.userId) : null) ||
-          userByName.get(r.username.toLowerCase());
+          userByName.get(r.username);
         const finalUsername = u ? u.username : r.username;
         const finalAvatar = u ? u.avatarUrl : null;
 

@@ -75,7 +75,7 @@ export interface VerifySessionResult {
 export async function verifyAndConsumeGameSession(
   sessionToken: string,
   gameType: string,
-  options?: { userId?: string; username?: string; action?: "score" | "match" }
+  options?: { userId?: string; username?: string; action?: "score" | "match"; isFinal?: boolean }
 ): Promise<VerifySessionResult> {
   if (!sessionToken || typeof sessionToken !== "string") {
     return { valid: false, error: "Session token is required", status: 400 };
@@ -143,17 +143,17 @@ export async function verifyAndConsumeGameSession(
   }
 
   const MAX_SESSION_AGE_MS: Record<string, number> = {
-    flappybird: 20 * 60 * 1000, // 20 minutes max for single run
-    trex: 20 * 60 * 1000,       // 20 minutes max for single run
-    aimtrainer: 15 * 60 * 1000, // 15 minutes max
-    wordle: 30 * 60 * 1000,     // 30 minutes max
-    minesweeper: 45 * 60 * 1000,// 45 minutes max
-    sudoku: 90 * 60 * 1000,     // 90 minutes max
-    pikachu: 150 * 60 * 1000,   // 2.5 hours max
-    "2048": 150 * 60 * 1000,    // 2.5 hours max
-    line98: 150 * 60 * 1000,    // 2.5 hours max
-    neonsnake: 30 * 60 * 1000,  // 30 minutes max
-    blockdrop: 60 * 60 * 1000,  // 60 minutes max
+    flappybird: 30 * 60 * 1000,  // 30 minutes max
+    trex: 30 * 60 * 1000,        // 30 minutes max
+    aimtrainer: 15 * 60 * 1000,  // 15 minutes max
+    wordle: 60 * 60 * 1000,      // 60 minutes max
+    minesweeper: 4 * 60 * 60 * 1000, // 4 hours max (allows long expert games & breaks)
+    sudoku: 6 * 60 * 60 * 1000,  // 6 hours max (allows difficult puzzles & breaks)
+    pikachu: 24 * 60 * 60 * 1000,// 24 hours max (allows pausing overnight between levels)
+    "2048": 24 * 60 * 60 * 1000, // 24 hours max (allows long runs & overnight pauses)
+    line98: 24 * 60 * 60 * 1000, // 24 hours max (allows long strategic play)
+    neonsnake: 60 * 60 * 1000,   // 60 minutes max
+    blockdrop: 60 * 60 * 1000,   // 60 minutes max
   };
   const maxAllowedAge = MAX_SESSION_AGE_MS[gameType] || 120 * 60 * 1000;
   if (sessionAgeMs > maxAllowedAge) {
@@ -165,12 +165,14 @@ export async function verifyAndConsumeGameSession(
   }
 
   const action = options?.action || "score";
+  const isProgressiveGame = gameType === "pikachu" || gameType === "2048";
+  const isFinal = options?.isFinal ?? (!isProgressiveGame);
 
   // 3. Prevent Replay Attack via MongoDB consumed session registry
   await dbConnect();
 
   const claimExistingSession = async (existing: any): Promise<VerifySessionResult> => {
-    if (action === "score" && existing.scoreSubmitted) {
+    if (action === "score" && existing.scoreSubmitted && (!isProgressiveGame || existing.completed)) {
       return {
         valid: false,
         error: "Score has already been recorded for this game session",
@@ -188,13 +190,27 @@ export async function verifyAndConsumeGameSession(
     // Atomically set the flag using findOneAndUpdate to prevent race condition
     const updateCond =
       action === "score"
-        ? { sessionId, scoreSubmitted: { $ne: true } }
+        ? isProgressiveGame && !existing.completed
+          ? { sessionId, completed: { $ne: true } }
+          : { sessionId, scoreSubmitted: { $ne: true } }
         : { sessionId, matchSubmitted: { $ne: true } };
 
     const updateSet =
       action === "score"
-        ? { $set: { scoreSubmitted: true, completed: true, completedAt: new Date() } }
-        : { $set: { matchSubmitted: true, completed: true, completedAt: new Date() } };
+        ? {
+            $set: {
+              scoreSubmitted: true,
+              completed: isFinal,
+              completedAt: new Date(),
+            },
+          }
+        : {
+            $set: {
+              matchSubmitted: true,
+              ...(isProgressiveGame ? {} : { completed: true }),
+              completedAt: new Date(),
+            },
+          };
 
     const updated = await GameSession.findOneAndUpdate(updateCond, updateSet, { returnDocument: 'after' });
     if (!updated) {
@@ -225,7 +241,7 @@ export async function verifyAndConsumeGameSession(
         username: options?.username || null,
         gameType,
         startTime: new Date(startTimeMs),
-        completed: true,
+        completed: action === "match" && isProgressiveGame ? false : isFinal,
         scoreSubmitted: action === "score",
         matchSubmitted: action === "match",
         completedAt: new Date(),

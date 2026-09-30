@@ -36,7 +36,7 @@ export function HeadToHeadBadge({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!player1 || !player2 || player1.toLowerCase() === player2.toLowerCase()) {
+    if (!player1 || !player2 || player1 === player2) {
       setLoading(false);
       return;
     }
@@ -65,7 +65,7 @@ export function HeadToHeadBadge({
     };
   }, [player1, player2, gameType]);
 
-  if (!player1 || !player2 || player1.toLowerCase() === player2.toLowerCase()) {
+  if (!player1 || !player2 || player1 === player2) {
     return null;
   }
 
