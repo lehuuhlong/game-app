@@ -90,11 +90,6 @@ export async function GET(request: Request) {
     if (!user && username) {
       const clean = sanitizeUsername(username);
       user = await User.findOne({ username: clean });
-      if (!user) {
-        user = await User.findOne({
-          username: { $regex: `^${escapeRegex(clean)}$`, $options: "i" },
-        });
-      }
     }
 
     if (!user) {
@@ -117,12 +112,8 @@ export async function POST(request: Request) {
     await dbConnect();
 
     const cleanUsername = sanitizeUsername(username);
+    // Find user with exact username (case-sensitive)
     let user = await User.findOne({ username: cleanUsername });
-    if (!user) {
-      user = await User.findOne({
-        username: { $regex: `^${escapeRegex(cleanUsername)}$`, $options: "i" },
-      });
-    }
 
     if (!user) {
       try {
@@ -131,11 +122,6 @@ export async function POST(request: Request) {
         const mongoErr = createErr as { code?: number };
         if (mongoErr && mongoErr.code === 11000) {
           user = await User.findOne({ username: cleanUsername });
-          if (!user) {
-            user = await User.findOne({
-              username: { $regex: `^${escapeRegex(cleanUsername)}$`, $options: "i" },
-            });
-          }
         }
         if (!user) throw createErr;
       }
@@ -157,9 +143,8 @@ export async function PATCH(request: Request) {
     await dbConnect();
 
     const cleanUsername = sanitizeUsername(newUsername);
-    const existing = await User.findOne({
-      username: { $regex: `^${escapeRegex(cleanUsername)}$`, $options: "i" },
-    });
+    // Exact match: check if another account already has this exact username
+    const existing = await User.findOne({ username: cleanUsername });
     if (existing && existing._id.toString() !== id) {
       return NextResponse.json(
         { error: "Username already taken" },
@@ -181,17 +166,17 @@ export async function PATCH(request: Request) {
       { arrayFilters: [{ "elem.userId": user._id }] }
     );
 
-    // 2. Also update any legacy matches where players.username was oldUsername (and link their userId)
-    if (oldUsername && oldUsername.toLowerCase() !== cleanUsername.toLowerCase()) {
+    // 2. Also update any legacy matches where players.username was exact oldUsername
+    if (oldUsername && oldUsername !== cleanUsername) {
       await Match.updateMany(
-        { "players.username": { $regex: `^${escapeRegex(oldUsername)}$`, $options: "i" } },
+        { "players.username": oldUsername },
         {
           $set: {
             "players.$[elem].username": cleanUsername,
             "players.$[elem].userId": user._id,
           },
         },
-        { arrayFilters: [{ "elem.username": { $regex: `^${escapeRegex(oldUsername)}$`, $options: "i" } }] }
+        { arrayFilters: [{ "elem.username": oldUsername }] }
       );
     }
 

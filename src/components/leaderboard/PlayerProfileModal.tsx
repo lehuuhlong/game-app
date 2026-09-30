@@ -85,7 +85,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
   const isCurrentUser = Boolean(
     currentUser &&
       username &&
-      currentUser.username.trim().toLowerCase() === username.trim().toLowerCase()
+      currentUser.username.trim() === username.trim()
   );
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
     async function fetchUserData() {
       try {
         const [userRes, matchesRes] = await Promise.all([
-          fetch(`/api/users?q=${encodeURIComponent(username!)}`),
+          fetch(`/api/users?username=${encodeURIComponent(username!)}`),
           fetch(`/api/matches?username=${encodeURIComponent(username!)}&limit=10`),
         ]);
 
@@ -104,9 +104,9 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
         const matchesData = await matchesRes.json();
 
         if (active) {
-          const matchedUser = userData.users?.find(
-            (u: any) => u.username.toLowerCase() === username!.toLowerCase()
-          );
+          const matchedUser =
+            userData.user ||
+            userData.users?.find((u: any) => u.username === username);
           setProfile(matchedUser || null);
           setRecentMatches(matchesData.matches || []);
         }
@@ -717,7 +717,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                       (p: any) =>
                         (profile?._id && p.userId && p.userId.toString() === profile._id.toString()) ||
                         (profile?.id && p.userId && p.userId.toString() === profile.id.toString()) ||
-                        p.username.toLowerCase() === username.toLowerCase()
+                        p.username === username
                     );
                     const isWin = myPlayer?.result === 'win';
                     const isDraw = myPlayer?.result === 'draw';
@@ -808,7 +808,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                               vs{' '}
                               {m.players
                                 ?.filter(
-                                  (p: any) => p.username.toLowerCase() !== username.toLowerCase()
+                                  (p: any) => p.username !== username
                                 )
                                 .map((p: any) => p.username)
                                 .join(', ') || 'Solo'}

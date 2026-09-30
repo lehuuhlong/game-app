@@ -165,13 +165,13 @@ export function GameCaro() {
             gameType: "caro",
             players: [
               {
-                userId: p1.userId || (p1.username.toLowerCase() === currentUser?.username?.toLowerCase() ? currentUser?.id : undefined),
+                userId: p1.userId || (p1.username === currentUser?.username ? currentUser?.id : undefined),
                 username: p1.username,
                 result: isDraw ? "draw" : p1Won ? "win" : "loss",
                 score: p1Won ? 1 : 0,
               },
               {
-                userId: p2.userId || (p2.username.toLowerCase() === currentUser?.username?.toLowerCase() ? currentUser?.id : undefined),
+                userId: p2.userId || (p2.username === currentUser?.username ? currentUser?.id : undefined),
                 username: p2.username,
                 result: isDraw ? "draw" : p2Won ? "win" : "loss",
                 score: p2Won ? 1 : 0,
@@ -199,7 +199,7 @@ export function GameCaro() {
               const updatedMe = data.users.find(
                 (x: any) =>
                   (currentUser?.id && x.id === currentUser.id) ||
-                  (currentUser?.username && x.username.toLowerCase() === currentUser.username.toLowerCase())
+                  (currentUser?.username && x.username === currentUser.username)
               );
               if (updatedMe) {
                 refreshUserRef.current(updatedMe);
@@ -236,7 +236,7 @@ export function GameCaro() {
         const updatedMe = users.find(
           (x: any) =>
             (currentUser?.id && x.id === currentUser.id) ||
-            (currentUser?.username && x.username.toLowerCase() === currentUser.username.toLowerCase())
+            (currentUser?.username && x.username === currentUser.username)
         );
         if (updatedMe) {
           refreshUserRef.current(updatedMe);

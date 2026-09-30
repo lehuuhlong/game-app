@@ -20,12 +20,18 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q');
+    const usernameParam = searchParams.get('username');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const skip = (page - 1) * limit;
 
     // Build query filter
-    const filter = q ? { username: { $regex: escapeRegex(q.trim()), $options: 'i' } } : {};
+    let filter: Record<string, unknown> = {};
+    if (usernameParam) {
+      filter = { username: usernameParam.trim() };
+    } else if (q) {
+      filter = { username: { $regex: escapeRegex(q.trim()), $options: 'i' } };
+    }
 
     const [users, total] = await Promise.all([
       User.find(filter).select('-__v').sort({ 'stats.totalScore': -1 }).skip(skip).limit(limit).lean(),

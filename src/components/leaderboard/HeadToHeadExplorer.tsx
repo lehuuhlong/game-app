@@ -164,7 +164,7 @@ export function HeadToHeadExplorer({
     const p1 = p1Input.trim();
     const p2 = p2Input.trim();
 
-    if (!p1 || !p2 || p1.toLowerCase() === p2.toLowerCase()) {
+    if (!p1 || !p2 || p1 === p2) {
       setH2HData(null);
       setError(null);
       return;
@@ -282,7 +282,7 @@ export function HeadToHeadExplorer({
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {myRivals.map((r) => {
-                const isSelected = p2Input.toLowerCase() === r.username.toLowerCase();
+                const isSelected = p2Input === r.username;
                 return (
                   <button
                     key={r.username}
@@ -662,7 +662,7 @@ function UserSearchInput({
   // Filter out the other player from suggestions in memory (does NOT trigger refetch)
   const visibleSuggestions = suggestions.filter(
     (u: any) =>
-      !excludeUsername || u.username.toLowerCase() !== excludeUsername.toLowerCase()
+      !excludeUsername || u.username !== excludeUsername
   );
 
   // Click outside to close

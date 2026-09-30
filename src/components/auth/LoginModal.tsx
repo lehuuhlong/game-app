@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "./AuthProvider";
 
@@ -21,6 +21,55 @@ export function LoginModal({
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // Lock body scroll while login modal is open
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+
+    // Prevent layout shift from scrollbar disappearing
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    window.dispatchEvent(new CustomEvent("lenis:stop"));
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.target === backdropRef.current) {
+        e.preventDefault();
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.target === backdropRef.current) {
+        e.preventDefault();
+      }
+    };
+
+    const backdropEl = backdropRef.current;
+    if (backdropEl) {
+      backdropEl.addEventListener("touchmove", handleTouchMove, { passive: false });
+      backdropEl.addEventListener("wheel", handleWheel, { passive: false });
+    }
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+      window.dispatchEvent(new CustomEvent("lenis:start"));
+
+      if (backdropEl) {
+        backdropEl.removeEventListener("touchmove", handleTouchMove);
+        backdropEl.removeEventListener("wheel", handleWheel);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +90,14 @@ export function LoginModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={onClose}>
+    <div
+      ref={backdropRef}
+      data-lenis-prevent
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <motion.div
+        data-lenis-prevent
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 28 }}
@@ -120,7 +175,7 @@ export function LoginModal({
             </form>
 
             <p className="mt-4 text-center text-xs text-foreground-muted">
-              No password needed. You can change your username anytime.
+              Username is case-sensitive (e.g. &quot;long&quot; and &quot;Long&quot; are separate accounts). No password needed.
             </p>
           </div>
         </div>

@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       );
     }
 
-    if (p1.toLowerCase() === p2.toLowerCase()) {
+    if (p1 === p2) {
       return NextResponse.json(
         { error: "player1 and player2 must be distinct users" },
         { status: 400 }
@@ -39,21 +39,21 @@ export async function GET(request: Request) {
 
     // Fetch user profiles for avatars & display
     const [user1, user2] = await Promise.all([
-      User.findOne({ username: { $regex: `^${p1}$`, $options: "i" } })
+      User.findOne({ username: p1 })
         .select("_id username avatarUrl")
         .lean(),
-      User.findOne({ username: { $regex: `^${p2}$`, $options: "i" } })
+      User.findOne({ username: p2 })
         .select("_id username avatarUrl")
         .lean(),
     ]);
 
     const user1Filter = user1
-      ? { $or: [{ "players.userId": user1._id }, { "players.username": { $regex: `^${p1}$`, $options: "i" } }] }
-      : { "players.username": { $regex: `^${p1}$`, $options: "i" } };
+      ? { $or: [{ "players.userId": user1._id }, { "players.username": p1 }] }
+      : { "players.username": p1 };
 
     const user2Filter = user2
-      ? { $or: [{ "players.userId": user2._id }, { "players.username": { $regex: `^${p2}$`, $options: "i" } }] }
-      : { "players.username": { $regex: `^${p2}$`, $options: "i" } };
+      ? { $or: [{ "players.userId": user2._id }, { "players.username": p2 }] }
+      : { "players.username": p2 };
 
     const query: Record<string, unknown> = {
       $and: [user1Filter, user2Filter],
@@ -70,11 +70,11 @@ export async function GET(request: Request) {
 
     const isP1 = (p: any) =>
       (user1 && p.userId?.toString() === user1._id.toString()) ||
-      p.username.toLowerCase() === p1.toLowerCase();
+      p.username === p1;
 
     const isP2 = (p: any) =>
       (user2 && p.userId?.toString() === user2._id.toString()) ||
-      p.username.toLowerCase() === p2.toLowerCase();
+      p.username === p2;
 
     let p1Wins = 0;
     let p2Wins = 0;

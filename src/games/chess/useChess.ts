@@ -355,7 +355,7 @@ export function useChess(username: string) {
                     const updated = resData.users.find(
                       (x: any) =>
                         (u.id && x.id === u.id) ||
-                        (x.username && x.username.toLowerCase() === u.username.toLowerCase())
+                        (x.username && x.username === u.username)
                     );
                     if (updated) {
                       Object.assign(u, updated);
@@ -393,7 +393,7 @@ export function useChess(username: string) {
             const updated = users.find(
               (x: any) =>
                 (u.id && x.id === u.id) ||
-                (x.username && x.username.toLowerCase() === u.username.toLowerCase())
+                (x.username && x.username === u.username)
             );
             if (updated) {
               Object.assign(u, updated);

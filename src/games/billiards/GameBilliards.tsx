@@ -267,7 +267,7 @@ export function GameBilliards() {
             (x: any) =>
               (u.id && x.id === u.id) ||
               (u._id && x._id === u._id) ||
-              (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+              (x.username && x.username === u.username)
           );
           if (updated) {
             Object.assign(u, updated);
@@ -669,7 +669,7 @@ export function GameBilliards() {
                     (x: any) =>
                       (u.id && x.id === u.id) ||
                       (u._id && x._id === u._id) ||
-                      (x.username && x.username.toLowerCase() === u.username?.toLowerCase())
+                      (x.username && x.username === u.username)
                   );
                   if (updated) {
                     Object.assign(u, updated);

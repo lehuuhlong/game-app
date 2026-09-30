@@ -84,7 +84,7 @@ export async function GET(request: Request) {
     if (usernamesToFetch.length > 0) {
       queryOr.push({
         username: {
-          $in: usernamesToFetch.map((name) => new RegExp(`^${name}$`, "i")),
+          $in: usernamesToFetch,
         },
       });
     }
@@ -101,7 +101,7 @@ export async function GET(request: Request) {
     for (const u of users) {
       const data = { username: u.username, avatarUrl: u.avatarUrl || null };
       userByIdMap.set(u._id.toString(), data);
-      userByNameMap.set(u.username.toLowerCase(), data);
+      userByNameMap.set(u.username, data);
     }
 
     // Map each match participant to their LATEST username and avatarUrl
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
       players: m.players.map((p) => {
         const u =
           (p.userId ? userByIdMap.get(p.userId.toString()) : null) ||
-          userByNameMap.get(p.username?.toLowerCase());
+          (p.username ? userByNameMap.get(p.username) : null);
         return {
           ...p,
           username: u ? u.username : p.username,
@@ -185,8 +185,8 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      const p1Name = (players[0].username || "").trim().toLowerCase();
-      const p2Name = (players[1].username || "").trim().toLowerCase();
+      const p1Name = (players[0].username || "").trim();
+      const p2Name = (players[1].username || "").trim();
       // In production, block players from playing against themselves to farm stats
       if (process.env.NODE_ENV === "production" && p1Name && p2Name && p1Name === p2Name) {
         return NextResponse.json(
@@ -235,7 +235,7 @@ export async function POST(request: Request) {
     if (usernames.length > 0) {
       queryOr.push({
         username: {
-          $in: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
+          $in: usernames,
         },
       });
     }
@@ -248,7 +248,7 @@ export async function POST(request: Request) {
       existingUsers.map((u) => [u._id.toString(), u])
     );
     const userByName = new Map<string, any>(
-      existingUsers.map((u) => [u.username.toLowerCase(), u])
+      existingUsers.map((u) => [u.username, u])
     );
 
     const formattedPlayers = players.map((p: any) => {
@@ -256,7 +256,7 @@ export async function POST(request: Request) {
         (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
           ? userById.get(p.userId.toString())
           : null) ||
-        userByName.get(p.username?.toLowerCase());
+        (p.username ? userByName.get(p.username) : null);
       return {
         userId: u ? u._id : (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString()) ? p.userId : null),
         username: u ? u.username : p.username,
@@ -284,7 +284,7 @@ export async function POST(request: Request) {
     });
 
     const sortedUsernames = usernames
-      .map((name: string) => name.toLowerCase().trim())
+      .map((name: string) => name.trim())
       .sort()
       .join(":");
 
@@ -314,7 +314,7 @@ export async function POST(request: Request) {
         }
       } else {
         duplicateQuery["players.username"] = {
-          $all: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
+          $all: usernames,
         };
       }
 
@@ -341,7 +341,7 @@ export async function POST(request: Request) {
           (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
             ? userById.get(p.userId.toString())
             : null) ||
-          userByName.get(p.username?.toLowerCase());
+          (p.username ? userByName.get(p.username) : null);
         if (u) {
           const isWin = p.result === "win";
           if (gameType === "caro") {
