@@ -12,6 +12,10 @@ import dbConnect from "@/lib/mongodb";
 import Match from "@/models/Match";
 import User from "@/models/User";
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Mutex map to deduplicate concurrent match requests in flight
 const inFlightMatchSubmissions = new Map<string, Promise<{ status: number; data: any }>>();
 
@@ -32,8 +36,9 @@ export async function GET(request: Request) {
     }
     if (username) {
       // Find the user by username to match matches by both their userId and username
+      const safeUsername = escapeRegex(username.trim());
       const targetUser = await User.findOne({
-        username: { $regex: `^${username.trim()}$`, $options: "i" },
+        username: { $regex: `^${safeUsername}$`, $options: "i" },
       })
         .select("_id")
         .lean();
@@ -41,10 +46,10 @@ export async function GET(request: Request) {
       if (targetUser) {
         filter.$or = [
           { "players.userId": targetUser._id },
-          { "players.username": { $regex: `^${username.trim()}$`, $options: "i" } },
+          { "players.username": { $regex: `^${safeUsername}$`, $options: "i" } },
         ];
       } else {
-        filter["players.username"] = { $regex: `^${username.trim()}$`, $options: "i" };
+        filter["players.username"] = { $regex: `^${safeUsername}$`, $options: "i" };
       }
     }
 

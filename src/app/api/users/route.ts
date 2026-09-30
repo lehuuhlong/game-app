@@ -10,6 +10,10 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET(request: Request) {
   try {
     await dbConnect();
@@ -21,7 +25,7 @@ export async function GET(request: Request) {
     const skip = (page - 1) * limit;
 
     // Build query filter
-    const filter = q ? { username: { $regex: q, $options: 'i' } } : {};
+    const filter = q ? { username: { $regex: escapeRegex(q.trim()), $options: 'i' } } : {};
 
     const [users, total] = await Promise.all([
       User.find(filter).select('-__v').sort({ 'stats.totalScore': -1 }).skip(skip).limit(limit).lean(),
