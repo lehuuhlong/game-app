@@ -88,12 +88,23 @@ export function useGameSession(gameType: string) {
     async (userId?: string | null, username?: string | null): Promise<string | null> => {
       if (sessionTokenRef.current) {
         // Check if the session is nearing expiry and proactively renew it.
-        // The server TTL varies per game, but we use a conservative 5-hour
-        // threshold that works for long-session games like pikachu.
+        const GAME_TTL_MS: Record<string, number> = {
+          flappybird: 30 * 60 * 1000,
+          trex: 30 * 60 * 1000,
+          aimtrainer: 15 * 60 * 1000,
+          wordle: 60 * 60 * 1000,
+          minesweeper: 4 * 60 * 60 * 1000,
+          sudoku: 6 * 60 * 60 * 1000,
+          pikachu: 24 * 60 * 60 * 1000,
+          "2048": 24 * 60 * 60 * 1000,
+          line98: 24 * 60 * 60 * 1000,
+          neonsnake: 60 * 60 * 1000,
+        };
+        const maxTtl = GAME_TTL_MS[gameType] || 2 * 60 * 60 * 1000;
+        const PROACTIVE_RENEW_MS = maxTtl * 0.75;
         const ageMs = Date.now() - startTimeRef.current;
-        const PROACTIVE_RENEW_MS = 5 * 60 * 60 * 1000; // 5 hours
         if (ageMs > PROACTIVE_RENEW_MS) {
-          // Token is old — force renew to avoid server rejection, but preserve
+          // Token is nearing expiry — force renew to avoid server rejection, but preserve
           // the original start time so elapsed duration stays cumulative.
           return await startSession(userId, username, true, true);
         }

@@ -12,6 +12,9 @@ import dbConnect from "@/lib/mongodb";
 import Match from "@/models/Match";
 import User from "@/models/User";
 
+// Mutex map to deduplicate concurrent match requests in flight
+const inFlightMatchSubmissions = new Map<string, Promise<{ status: number; data: any }>>();
+
 export async function GET(request: Request) {
   try {
     await dbConnect();
@@ -275,67 +278,103 @@ export async function POST(request: Request) {
       billiardsTotal: u.billiardsTotal ?? 0,
     });
 
-    // Server-side duplicate match guard: Prevent saving identical match if posted within 4 seconds
-    const fourSecondsAgo = new Date(Date.now() - 4000);
-    const duplicateMatch = await Match.findOne({
-      gameType,
-      createdAt: { $gte: fourSecondsAgo },
-      "players.username": {
-        $all: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
-      },
-    });
-    if (duplicateMatch) {
-      // Re-fetch users to get their latest saved stats from MongoDB
-      const freshUsers = queryOr.length > 0 ? await User.find({ $or: queryOr }) : [];
-      return NextResponse.json(
-        { match: duplicateMatch, users: freshUsers.map(sanitizeUser) },
-        { status: 200 }
-      );
+    const sortedUsernames = usernames
+      .map((name: string) => name.toLowerCase().trim())
+      .sort()
+      .join(":");
+
+    const lockKey = gameData && gameData.roomId
+      ? `${gameType}:${gameData.roomId}:${gameData.moves ?? gameData.movesCount ?? ""}`
+      : `${gameType}:${sortedUsernames}:${gameData?.moves ?? gameData?.movesCount ?? ""}`;
+
+    // If an identical match post is currently in flight, await its result to avoid duplicate DB insertions
+    const existingInFlight = inFlightMatchSubmissions.get(lockKey);
+    if (existingInFlight) {
+      const res = await existingInFlight;
+      return NextResponse.json(res.data, { status: res.status });
     }
 
-    const match = await Match.create({
-      gameType,
-      players: formattedPlayers,
-      duration: matchDuration,
-      gameData: gameData || {},
-    });
+    const submissionPromise = (async () => {
+      // Server-side duplicate match guard: Prevent saving identical match if posted within 30 seconds
+      const thirtySecondsAgo = new Date(Date.now() - 30_000);
+      let duplicateQuery: Record<string, unknown> = {
+        gameType,
+        createdAt: { $gte: thirtySecondsAgo },
+      };
 
-    // Update User total and wins for all participants in multiplayer/1v1 games
-    for (const p of formattedPlayers) {
-      const u =
-        (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
-          ? userById.get(p.userId.toString())
-          : null) ||
-        userByName.get(p.username?.toLowerCase());
-      if (u) {
-        const isWin = p.result === "win";
-        if (gameType === "caro") {
-          u.caroTotal = (u.caroTotal || 0) + 1;
-          if (isWin) u.caroWins = (u.caroWins || 0) + 1;
-        } else if (gameType === "chess") {
-          u.chessTotal = (u.chessTotal || 0) + 1;
-          if (isWin) u.chessWins = (u.chessWins || 0) + 1;
-        } else if (gameType === "battleship") {
-          u.battleshipTotal = (u.battleshipTotal || 0) + 1;
-          if (isWin) u.battleshipWins = (u.battleshipWins || 0) + 1;
-        } else if (gameType === "wordchain") {
-          u.wordchainTotal = (u.wordchainTotal || 0) + 1;
-          if (isWin) u.wordchainWins = (u.wordchainWins || 0) + 1;
-        } else if (gameType === "monopoly") {
-          u.monopolyTotal = (u.monopolyTotal || 0) + 1;
-          if (isWin) u.monopolyWins = (u.monopolyWins || 0) + 1;
-        } else if (gameType === "billiards") {
-          u.billiardsTotal = (u.billiardsTotal || 0) + 1;
-          if (isWin) u.billiardsWins = (u.billiardsWins || 0) + 1;
+      if (gameData && gameData.roomId) {
+        duplicateQuery["gameData.roomId"] = gameData.roomId;
+        if (gameData.moves !== undefined) {
+          duplicateQuery["gameData.moves"] = gameData.moves;
         }
-        await u.save();
+      } else {
+        duplicateQuery["players.username"] = {
+          $all: usernames.map((name: string) => new RegExp(`^${escapeRegex(name)}$`, "i")),
+        };
       }
-    }
 
-    return NextResponse.json(
-      { match, users: existingUsers.map(sanitizeUser) },
-      { status: 201 }
-    );
+      const duplicateMatch = await Match.findOne(duplicateQuery);
+      if (duplicateMatch) {
+        // Re-fetch users to get their latest saved stats from MongoDB
+        const freshUsers = queryOr.length > 0 ? await User.find({ $or: queryOr }) : [];
+        return {
+          status: 200,
+          data: { match: duplicateMatch, users: freshUsers.map(sanitizeUser) },
+        };
+      }
+
+      const match = await Match.create({
+        gameType,
+        players: formattedPlayers,
+        duration: matchDuration,
+        gameData: gameData || {},
+      });
+
+      // Update User total and wins for all participants in multiplayer/1v1 games
+      for (const p of formattedPlayers) {
+        const u =
+          (p.userId && mongoose.Types.ObjectId.isValid(p.userId.toString())
+            ? userById.get(p.userId.toString())
+            : null) ||
+          userByName.get(p.username?.toLowerCase());
+        if (u) {
+          const isWin = p.result === "win";
+          if (gameType === "caro") {
+            u.caroTotal = (u.caroTotal || 0) + 1;
+            if (isWin) u.caroWins = (u.caroWins || 0) + 1;
+          } else if (gameType === "chess") {
+            u.chessTotal = (u.chessTotal || 0) + 1;
+            if (isWin) u.chessWins = (u.chessWins || 0) + 1;
+          } else if (gameType === "battleship") {
+            u.battleshipTotal = (u.battleshipTotal || 0) + 1;
+            if (isWin) u.battleshipWins = (u.battleshipWins || 0) + 1;
+          } else if (gameType === "wordchain") {
+            u.wordchainTotal = (u.wordchainTotal || 0) + 1;
+            if (isWin) u.wordchainWins = (u.wordchainWins || 0) + 1;
+          } else if (gameType === "monopoly") {
+            u.monopolyTotal = (u.monopolyTotal || 0) + 1;
+            if (isWin) u.monopolyWins = (u.monopolyWins || 0) + 1;
+          } else if (gameType === "billiards") {
+            u.billiardsTotal = (u.billiardsTotal || 0) + 1;
+            if (isWin) u.billiardsWins = (u.billiardsWins || 0) + 1;
+          }
+          await u.save();
+        }
+      }
+
+      return {
+        status: 201,
+        data: { match, users: existingUsers.map(sanitizeUser) },
+      };
+    })();
+
+    inFlightMatchSubmissions.set(lockKey, submissionPromise);
+    try {
+      const outcome = await submissionPromise;
+      return NextResponse.json(outcome.data, { status: outcome.status });
+    } finally {
+      inFlightMatchSubmissions.delete(lockKey);
+    }
   } catch (error) {
     console.error("POST /api/matches error:", error);
     return NextResponse.json(

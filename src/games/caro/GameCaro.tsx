@@ -178,7 +178,12 @@ export function GameCaro() {
               },
             ],
             duration: 0,
-            gameData: { moves: moveCountRef.current, winner: isDraw ? "draw" : winnerSymbol, reason },
+            gameData: {
+              roomId: roomIdRef.current,
+              moves: moveCountRef.current,
+              winner: isDraw ? "draw" : winnerSymbol,
+              reason,
+            },
           }),
         })
           .then((r) => r.json())
@@ -207,12 +212,13 @@ export function GameCaro() {
       if (isWinner || isHostDraw) {
         submitMatch();
       } else {
-        // Fallback for loser: if winner closes tab or disconnects, ensure match is submitted
+        // Fallback for loser: if winner closes tab or drops socket, ensure match is submitted
+        // 6000ms gives winner ample time to complete POST and broadcast match_saved
         fallbackSubmitTimerRef.current = setTimeout(() => {
           if (!matchSavedViaSocketRef.current && !matchSubmittedToApiRef.current) {
             submitMatch();
           }
-        }, 1800);
+        }, 6000);
       }
     }
   }, [stopTimer, setScreen]);
@@ -441,6 +447,11 @@ export function GameCaro() {
   };
 
   const handleRematch = () => {
+    if (fallbackSubmitTimerRef.current) {
+      clearTimeout(fallbackSubmitTimerRef.current);
+      fallbackSubmitTimerRef.current = null;
+    }
+    matchSubmittedToApiRef.current = true;
     stopTimer();
     socketRef.current?.emit("restart_game", { roomId: roomIdRef.current });
     boardRef.current = makeEmptyBoard();

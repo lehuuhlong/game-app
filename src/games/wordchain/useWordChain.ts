@@ -271,6 +271,7 @@ export function useWordChain(userId?: string) {
                   ],
                   duration: 0,
                   gameData: {
+                    roomId: roomIdRef.current,
                     wordsCount: data.gameState?.chain?.length || 0,
                     reason: data.reason,
                     language: data.gameState?.language || "en",
@@ -314,7 +315,7 @@ export function useWordChain(userId?: string) {
               if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
               fallbackTimerRef.current = setTimeout(() => {
                 submitMatch();
-              }, 1800);
+              }, 6000);
             }
           }
         } catch {

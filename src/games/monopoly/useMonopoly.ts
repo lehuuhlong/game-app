@@ -179,7 +179,7 @@ export function useMonopoly(username: string, userId?: string) {
                 gameType: "monopoly",
                 players: playersPayload,
                 duration: 0,
-                gameData: { winnerName },
+                gameData: { roomId: roomIdRef.current, winnerName },
               }),
             })
               .then((r) => r.json())
@@ -219,7 +219,7 @@ export function useMonopoly(username: string, userId?: string) {
             if (fallbackSubmitTimerRef.current) clearTimeout(fallbackSubmitTimerRef.current);
             fallbackSubmitTimerRef.current = setTimeout(() => {
               submitMatch();
-            }, 1800);
+            }, 6000);
           }
         }
       } catch {

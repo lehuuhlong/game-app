@@ -112,21 +112,43 @@ export function GamePikachu() {
         }).catch((e) => console.error('Failed to post match:', e));
       }
 
-      // Save user record if score or level exceeds previous best
-      if (user && user.id && (score > (user.pikachuBestScore || 0))) {
+      // Save user record if user is logged in
+      if (user && user.id) {
+        const payload = {
+          game: 'pikachu',
+          score,
+          level: levelIdx + 1,
+          sessionToken,
+          duration: elapsed,
+          isFinal: isGameOver,
+        };
+
         fetch(`/api/users/${user.id}/score`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            game: 'pikachu',
-            score,
-            level: levelIdx + 1,
-            sessionToken,
-            duration: elapsed,
-            isFinal: isGameOver,
-          }),
+          body: JSON.stringify(payload),
         })
-          .then((r) => r.json())
+          .then(async (r) => {
+            if (r.status === 403 || r.status === 400) {
+              const errData = await r.json().catch(() => ({}));
+              // Auto-recover if session expired (e.g. computer left idle overnight)
+              if (
+                typeof errData.error === 'string' &&
+                (errData.error.toLowerCase().includes('expired') || errData.error.toLowerCase().includes('session'))
+              ) {
+                const freshToken = await startSession(user.id, user.username, true, true);
+                if (freshToken) {
+                  return fetch(`/api/users/${user.id}/score`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...payload, sessionToken: freshToken }),
+                  }).then((res) => res.json());
+                }
+              }
+              return errData;
+            }
+            return r.json();
+          })
           .then((d) => {
             if (d && d.pikachuBestScore !== undefined) {
               refreshUser({
@@ -141,7 +163,7 @@ export function GamePikachu() {
           .catch((e) => console.error('Failed to save pikachu score:', e));
       }
     })();
-  }, [status, score, user, levelIdx, refreshUser, ensureSessionToken, getElapsedDuration]);
+  }, [status, score, user, levelIdx, refreshUser, ensureSessionToken, startSession, getElapsedDuration]);
 
   const handleNextLevel = () => {
     scoreSavedRef.current = false;

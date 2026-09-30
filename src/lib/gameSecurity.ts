@@ -202,7 +202,8 @@ export function validateGameScore(
       if (difficulty === 'expert' && time < 25.0) {
         return { valid: false, reason: 'Minesweeper Expert time is humanly impossible (< 25s)' };
       }
-      if (time > 999) {
+      // Allow up to 4 hours (14,400s) for expert, large, or carefully played boards
+      if (time > 14400) {
         return { valid: false, reason: 'Minesweeper time exceeds maximum threshold' };
       }
       return { valid: true };

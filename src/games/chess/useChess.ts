@@ -332,6 +332,7 @@ export function useChess(username: string) {
               ],
               duration: 0,
               gameData: {
+                roomId: roomIdRef.current,
                 movesCount: gs.moveHistory?.length || 0,
                 endReason: reason,
                 winner: w,
@@ -378,7 +379,7 @@ export function useChess(username: string) {
             if (!matchSavedViaSocketRef.current && !matchSubmittedToApiRef.current) {
               submitMatch();
             }
-          }, 1800);
+          }, 6000);
         }
       });
 
@@ -518,6 +519,11 @@ export function useChess(username: string) {
   }, [getSocket]);
 
   const rematch = useCallback(() => {
+    if (fallbackSubmitTimerRef.current) {
+      clearTimeout(fallbackSubmitTimerRef.current);
+      fallbackSubmitTimerRef.current = null;
+    }
+    matchSubmittedToApiRef.current = true;
     if (!roomIdRef.current) return;
     const socket = getSocket();
     socket.emit("restart_game", { roomId: roomIdRef.current });

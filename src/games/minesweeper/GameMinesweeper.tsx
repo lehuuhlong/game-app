@@ -120,42 +120,64 @@ export function GameMinesweeper() {
 
       if (!user || gameStatus !== 'won') return;
 
-      fetch(`/api/users/${user.id}/score`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      const payload = {
         game: 'minesweeper',
         difficulty,
         time: elapsedTime,
+        duration: elapsedTime,
         sessionToken,
-      }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        try {
-          const stored = localStorage.getItem('game-portal-user');
-          if (stored) {
-            const u = JSON.parse(stored);
-            if (d.msBestBeginner !== undefined) u.msBestBeginner = d.msBestBeginner;
-            if (d.msBestIntermediate !== undefined) u.msBestIntermediate = d.msBestIntermediate;
-            if (d.msBestExpert !== undefined) u.msBestExpert = d.msBestExpert;
-            localStorage.setItem('game-portal-user', JSON.stringify(u));
-          }
-          refreshUser({
-            msBestBeginner: d.msBestBeginner,
-            msBestIntermediate: d.msBestIntermediate,
-            msBestExpert: d.msBestExpert,
-          });
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('userProfileUpdated'));
-          }
-        } catch {
-          /* ignore */
-        }
+      };
+
+      fetch(`/api/users/${user.id}/score`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       })
-      .catch((err) => console.error('Failed to save minesweeper score:', err));
+        .then(async (r) => {
+          if (r.status === 403 || r.status === 400) {
+            const errData = await r.json().catch(() => ({}));
+            if (
+              typeof errData.error === 'string' &&
+              (errData.error.toLowerCase().includes('expired') || errData.error.toLowerCase().includes('session'))
+            ) {
+              const freshToken = await startSession(user.id, user.username, true, true);
+              if (freshToken) {
+                return fetch(`/api/users/${user.id}/score`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...payload, sessionToken: freshToken }),
+                }).then((res) => res.json());
+              }
+            }
+            return errData;
+          }
+          return r.json();
+        })
+        .then((d) => {
+          try {
+            const stored = localStorage.getItem('game-portal-user');
+            if (stored) {
+              const u = JSON.parse(stored);
+              if (d.msBestBeginner !== undefined) u.msBestBeginner = d.msBestBeginner;
+              if (d.msBestIntermediate !== undefined) u.msBestIntermediate = d.msBestIntermediate;
+              if (d.msBestExpert !== undefined) u.msBestExpert = d.msBestExpert;
+              localStorage.setItem('game-portal-user', JSON.stringify(u));
+            }
+            refreshUser({
+              msBestBeginner: d.msBestBeginner,
+              msBestIntermediate: d.msBestIntermediate,
+              msBestExpert: d.msBestExpert,
+            });
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+            }
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch((err) => console.error('Failed to save minesweeper score:', err));
     })();
-  }, [gameOver, gameStatus, user, difficulty, elapsedTime, ensureSessionToken, refreshUser]);
+  }, [gameOver, gameStatus, user, difficulty, elapsedTime, ensureSessionToken, startSession, refreshUser]);
 
   // ── Confirmation dialog state ───────────────────────────────────
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null);

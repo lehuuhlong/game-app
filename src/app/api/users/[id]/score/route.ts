@@ -92,7 +92,23 @@ export async function PATCH(
       );
     }
 
-    const elapsedSeconds = sessionVerification.elapsedSeconds || 0;
+    const reportedDuration =
+      typeof body.duration === 'number' && body.duration >= 0
+        ? body.duration
+        : typeof body.time === 'number' && body.time >= 0
+        ? body.time
+        : sessionVerification.elapsedSeconds || 0;
+
+    const isProgressiveGame = game === 'pikachu' || game === '2048';
+    const isPuzzleOrLongGame =
+      isProgressiveGame ||
+      game === 'minesweeper' ||
+      game === 'sudoku' ||
+      game === 'line98';
+
+    const elapsedSeconds = isPuzzleOrLongGame
+      ? Math.max(sessionVerification.elapsedSeconds || 0, reportedDuration)
+      : (sessionVerification.elapsedSeconds || reportedDuration);
 
     // 3. Proportional Rate of Score & Sanity Checks
     const reportedScore =

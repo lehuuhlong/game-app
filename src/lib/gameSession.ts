@@ -143,16 +143,16 @@ export async function verifyAndConsumeGameSession(
   }
 
   const MAX_SESSION_AGE_MS: Record<string, number> = {
-    flappybird: 20 * 60 * 1000, // 20 minutes max for single run
-    trex: 20 * 60 * 1000,       // 20 minutes max for single run
-    aimtrainer: 15 * 60 * 1000, // 15 minutes max
-    wordle: 30 * 60 * 1000,     // 30 minutes max
-    minesweeper: 45 * 60 * 1000,// 45 minutes max
-    sudoku: 90 * 60 * 1000,     // 90 minutes max
-    pikachu: 360 * 60 * 1000,   // 6 hours max (high-level players with breaks between levels)
-    "2048": 150 * 60 * 1000,    // 2.5 hours max
-    line98: 150 * 60 * 1000,    // 2.5 hours max
-    neonsnake: 30 * 60 * 1000,  // 30 minutes max
+    flappybird: 30 * 60 * 1000,  // 30 minutes max
+    trex: 30 * 60 * 1000,        // 30 minutes max
+    aimtrainer: 15 * 60 * 1000,  // 15 minutes max
+    wordle: 60 * 60 * 1000,      // 60 minutes max
+    minesweeper: 4 * 60 * 60 * 1000, // 4 hours max (allows long expert games & breaks)
+    sudoku: 6 * 60 * 60 * 1000,  // 6 hours max (allows difficult puzzles & breaks)
+    pikachu: 24 * 60 * 60 * 1000,// 24 hours max (allows pausing overnight between levels)
+    "2048": 24 * 60 * 60 * 1000, // 24 hours max (allows long runs & overnight pauses)
+    line98: 24 * 60 * 60 * 1000, // 24 hours max (allows long strategic play)
+    neonsnake: 60 * 60 * 1000,   // 60 minutes max
   };
   const maxAllowedAge = MAX_SESSION_AGE_MS[gameType] || 120 * 60 * 1000;
   if (sessionAgeMs > maxAllowedAge) {
@@ -203,7 +203,13 @@ export async function verifyAndConsumeGameSession(
               completedAt: new Date(),
             },
           }
-        : { $set: { matchSubmitted: true, completed: true, completedAt: new Date() } };
+        : {
+            $set: {
+              matchSubmitted: true,
+              ...(isProgressiveGame ? {} : { completed: true }),
+              completedAt: new Date(),
+            },
+          };
 
     const updated = await GameSession.findOneAndUpdate(updateCond, updateSet, { returnDocument: 'after' });
     if (!updated) {
@@ -234,7 +240,7 @@ export async function verifyAndConsumeGameSession(
         username: options?.username || null,
         gameType,
         startTime: new Date(startTimeMs),
-        completed: isFinal,
+        completed: action === "match" && isProgressiveGame ? false : isFinal,
         scoreSubmitted: action === "score",
         matchSubmitted: action === "match",
         completedAt: new Date(),

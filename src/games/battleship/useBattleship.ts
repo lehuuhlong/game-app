@@ -233,7 +233,7 @@ export function useBattleship(username: string, userId?: string) {
                     { username: opp.username, result: "loss", score: 0, userId: oppUserId },
                   ],
                   duration: 0,
-                  gameData: { winnerName: data.winnerName },
+                  gameData: { roomId: roomIdRef.current, winnerName: data.winnerName },
                 }),
               })
                 .then((r) => r.json())
@@ -273,7 +273,7 @@ export function useBattleship(username: string, userId?: string) {
               if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
               fallbackTimerRef.current = setTimeout(() => {
                 submitMatch();
-              }, 1800);
+              }, 6000);
             }
           }
         }
