@@ -39,6 +39,7 @@ const GAME_DURATIONS: Record<string, string> = {
   'line98': '5–20m',
   'neonsnake': '1–5m',
   'blockdrop': '2–10m',
+  'eggpop': '3–10m',
 };
 
 function CompactGameRow({ game, index }: { game: GameInfo; index: number }) {
