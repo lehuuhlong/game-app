@@ -1222,28 +1222,31 @@ export function useEggEngine(): UseEggEngineReturn {
         // No match -> Foul/Miss penalty
         comboRef.current = 0;
         foulsLeftRef.current--;
-
-        if (foulsLeftRef.current <= 0) {
-          triggerDescentSuspense("fouls");
-          return;
-        }
       }
 
-      // 3. Check Game Over
-      if (checkGameOver()) {
-        playGameOverSound();
-        phaseRef.current = "gameover";
-        return;
-      }
-
-      // 4. Reload next egg
+      // 3. Reload next egg (the fired egg has landed on the grid)
       loadedColorRef.current = nextColorRef.current;
       const active = getActiveColors(gridRef.current);
       const diffNow = getDifficultyForScore(scoreRef.current);
       nextColorRef.current = randomEggColor(
         active.length > 0 ? active : diffNow.unlockedColors,
       );
-      phaseRef.current = "aiming";
+
+      // 4. Check Game Over
+      if (checkGameOver()) {
+        playGameOverSound();
+        phaseRef.current = "gameover";
+        return;
+      }
+
+      // 5. Check if foul penalty or time expiry triggers ceiling descent
+      if (foulsLeftRef.current <= 0) {
+        triggerDescentSuspense("fouls");
+      } else if (descentTimeLeftRef.current <= 0) {
+        triggerDescentSuspense("time");
+      } else {
+        phaseRef.current = "aiming";
+      }
     },
     [
       spawnPopParticles,
@@ -1451,6 +1454,7 @@ export function useEggEngine(): UseEggEngineReturn {
           );
 
           if (
+            phaseRef.current === "aiming" &&
             descentTimeLeftRef.current <= 0 &&
             !isCeilingWarningRef.current &&
             !isCeilingSlidingRef.current
@@ -1489,12 +1493,7 @@ export function useEggEngine(): UseEggEngineReturn {
               playGameOverSound();
               phaseRef.current = "gameover";
             } else {
-              // Reload shooter and resume aiming
-              loadedColorRef.current = nextColorRef.current;
-              const active = getActiveColors(gridRef.current);
-              nextColorRef.current = randomEggColor(
-                active.length > 0 ? active : currentDiff.unlockedColors,
-              );
+              // Resume aiming with currently loaded egg (do not discard or replace player's ball)
               phaseRef.current = "aiming";
             }
           }

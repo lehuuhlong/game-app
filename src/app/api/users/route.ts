@@ -28,13 +28,13 @@ export async function GET(request: Request) {
     // Build query filter
     let filter: Record<string, unknown> = {};
     if (usernameParam) {
-      filter = { username: usernameParam.trim() };
+      filter = { username: { $regex: `^${escapeRegex(usernameParam.trim())}$`, $options: 'i' } };
     } else if (q) {
       filter = { username: { $regex: escapeRegex(q.trim()), $options: 'i' } };
     }
 
     const [users, total] = await Promise.all([
-      User.find(filter).select('-__v').sort({ 'stats.totalScore': -1 }).skip(skip).limit(limit).lean(),
+      User.find(filter).select('-__v').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       User.countDocuments(filter),
     ]);
 
