@@ -5,7 +5,7 @@
  * - Configurable grid size (default 15×15)
  * - Turn-based X / O play
  * - Win detection: 5-in-a-row (horizontal, vertical, diagonal)
- * - "Chặn 2 đầu" (blocked-at-both-ends) rule support
+ * - Blocked-at-both-ends rule support
  * - Draw detection (board full, no winner)
  * - Move history tracking
  * - Socket.io-ready: the handleMove function can be replaced

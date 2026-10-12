@@ -24,7 +24,7 @@ export interface CaroConfig {
   winLength: number;
   /** 
    * If true, a row of exactly `winLength` that is blocked on both ends
-   * does NOT count as a win ("chặn 2 đầu" rule).
+   * does NOT count as a win (blocked-at-both-ends rule).
    */
   blockedEndsRule: boolean;
 }

@@ -1,5 +1,5 @@
 /**
- * Type definitions for Word Chain (Nối Từ) game.
+ * Type definitions for Word Chain game.
  * Re-exports shared socket types and adds client-specific types.
  */
 

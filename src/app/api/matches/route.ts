@@ -159,7 +159,8 @@ export async function POST(request: Request) {
       gameType === "flappybird" ||
       gameType === "trex" ||
       gameType === "neonsnake" ||
-      gameType === "blockdrop";
+      gameType === "blockdrop" ||
+      gameType === "eggpop";
     const limit = isFastArcade ? 60 : 25;
     const rateCheck = checkRateLimit(`match_post:${clientIp}`, limit, 60_000);
     if (!rateCheck.success) {

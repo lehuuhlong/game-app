@@ -1,5 +1,5 @@
 /**
- * useWordChain — custom hook for the Word Chain (Nối Từ) game.
+ * useWordChain — custom hook for the Word Chain game.
  *
  * Manages:
  *  - Socket.io connection to the Word Chain room

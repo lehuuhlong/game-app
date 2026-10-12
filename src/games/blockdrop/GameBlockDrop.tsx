@@ -342,8 +342,8 @@ export function GameBlockDrop() {
     <>
       {showLogin && (
         <LoginModal
-          title="Lưu điểm kỷ lục!"
-          subtitle={`Tuyệt vời! Bạn đã đạt ${score.toLocaleString()} điểm và phá ${lines} hàng gạch! Đăng nhập ngay để lưu điểm lên Bảng xếp hạng toàn cầu.`}
+          title="Save your high score!"
+          subtitle={`Awesome! You scored ${score.toLocaleString()} points and cleared ${lines} lines! Sign in now to save your score to the global leaderboard.`}
           onSuccess={() => setShowLogin(false)}
           onClose={() => setShowLogin(false)}
         />
@@ -629,11 +629,11 @@ export function GameBlockDrop() {
                       onClick={() => setShowLogin(true)}
                       className="mb-3 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span>⚡</span> Đăng nhập để lưu điểm kỷ lục
+                      <span>⚡</span> Sign in to save high score
                     </button>
                   ) : (
                     <div className="mb-3 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium text-[11px] flex items-center gap-1.5">
-                      <span>✓</span> Điểm đã lưu vào Bảng xếp hạng
+                      <span>✓</span> Score saved to Leaderboard
                     </div>
                   )}
 
@@ -642,13 +642,13 @@ export function GameBlockDrop() {
                       onClick={resetGame}
                       className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-transform active:scale-95 cursor-pointer"
                     >
-                      Chơi lại
+                      Play Again
                     </button>
                     <Link
-                      href="/leaderboard"
+                      href="/leaderboard?game=blockdrop"
                       className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs transition-colors"
                     >
-                      Bảng xếp hạng
+                      Leaderboard
                     </Link>
                   </div>
                 </div>

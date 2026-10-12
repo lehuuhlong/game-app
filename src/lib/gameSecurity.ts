@@ -192,6 +192,27 @@ export function validateGameScore(
       return { valid: true };
     }
 
+    case 'eggpop': {
+      // Dino Egg Pop:
+      // Minimum duration: popping clusters and aiming takes realistic time (~1-2s per shot)
+      if (score > 100 && durationSeconds < 2) {
+        return { valid: false, reason: 'Duration too short for Dino Egg Pop score' };
+      }
+      if (score > 500 && durationSeconds < 5) {
+        return { valid: false, reason: 'Duration too short for Dino Egg Pop score' };
+      }
+      // Rate of score check: maximum realistic rate ~350 pts/sec even with big cluster pop + orphan drop cascades
+      if (durationSeconds > 0 && score / durationSeconds > 350) {
+        return { valid: false, reason: 'Rate of score exceeds maximum realistic threshold for Dino Egg Pop' };
+      }
+      if (typeof extraData.shotsFired === 'number') {
+        if (score > 200 && extraData.shotsFired < 2) {
+          return { valid: false, reason: 'Shots fired is too low for reported score' };
+        }
+      }
+      return { valid: true };
+    }
+
     case 'aimtrainer': {
       // Aim Trainer is a fixed 60-second challenge
       if (durationSeconds < 15) {

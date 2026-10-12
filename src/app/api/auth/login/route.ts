@@ -69,6 +69,8 @@ function toClientUser(user: InstanceType<typeof User>) {
     billiardsTotal: user.billiardsTotal ?? 0,
     bestScoreLine98: user.bestScoreLine98 ?? 0,
     bestScoreNeonSnake: user.bestScoreNeonSnake ?? 0,
+    bestScoreBlockDrop: user.bestScoreBlockDrop ?? 0,
+    bestScoreEggPop: user.bestScoreEggPop ?? 0,
   };
 }
 

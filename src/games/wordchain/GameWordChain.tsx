@@ -160,7 +160,7 @@ useEffect(() => {
                       language === "vi" ? "bg-surface shadow-sm text-foreground" : "text-foreground-muted hover:text-foreground"
                     }`}
                   >
-                    🇻🇳 Tiếng Việt
+                    🇻🇳 Vietnamese
                   </button>
                 </div>
               </div>

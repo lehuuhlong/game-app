@@ -25,7 +25,8 @@ export type AllGameType =
   | "billiards"
   | "line98"
   | "neonsnake"
-  | "blockdrop";
+  | "blockdrop"
+  | "eggpop";
 
 export interface IMatchPlayer {
   userId?: mongoose.Types.ObjectId | null;
@@ -66,6 +67,7 @@ const MatchSchema = new Schema<IMatch>(
         "line98",
         "neonsnake",
         "blockdrop",
+        "eggpop",
       ],
     },
     players: [

@@ -27,6 +27,7 @@ const VALID_GAMES = [
   "billiards",
   "neonsnake",
   "blockdrop",
+  "eggpop",
 ];
 
 export async function POST(request: Request) {
@@ -46,7 +47,8 @@ export async function POST(request: Request) {
       gameType === "flappybird" ||
       gameType === "trex" ||
       gameType === "neonsnake" ||
-      gameType === "blockdrop";
+      gameType === "blockdrop" ||
+      gameType === "eggpop";
     const limit = isFastArcade ? 120 : 60;
     const rateCheck = checkRateLimit(`session_start:${clientIp}`, limit, 60_000);
     if (!rateCheck.success) {

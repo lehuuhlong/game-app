@@ -47,6 +47,7 @@ interface PlayerProfileData {
   bestScoreLine98?: number;
   bestScoreNeonSnake?: number;
   bestScoreBlockDrop?: number;
+  bestScoreEggPop?: number;
 }
 
 interface PlayerProfileModalProps {
@@ -714,6 +715,17 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                     Best: <strong className="text-foreground">{profile.bestScoreBlockDrop?.toLocaleString() || 0} pts</strong>
                   </div>
                 </div>
+
+                {/* Dino Egg Pop */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background-secondary border border-border/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>🦕</span>
+                    <span className="font-semibold text-foreground">Dino Egg Pop</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px]">
+                    Best: <strong className="text-foreground">{profile.bestScoreEggPop?.toLocaleString() || 0} pts</strong>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -742,6 +754,7 @@ export function PlayerProfileModal({ username, onClose, onCompareWithMe }: Playe
                       'line98',
                       'neonsnake',
                       'blockdrop',
+                      'eggpop',
                     ].includes(m.gameType);
 
                     return (
