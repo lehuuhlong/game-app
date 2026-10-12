@@ -48,6 +48,7 @@ export interface AuthUser {
   bestScoreLine98?: number;
   bestScoreNeonSnake?: number;
   bestScoreBlockDrop?: number;
+  bestScoreEggPop?: number;
 }
 
 interface AuthContextValue {

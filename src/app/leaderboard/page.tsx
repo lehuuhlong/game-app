@@ -29,7 +29,8 @@ type GameTab =
   | "pikachu"
   | "line98"
   | "neonsnake"
-  | "blockdrop";
+  | "blockdrop"
+  | "eggpop";
 
 interface EntryLine98 {
   rank: number;
@@ -145,6 +146,7 @@ const ALL_GAMES: GameDefinition[] = [
   { id: "line98", label: "Line 98", category: "singleplayer" },
   { id: "neonsnake", label: "Neon Snake", category: "singleplayer" },
   { id: "blockdrop", label: "Block Drop", category: "singleplayer" },
+  { id: "eggpop", label: "Dino Egg Pop", category: "singleplayer" },
 ];
 
 const GAME_ICONS: Record<GameTab, React.ReactNode> = {
@@ -271,6 +273,17 @@ const GAME_ICONS: Record<GameTab, React.ReactNode> = {
       <rect x="3" y="13" width="8" height="8" rx="1.5" />
     </svg>
   ),
+  eggpop: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="6.5" r="3.5" />
+      <circle cx="6" cy="16" r="3" />
+      <circle cx="18" cy="16" r="3" />
+      <path d="M12 17v4" />
+      <circle cx="11" cy="5.5" r="0.8" fill="currentColor" />
+      <circle cx="5" cy="15" r="0.8" fill="currentColor" />
+      <circle cx="17" cy="15" r="0.8" fill="currentColor" />
+    </svg>
+  ),
 };
 
 const TAB_INDEX: Record<string, number> = {
@@ -291,6 +304,7 @@ const TAB_INDEX: Record<string, number> = {
   line98: 14,
   neonsnake: 15,
   blockdrop: 16,
+  eggpop: 17,
 };
 
 const MS_INDEX: Record<string, number> = { beginner: 0, intermediate: 1, expert: 2 };
@@ -402,6 +416,7 @@ export default function LeaderboardPage() {
   const [dataLine98, setDataLine98] = useState<EntryLine98[]>([]);
   const [dataNeonSnake, setDataNeonSnake] = useState<EntryLine98[]>([]);
   const [dataBlockDrop, setDataBlockDrop] = useState<EntryLine98[]>([]);
+  const [dataEggPop, setDataEggPop] = useState<EntryLine98[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selected player profile modal
@@ -501,6 +516,7 @@ export default function LeaderboardPage() {
           else if (activeGame === "line98") setDataLine98(json.leaderboard || []);
           else if (activeGame === "neonsnake") setDataNeonSnake(json.leaderboard || []);
           else if (activeGame === "blockdrop") setDataBlockDrop(json.leaderboard || []);
+          else if (activeGame === "eggpop") setDataEggPop(json.leaderboard || []);
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -684,8 +700,17 @@ export default function LeaderboardPage() {
         metricLabel: "Score",
       };
     }
+    if (activeGame === "eggpop") {
+      if (dataEggPop.length === 0) return null;
+      return {
+        first: dataEggPop[0] ? { rank: 1 as const, username: dataEggPop[0].username, avatarUrl: dataEggPop[0].avatarUrl, primaryStat: `${dataEggPop[0].score.toLocaleString()} pts`, secondaryStat: "Egg Pop Champion" } : null,
+        second: dataEggPop[1] ? { rank: 2 as const, username: dataEggPop[1].username, avatarUrl: dataEggPop[1].avatarUrl, primaryStat: `${dataEggPop[1].score.toLocaleString()} pts`, secondaryStat: "Egg Pop Master" } : null,
+        third: dataEggPop[2] ? { rank: 3 as const, username: dataEggPop[2].username, avatarUrl: dataEggPop[2].avatarUrl, primaryStat: `${dataEggPop[2].score.toLocaleString()} pts`, secondaryStat: "Egg Pop Expert" } : null,
+        metricLabel: "Score",
+      };
+    }
     return null;
-  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu, dataLine98, dataNeonSnake, dataBlockDrop]);
+  }, [activeGame, data2048, dataCaro, dataChess, dataBattleship, dataBilliards, dataWordChain, dataMonopoly, dataAimTrainer, dataMs, dataSudoku, dataTrex, dataFlappy, dataWordle, dataPikachu, dataLine98, dataNeonSnake, dataBlockDrop, dataEggPop]);
 
   const currentGameDef = ALL_GAMES.find((g) => g.id === activeGame) || ALL_GAMES[0];
   const gameRoute = `/games/${activeGame}`;
@@ -1708,6 +1733,39 @@ export default function LeaderboardPage() {
                                   <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
                                   <span className="text-sm font-bold text-amber-400 text-right font-mono flex items-center justify-end gap-1.5">
                                     <span>🧱</span>
+                                    {e.score.toLocaleString()}
+                                  </span>
+                                </TableRow>
+                              ))
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Dino Egg Pop ── */}
+                      {activeGame === "eggpop" && (
+                        <>
+                          <TableHeader cols="grid-cols-[56px_1fr_120px]">
+                            <span>Rank</span>
+                            <span>Player</span>
+                            <span className="text-right">Score</span>
+                          </TableHeader>
+                          {dataEggPop.filter((e) => matchesSearch(e.username)).length === 0 ? (
+                            <Empty text={playerSearchQuery ? `No players found matching "${playerSearchQuery}"` : "No Dino Egg Pop scores recorded yet. Pop eggs, drop clusters, and claim #1!"} />
+                          ) : (
+                            dataEggPop
+                              .filter((e) => matchesSearch(e.username))
+                              .map((e, i) => (
+                                <TableRow
+                                  key={e.username}
+                                  index={i}
+                                  isLast={i === dataEggPop.length - 1}
+                                  cols="grid-cols-[56px_1fr_120px]"
+                                  onClick={() => setSelectedPlayer(e.username)}
+                                >
+                                  <RankBadge rank={e.rank} />
+                                  <PlayerCell avatarUrl={e.avatarUrl} username={e.username} isCurrent={user?.username === e.username} />
+                                  <span className="text-sm font-bold text-teal-400 text-right font-mono flex items-center justify-end gap-1.5">
+                                    <span>🦕</span>
                                     {e.score.toLocaleString()}
                                   </span>
                                 </TableRow>

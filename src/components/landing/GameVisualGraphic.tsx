@@ -1343,6 +1343,192 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+
+      {/* ── Dino Egg Pop (Classic Bubble Shooter) ── */}
+      {id === 'eggpop' && (
+        <div className="relative flex h-full w-full items-center justify-center p-3 select-none">
+          <svg viewBox="0 0 192 112" className="w-full h-full max-h-28 drop-shadow-md" fill="none">
+            <defs>
+              <linearGradient id="ep-grid" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#022c22" />
+                <stop offset="100%" stopColor="#0f172a" />
+              </linearGradient>
+              <radialGradient id="ep-shell" cx="35%" cy="35%" r="65%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="50%" stopColor="#f7f5ee" />
+                <stop offset="85%" stopColor="#e2dfd6" />
+                <stop offset="100%" stopColor="#a8a29e" />
+              </radialGradient>
+              <radialGradient id="ep-shade" cx="35%" cy="35%" r="65%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+                <stop offset="40%" stopColor="#ffffff" stopOpacity="0.05" />
+                <stop offset="65%" stopColor="#000000" stopOpacity="0" />
+                <stop offset="85%" stopColor="#000000" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#000000" stopOpacity="0.65" />
+              </radialGradient>
+              <clipPath id="ep-clip">
+                <circle cx="0" cy="0" r="8" />
+              </clipPath>
+              <g id="ep-egg-red">
+                <g clipPath="url(#ep-clip)">
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shell)" />
+                  <circle cx="0" cy="0" r="2.5" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="3.8" cy="-0.8" r="2.0" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="3.4" r="2.0" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="3.4" r="2.0" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="-3.8" cy="-0.8" r="2.0" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="-3.5" r="2.0" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="-3.5" r="2.0" fill="#ef4444" stroke="#991b1b" strokeWidth="0.3" />
+                  <circle cx="6.5" cy="2.5" r="2.0" fill="#ef4444" />
+                  <circle cx="4.8" cy="6.2" r="2.0" fill="#ef4444" />
+                  <circle cx="0" cy="7.2" r="2.0" fill="#ef4444" />
+                  <circle cx="-4.8" cy="6.2" r="2.0" fill="#ef4444" />
+                  <circle cx="-6.5" cy="2.5" r="2.0" fill="#ef4444" />
+                  <circle cx="-6.5" cy="-3.5" r="2.0" fill="#ef4444" />
+                  <circle cx="0" cy="-7.2" r="2.0" fill="#ef4444" />
+                  <circle cx="6.5" cy="-3.5" r="2.0" fill="#ef4444" />
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shade)" />
+                  <ellipse cx="-2.6" cy="-2.6" rx="2.1" ry="1.2" transform="rotate(-45 -2.6 -2.6)" fill="white" opacity="0.75" />
+                </g>
+                <circle cx="0" cy="0" r="8" stroke="#1e293b" strokeWidth="0.8" />
+              </g>
+              <g id="ep-egg-blue">
+                <g clipPath="url(#ep-clip)">
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shell)" />
+                  <circle cx="0" cy="0" r="2.5" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="3.8" cy="-0.8" r="2.0" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="3.4" r="2.0" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="3.4" r="2.0" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="-3.8" cy="-0.8" r="2.0" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="-3.5" r="2.0" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="-3.5" r="2.0" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.3" />
+                  <circle cx="6.5" cy="2.5" r="2.0" fill="#3b82f6" />
+                  <circle cx="4.8" cy="6.2" r="2.0" fill="#3b82f6" />
+                  <circle cx="0" cy="7.2" r="2.0" fill="#3b82f6" />
+                  <circle cx="-4.8" cy="6.2" r="2.0" fill="#3b82f6" />
+                  <circle cx="-6.5" cy="2.5" r="2.0" fill="#3b82f6" />
+                  <circle cx="-6.5" cy="-3.5" r="2.0" fill="#3b82f6" />
+                  <circle cx="0" cy="-7.2" r="2.0" fill="#3b82f6" />
+                  <circle cx="6.5" cy="-3.5" r="2.0" fill="#3b82f6" />
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shade)" />
+                  <ellipse cx="-2.6" cy="-2.6" rx="2.1" ry="1.2" transform="rotate(-45 -2.6 -2.6)" fill="white" opacity="0.75" />
+                </g>
+                <circle cx="0" cy="0" r="8" stroke="#1e293b" strokeWidth="0.8" />
+              </g>
+              <g id="ep-egg-green">
+                <g clipPath="url(#ep-clip)">
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shell)" />
+                  <circle cx="0" cy="0" r="2.5" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="3.8" cy="-0.8" r="2.0" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="3.4" r="2.0" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="3.4" r="2.0" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="-3.8" cy="-0.8" r="2.0" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="-3.5" r="2.0" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="-3.5" r="2.0" fill="#22c55e" stroke="#15803d" strokeWidth="0.3" />
+                  <circle cx="6.5" cy="2.5" r="2.0" fill="#22c55e" />
+                  <circle cx="4.8" cy="6.2" r="2.0" fill="#22c55e" />
+                  <circle cx="0" cy="7.2" r="2.0" fill="#22c55e" />
+                  <circle cx="-4.8" cy="6.2" r="2.0" fill="#22c55e" />
+                  <circle cx="-6.5" cy="2.5" r="2.0" fill="#22c55e" />
+                  <circle cx="-6.5" cy="-3.5" r="2.0" fill="#22c55e" />
+                  <circle cx="0" cy="-7.2" r="2.0" fill="#22c55e" />
+                  <circle cx="6.5" cy="-3.5" r="2.0" fill="#22c55e" />
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shade)" />
+                  <ellipse cx="-2.6" cy="-2.6" rx="2.1" ry="1.2" transform="rotate(-45 -2.6 -2.6)" fill="white" opacity="0.75" />
+                </g>
+                <circle cx="0" cy="0" r="8" stroke="#1e293b" strokeWidth="0.8" />
+              </g>
+              <g id="ep-egg-yellow">
+                <g clipPath="url(#ep-clip)">
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shell)" />
+                  <circle cx="0" cy="0" r="2.5" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="3.8" cy="-0.8" r="2.0" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="3.4" r="2.0" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="3.4" r="2.0" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="-3.8" cy="-0.8" r="2.0" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="-3.5" r="2.0" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="-3.5" r="2.0" fill="#facc15" stroke="#a16207" strokeWidth="0.3" />
+                  <circle cx="6.5" cy="2.5" r="2.0" fill="#facc15" />
+                  <circle cx="4.8" cy="6.2" r="2.0" fill="#facc15" />
+                  <circle cx="0" cy="7.2" r="2.0" fill="#facc15" />
+                  <circle cx="-4.8" cy="6.2" r="2.0" fill="#facc15" />
+                  <circle cx="-6.5" cy="2.5" r="2.0" fill="#facc15" />
+                  <circle cx="-6.5" cy="-3.5" r="2.0" fill="#facc15" />
+                  <circle cx="0" cy="-7.2" r="2.0" fill="#facc15" />
+                  <circle cx="6.5" cy="-3.5" r="2.0" fill="#facc15" />
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shade)" />
+                  <ellipse cx="-2.6" cy="-2.6" rx="2.1" ry="1.2" transform="rotate(-45 -2.6 -2.6)" fill="white" opacity="0.75" />
+                </g>
+                <circle cx="0" cy="0" r="8" stroke="#1e293b" strokeWidth="0.8" />
+              </g>
+              <g id="ep-egg-purple">
+                <g clipPath="url(#ep-clip)">
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shell)" />
+                  <circle cx="0" cy="0" r="2.5" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="3.8" cy="-0.8" r="2.0" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="3.4" r="2.0" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="3.4" r="2.0" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="-3.8" cy="-0.8" r="2.0" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="-1.9" cy="-3.5" r="2.0" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="1.9" cy="-3.5" r="2.0" fill="#a855f7" stroke="#6b21a8" strokeWidth="0.3" />
+                  <circle cx="6.5" cy="2.5" r="2.0" fill="#a855f7" />
+                  <circle cx="4.8" cy="6.2" r="2.0" fill="#a855f7" />
+                  <circle cx="0" cy="7.2" r="2.0" fill="#a855f7" />
+                  <circle cx="-4.8" cy="6.2" r="2.0" fill="#a855f7" />
+                  <circle cx="-6.5" cy="2.5" r="2.0" fill="#a855f7" />
+                  <circle cx="-6.5" cy="-3.5" r="2.0" fill="#a855f7" />
+                  <circle cx="0" cy="-7.2" r="2.0" fill="#a855f7" />
+                  <circle cx="6.5" cy="-3.5" r="2.0" fill="#a855f7" />
+                  <circle cx="0" cy="0" r="8" fill="url(#ep-shade)" />
+                  <ellipse cx="-2.6" cy="-2.6" rx="2.1" ry="1.2" transform="rotate(-45 -2.6 -2.6)" fill="white" opacity="0.75" />
+                </g>
+                <circle cx="0" cy="0" r="8" stroke="#1e293b" strokeWidth="0.8" />
+              </g>
+            </defs>
+
+            {/* Background container */}
+            <rect x="22" y="6" width="148" height="100" rx="8" fill="url(#ep-grid)" stroke="#0d9488" strokeWidth="1" strokeOpacity="0.4" />
+
+            {/* Row 0 eggs */}
+            <g transform="translate(42, 18)"><use href="#ep-egg-red" /></g>
+            <g transform="translate(60, 18)"><use href="#ep-egg-blue" /></g>
+            <g transform="translate(78, 18)"><use href="#ep-egg-green" /></g>
+            <g transform="translate(96, 18)"><use href="#ep-egg-yellow" /></g>
+            <g transform="translate(114, 18)"><use href="#ep-egg-purple" /></g>
+            <g transform="translate(132, 18)"><use href="#ep-egg-red" /></g>
+            <g transform="translate(150, 18)"><use href="#ep-egg-blue" /></g>
+
+            {/* Row 1 eggs (Hex Offset) */}
+            <g transform="translate(51, 33)"><use href="#ep-egg-green" /></g>
+            <g transform="translate(69, 33)"><use href="#ep-egg-yellow" /></g>
+            <g transform="translate(87, 33)"><use href="#ep-egg-yellow" /></g>
+            <g transform="translate(105, 33)"><use href="#ep-egg-yellow" /></g>
+            <g transform="translate(123, 33)"><use href="#ep-egg-purple" /></g>
+            <g transform="translate(141, 33)"><use href="#ep-egg-green" /></g>
+
+            {/* Row 2 eggs */}
+            <g transform="translate(42, 48)"><use href="#ep-egg-blue" /></g>
+            <g transform="translate(60, 48)"><use href="#ep-egg-red" /></g>
+            <g transform="translate(78, 48)"><use href="#ep-egg-yellow" /></g>
+            <g transform="translate(114, 48)"><use href="#ep-egg-blue" /></g>
+            <g transform="translate(132, 48)"><use href="#ep-egg-red" /></g>
+
+            {/* Flying Egg & Aim Trajectory */}
+            <line x1="96" y1="92" x2="78" y2="58" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.8" />
+            <g transform="translate(84, 68) scale(0.9)">
+              <use href="#ep-egg-yellow" />
+            </g>
+
+            {/* Cannon Platform & Barrel */}
+            <ellipse cx="96" cy="98" rx="22" ry="7" fill="#1e293b" stroke="#0ea5e9" strokeWidth="1" />
+            <g transform="translate(96, 94) rotate(-120)">
+              <rect x="-4" y="-5" width="16" height="10" rx="2" fill="#0284c7" stroke="#38bdf8" strokeWidth="1" />
+              <polygon points="12,-7 20,0 12,7" fill="#7dd3fc" />
+            </g>
+            <g transform="translate(96, 94) scale(0.85)"><use href="#ep-egg-yellow" /></g>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

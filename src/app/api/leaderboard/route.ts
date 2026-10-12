@@ -473,6 +473,24 @@ export async function GET(request: Request) {
       });
     }
 
+    if (game === "eggpop") {
+      const leaderboard = await User.find({ bestScoreEggPop: { $gt: 0 } })
+        .select("username avatarUrl bestScoreEggPop")
+        .sort({ bestScoreEggPop: -1 })
+        .limit(10)
+        .lean();
+
+      return NextResponse.json({
+        game: "eggpop",
+        leaderboard: leaderboard.map((u, i) => ({
+          rank: i + 1,
+          username: u.username,
+          avatarUrl: u.avatarUrl || null,
+          score: u.bestScoreEggPop,
+        })),
+      });
+    }
+
     return NextResponse.json({ error: "Missing or invalid ?game= parameter" }, { status: 400 });
   } catch (error) {
     console.error("GET /api/leaderboard error:", error);

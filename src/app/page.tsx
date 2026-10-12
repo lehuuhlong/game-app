@@ -54,6 +54,7 @@ const COMPLETED_GAME_IDS = [
   'line98',
   'neonsnake',
   'blockdrop',
+  'eggpop',
 ];
 
 // Upcoming teaser game profiles

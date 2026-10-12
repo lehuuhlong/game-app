@@ -217,5 +217,18 @@ export const GAMES: GameInfo[] = [
     tags: ['Puzzle', 'Retro', 'Arcade', 'Single Player'],
     color: 'from-amber-500 via-purple-600 to-cyan-500',
   },
+  {
+    id: 'eggpop',
+    title: 'Dino Egg Pop',
+    description:
+      'Classic prehistoric bubble shooter. Aim and bounce off walls, match 3+ dino eggs to pop, and trigger cascading cluster drops before the eggs reach the ground!',
+    thumbnail: '/games/eggpop/thumbnail.svg',
+    route: '/games/eggpop',
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ['Arcade', 'Single Player', 'Puzzle', 'Classic', 'Reflex'],
+    color: 'from-emerald-500 via-teal-600 to-cyan-700',
+  },
 ];
+
 
