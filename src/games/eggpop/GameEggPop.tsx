@@ -113,9 +113,10 @@ export function GameEggPop() {
 
   const [localHighScore, setLocalHighScore] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
+  
   const userScoreSavedRef = useRef(false);
   const matchSavedRef = useRef(false);
-  const wasPlayingRef = useRef(false);
+  const prevPhaseRef = useRef(state.phase);
 
   // Initialize high score from local storage or user profile
   useEffect(() => {
@@ -142,19 +143,26 @@ export function GameEggPop() {
 
   // Restart session when starting a new game after game over / victory
   useEffect(() => {
+    const wasFinished = prevPhaseRef.current === "gameover" || prevPhaseRef.current === "victory";
     const isFinished = state.phase === "gameover" || state.phase === "victory";
-    if (!isFinished && wasPlayingRef.current) {
+
+    if (wasFinished && !isFinished) {
       userScoreSavedRef.current = false;
       matchSavedRef.current = false;
       startSession(user?.id, user?.username, true);
     }
-    wasPlayingRef.current = !isFinished;
+    
+    prevPhaseRef.current = state.phase;
   }, [state.phase, startSession, user?.id, user?.username]);
 
   // Submit high score to backend API upon game over or victory
   const submitUserScore = useCallback(
-    async (targetUserId: string, targetScore: number) => {
+    async (targetUserId: string, targetScore: number, shotsFired: number) => {
       if (userScoreSavedRef.current || !targetUserId || targetScore <= 0) return;
+      
+      // LOCK IMMEDIATE TO PREVENT INFINITE LOOP
+      userScoreSavedRef.current = true;
+
       try {
         const sessionToken = await ensureSessionToken(targetUserId, user?.username);
         const elapsed = getElapsedDuration();
@@ -167,12 +175,11 @@ export function GameEggPop() {
             score: targetScore,
             sessionToken,
             duration: elapsed,
-            shotsFired: state.stats.shotsFired,
+            shotsFired: shotsFired,
           }),
         });
         const data = await res.json();
         if (data.bestScoreEggPop !== undefined) {
-          userScoreSavedRef.current = true;
           setLocalHighScore((prev) => Math.max(prev, data.bestScoreEggPop));
           refreshUser({ bestScoreEggPop: data.bestScoreEggPop });
           try {
@@ -189,9 +196,11 @@ export function GameEggPop() {
         }
       } catch (err) {
         console.error("Failed to update Dino Egg Pop score:", err);
+        // UNLOCK IF FAILED SO WE CAN RETRY
+        userScoreSavedRef.current = false;
       }
     },
-    [ensureSessionToken, getElapsedDuration, refreshUser, user?.username, state.stats.shotsFired],
+    [ensureSessionToken, getElapsedDuration, refreshUser, user?.username],
   );
 
   // Save match history and submit user score upon game over or victory
@@ -243,7 +252,7 @@ export function GameEggPop() {
 
     // 2. Submit high score to user profile & leaderboard if user is logged in
     if (user?.id && !userScoreSavedRef.current && currentScore > 0) {
-      submitUserScore(user.id, currentScore);
+      submitUserScore(user.id, currentScore, state.stats.shotsFired);
     }
   }, [
     state.phase,
@@ -267,9 +276,9 @@ export function GameEggPop() {
   useEffect(() => {
     const isFinished = state.phase === "gameover" || state.phase === "victory";
     if (isFinished && user?.id && !userScoreSavedRef.current && state.stats.score > 0) {
-      submitUserScore(user.id, state.stats.score);
+      submitUserScore(user.id, state.stats.score, state.stats.shotsFired);
     }
-  }, [state.phase, user?.id, state.stats.score, submitUserScore]);
+  }, [state.phase, user?.id, state.stats, submitUserScore]);
 
   // Auto-start on mount
   useEffect(() => {
