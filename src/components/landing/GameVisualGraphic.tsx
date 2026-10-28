@@ -1529,6 +1529,110 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+
+      {/* ── 19. CYBER BRAWL ───────────────────────────────────────── */}
+      {id === 'cyberbrawl' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-[#0a0a1a] via-[#120c24] to-[#1f0a2e]">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Cyber Brawl"
+          >
+            <defs>
+              <linearGradient id="cb-p1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#ff3366" />
+                <stop offset="100%" stopColor="#f43f5e" />
+              </linearGradient>
+              <linearGradient id="cb-p2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#00f0ff" />
+                <stop offset="100%" stopColor="#0ea5e9" />
+              </linearGradient>
+              <radialGradient id="cb-clash" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+                <stop offset="40%" stopColor="#fbbf24" stopOpacity="0.8" />
+                <stop offset="80%" stopColor="#f43f5e" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#00f0ff" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+
+            {/* Neon Skyline */}
+            <g fill="#161233" opacity="0.6">
+              <rect x="15" y="45" width="22" height="45" />
+              <rect x="42" y="32" width="26" height="58" />
+              <rect x="74" y="50" width="18" height="40" />
+              <rect x="104" y="38" width="24" height="52" />
+              <rect x="134" y="48" width="22" height="42" />
+              <rect x="160" y="30" width="22" height="60" />
+            </g>
+
+            {/* Glowing Grid Floor */}
+            <line x1="0" y1="88" x2="192" y2="88" stroke="#00f0ff" strokeWidth="1.5" />
+            <line x1="0" y1="96" x2="192" y2="96" stroke="#00f0ff" strokeWidth="0.8" opacity="0.4" />
+            <line x1="0" y1="106" x2="192" y2="106" stroke="#00f0ff" strokeWidth="0.5" opacity="0.2" />
+            <g stroke="#00f0ff" strokeWidth="0.8" opacity="0.35">
+              <line x1="96" y1="88" x2="96" y2="112" />
+              <line x1="96" y1="88" x2="60" y2="112" />
+              <line x1="96" y1="88" x2="132" y2="112" />
+              <line x1="96" y1="88" x2="20" y2="112" />
+              <line x1="96" y1="88" x2="172" y2="112" />
+            </g>
+
+            {/* P1 Fighter (Red/Pink Brawler) */}
+            <g transform="translate(48, 42)">
+              <ellipse cx="14" cy="46" rx="16" ry="3.5" fill="#ff3366" opacity="0.25" />
+              {/* Head */}
+              <circle cx="12" cy="10" r="7" fill="url(#cb-p1)" />
+              <rect x="11" y="9" width="7" height="2.5" rx="1" fill="#fff" opacity="0.9" />
+              {/* Torso */}
+              <rect x="6" y="18" width="12" height="15" rx="2" fill="url(#cb-p1)" />
+              {/* Punching Arm */}
+              <path d="M16 20 L32 23 L36 24" stroke="#ff3366" strokeWidth="4.5" strokeLinecap="round" />
+              <circle cx="36" cy="24" r="3" fill="#ffe4e6" />
+              {/* Legs */}
+              <path d="M9 33 L5 45" stroke="#ff3366" strokeWidth="4" strokeLinecap="round" />
+              <path d="M15 33 L20 45" stroke="#ff3366" strokeWidth="4" strokeLinecap="round" />
+            </g>
+
+            {/* P2 Fighter (Cyan Mecha) */}
+            <g transform="translate(108, 42)">
+              <ellipse cx="18" cy="46" rx="16" ry="3.5" fill="#00f0ff" opacity="0.25" />
+              {/* Head */}
+              <circle cx="20" cy="10" r="7" fill="url(#cb-p2)" />
+              <rect x="14" y="9" width="7" height="2.5" rx="1" fill="#fff" opacity="0.9" />
+              {/* Torso */}
+              <rect x="14" y="18" width="12" height="15" rx="2" fill="url(#cb-p2)" />
+              {/* Guarding Arm */}
+              <path d="M16 21 L0 23 L-3 24" stroke="#00f0ff" strokeWidth="4.5" strokeLinecap="round" />
+              <circle cx="-3" cy="24" r="3" fill="#e0f2fe" />
+              {/* Legs */}
+              <path d="M17 33 L12 45" stroke="#00f0ff" strokeWidth="4" strokeLinecap="round" />
+              <path d="M23 33 L28 45" stroke="#00f0ff" strokeWidth="4" strokeLinecap="round" />
+            </g>
+
+            {/* Impact Hit Flash Clash */}
+            <circle cx="94" cy="65" r="14" fill="url(#cb-clash)" />
+            <polygon points="94,56 96,63 103,65 97,68 99,75 94,70 89,75 91,68 85,65 92,63" fill="#ffffff" opacity="0.95" />
+
+            {/* Mini HUD Lifebars at top */}
+            <g transform="translate(16, 10)">
+              {/* P1 Lifebar */}
+              <rect x="0" y="2" width="62" height="6" rx="1.5" fill="#1e1b4b" stroke="#475569" strokeWidth="0.8" />
+              <rect x="14" y="3" width="47" height="4" rx="1" fill="#10b981" />
+              <rect x="6" y="3" width="8" height="4" rx="1" fill="#ef4444" />
+
+              {/* Center 99 Timer */}
+              <rect x="68" y="0" width="24" height="10" rx="2" fill="#020617" stroke="#eab308" strokeWidth="0.8" />
+              <text x="80" y="8" textAnchor="middle" fill="#facc15" fontSize="7" fontWeight="bold" fontFamily="monospace">99</text>
+
+              {/* P2 Lifebar */}
+              <rect x="98" y="2" width="62" height="6" rx="1.5" fill="#1e1b4b" stroke="#475569" strokeWidth="0.8" />
+              <rect x="99" y="3" width="52" height="4" rx="1" fill="#06b6d4" />
+            </g>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

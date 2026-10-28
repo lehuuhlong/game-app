@@ -229,6 +229,18 @@ export const GAMES: GameInfo[] = [
     tags: ['Arcade', 'Single Player', 'Puzzle', 'Classic', 'Reflex'],
     color: 'from-emerald-500 via-teal-600 to-cyan-700',
   },
+  {
+    id: 'cyberbrawl',
+    title: 'Cyber Brawl',
+    description:
+      'Modular, high-performance 2D arcade fighting game. Fixed 60 FPS tick simulation, precise startup/active/recovery frame data, pushbox separation, and hitbox debug overlay.',
+    thumbnail: '/games/cyberbrawl/thumbnail.svg',
+    route: '/games/cyberbrawl',
+    minPlayers: 2,
+    maxPlayers: 2,
+    tags: ['Arcade', 'Multiplayer', 'Fighting', 'Action', 'Reflex', 'Cyberpunk'],
+    color: 'from-rose-500 via-purple-600 to-cyan-500',
+  },
 ];
 
 

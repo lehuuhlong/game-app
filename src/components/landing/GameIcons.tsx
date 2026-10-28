@@ -428,6 +428,30 @@ export function DinoEggPopIcon({ className = '', size = 20 }: IconProps) {
   );
 }
 
+export function CyberBrawlIcon({ className = '', size = 20 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M4 14l3 -3l4 1l2 -2l-3 -3l-3 1l-3 6z" />
+      <path d="M20 10l-3 3l-4 -1l-2 2l3 3l3 -1l3 -6z" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      <path d="M12 7v2" />
+      <path d="M12 15v2" />
+      <path d="M7 12h2" />
+      <path d="M15 12h2" />
+    </svg>
+  );
+}
+
 /**
  * Returns the matching SVG icon for any game ID
  */
@@ -469,6 +493,8 @@ export function getGameSvgIcon(id: string, className = '', size = 20) {
       return <BlockDropIcon className={className} size={size} />;
     case 'eggpop':
       return <DinoEggPopIcon className={className} size={size} />;
+    case 'cyberbrawl':
+      return <CyberBrawlIcon className={className} size={size} />;
     default:
       return <Puzzle2048Icon className={className} size={size} />;
   }
