@@ -1529,6 +1529,64 @@ export function GameVisualGraphic({ id, className = '' }: GameVisualGraphicProps
           </svg>
         </div>
       )}
+      {/* -- 19. NEON NONOGRAM ----------------------------------- */}
+      {id === 'nonogram' && (
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950">
+          <svg
+            viewBox="0 0 192 112"
+            className="absolute inset-0 h-full w-full"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="Neon Nonogram"
+          >
+            <defs>
+              <linearGradient id="nono-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="100%" stopColor="#818cf8" />
+              </linearGradient>
+              <filter id="nono-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+            {/* Board Frame */}
+            <rect x="44" y="16" width="104" height="80" rx="8" fill="#0f172a" fillOpacity="0.85" stroke="#334155" strokeWidth="1.5" />
+            {/* Row Clues */}
+            <g fill="#94a3b8" fontSize="7" fontFamily="monospace" fontWeight="bold">
+              <text x="26" y="35">1 1</text>
+              <text x="32" y="51">3</text>
+              <text x="32" y="67">3</text>
+              <text x="32" y="83">1</text>
+            </g>
+            {/* Col Clues */}
+            <g fill="#94a3b8" fontSize="7" fontFamily="monospace" fontWeight="bold">
+              <text x="56" y="11">1</text>
+              <text x="74" y="11">3</text>
+              <text x="92" y="11">3</text>
+              <text x="110" y="11">1</text>
+            </g>
+            {/* Glowing Neon Heart Pixels */}
+            <g fill="url(#nono-grad)" filter="url(#nono-glow)">
+              <rect x="68" y="24" width="14" height="14" rx="2" />
+              <rect x="104" y="24" width="14" height="14" rx="2" />
+              <rect x="68" y="40" width="14" height="14" rx="2" />
+              <rect x="86" y="40" width="14" height="14" rx="2" />
+              <rect x="104" y="40" width="14" height="14" rx="2" />
+              <rect x="86" y="56" width="14" height="14" rx="2" />
+              <rect x="104" y="56" width="14" height="14" rx="2" />
+              <rect x="86" y="72" width="14" height="14" rx="2" />
+            </g>
+            {/* X Crosses */}
+            <g stroke="#64748b" strokeWidth="1.2" strokeLinecap="round">
+              <path d="M54 28l6 6M60 28l-6 6" />
+              <path d="M90 28l6 6M96 28l-6 6" />
+              <path d="M122 28l6 6M128 28l-6 6" />
+              <path d="M54 76l6 6M60 76l-6 6" />
+              <path d="M122 76l6 6M128 76l-6 6" />
+            </g>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

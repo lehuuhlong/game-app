@@ -213,6 +213,18 @@ export function validateGameScore(
       return { valid: true };
     }
 
+    case 'nonogram': {
+      // Neon Nonogram:
+      // Minimum duration: solving any puzzle requires at least 3 seconds of human deduction
+      if (score > 100 && durationSeconds < 3) {
+        return { valid: false, reason: 'Duration too short for Nonogram puzzle completion' };
+      }
+      if (score > 1500) {
+        return { valid: false, reason: 'Nonogram score exceeds maximum realistic threshold' };
+      }
+      return { valid: true };
+    }
+
     case 'aimtrainer': {
       // Aim Trainer is a fixed 60-second challenge
       if (durationSeconds < 15) {

@@ -229,6 +229,17 @@ export const GAMES: GameInfo[] = [
     tags: ['Arcade', 'Single Player', 'Puzzle', 'Classic', 'Reflex'],
     color: 'from-emerald-500 via-teal-600 to-cyan-700',
   },
+  {
+    id: 'nonogram',
+    title: 'Neon Nonogram',
+    description:
+      'Classic Japanese picture logic puzzle. Deduce row and column number clues to fill neon cells, reveal hidden pixel art, and beat the clock without making mistakes.',
+    thumbnail: '/games/nonogram/thumbnail.svg',
+    route: '/games/nonogram',
+    minPlayers: 1,
+    maxPlayers: 1,
+    tags: ['Puzzle', 'Single Player', 'Logic', 'Strategy'],
+    color: 'from-sky-400 via-blue-600 to-indigo-700',
+  },
 ];
-
 

@@ -33,8 +33,6 @@ next-env.d.ts
 # ==========================================
 # AI Agents & Assistants
 # ==========================================
-.agent/
-.agents/
 .claude/
 .gemini/
 .impeccable/

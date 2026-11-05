@@ -46,6 +46,7 @@ export interface IUser extends Document {
   bestScoreNeonSnake: number; // Neon Snake: best score
   bestScoreBlockDrop: number; // Retro Block Drop: best score
   bestScoreEggPop: number; // Dino Egg Pop: best score
+  bestScoreNonogram: number; // Neon Nonogram: best score
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,6 +101,7 @@ const UserSchema = new Schema<IUser>(
     bestScoreNeonSnake: { type: Number, default: 0 },
     bestScoreBlockDrop: { type: Number, default: 0 },
     bestScoreEggPop: { type: Number, default: 0 },
+    bestScoreNonogram: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
@@ -110,6 +112,7 @@ UserSchema.index({ bestScoreLine98: -1 });
 UserSchema.index({ bestScoreNeonSnake: -1 });
 UserSchema.index({ bestScoreBlockDrop: -1 });
 UserSchema.index({ bestScoreEggPop: -1 });
+UserSchema.index({ bestScoreNonogram: -1 });
 UserSchema.index({ pikachuBestScore: -1 });
 UserSchema.index({ caroWins: -1, caroTotal: -1 });
 UserSchema.index({ chessWins: -1, chessTotal: -1 });

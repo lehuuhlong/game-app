@@ -27,7 +27,7 @@ const DAILY_CHALLENGES: Record<string, { goal: string; reward: string; difficult
   'neonsnake': { goal: 'Grow snake to 35 length and score 150+ points', reward: '+220 Arcade XP', difficulty: 'Speed' },
   'blockdrop': { goal: 'Clear 15+ lines and reach Level 3 in a single run', reward: '+250 Arcade XP', difficulty: 'Puzzle' },
   'eggpop': { goal: 'Pop 25+ eggs and trigger a 3x combo chain without fouls', reward: '+200 Arcade XP', difficulty: 'Precision' },
-};
+  'nonogram': { goal: 'Solve any 10x10 or 15x15 pixel art grid without making 3 mistakes', reward: '+250 Arcade XP', difficulty: 'Master Logic' },};
 
 export function DailySpotlight() {
   // Deterministic daily rotation based on date

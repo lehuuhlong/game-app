@@ -32,6 +32,7 @@ const VALID_GAMES = [
   'neonsnake',
   'blockdrop',
   'eggpop',
+  'nonogram',
 ];
 
 const MS_FIELD_MAP: Record<string, 'msBestBeginner' | 'msBestIntermediate' | 'msBestExpert'> = {
@@ -297,6 +298,11 @@ export async function PATCH(
       if (score > (user.bestScoreEggPop || 0)) {
         user.bestScoreEggPop = score;
       }
+    } else if (game === 'nonogram') {
+      const { score } = body;
+      if (score > (user.bestScoreNonogram || 0)) {
+        user.bestScoreNonogram = score;
+      }
     }
 
     await user.save();
@@ -338,6 +344,7 @@ export async function PATCH(
       bestScoreNeonSnake: user.bestScoreNeonSnake,
       bestScoreBlockDrop: user.bestScoreBlockDrop,
       bestScoreEggPop: user.bestScoreEggPop,
+      bestScoreNonogram: user.bestScoreNonogram,
     });
   } catch (error) {
     console.error('PATCH /api/users/[id]/score error:', error);
